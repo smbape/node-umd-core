@@ -1,0 +1,21 @@
+{
+  "name": "umd-core",
+  "version": "1.0.0",
+  "authors": [
+    "Stéphane MBAPE"
+  ],
+  "description": "umd core files",
+  "main": "**",
+  "umd": true,
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "qs": "git+https://github.com/hapijs/qs#~5.1.0"
+  }
+}
