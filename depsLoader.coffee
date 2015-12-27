@@ -219,6 +219,90 @@
         amd: amdDefine
         define: localDefine
 
+    has = Object::hasOwnProperty
+
+    exports.createNgModule = (angular, name, ngdeps, ngmap, resolvedDeps)->
+        toRemove = []
+        for dusable, index in resolvedDeps
+            if dusable.$ng
+                # this is not a module injectable dependency
+                toRemove.unshift index
+
+        # remove non injectable dependencies
+        for index in toRemove
+            ngdeps.splice ngmap[index], 1
+
+        app = angular.module(name, ngdeps)
+        app.name = name
+
+        # register usables
+        for index in toRemove
+            resolvedDeps[index] app, false
+
+        app
+
+    exports.createNgUsable = (ctor, ngmethod, $name, $path, $dirname, $shortName, ngdeps, resolvedDeps, ngmap, withoutName)->
+
+        usable = (app, lazy)->
+            toRemove = []
+            app.dependencies or (app.dependencies = {})
+            app.dependencies[ngmethod] or (app.dependencies[ngmethod] = {})
+
+            if !has.call(app.dependencies[ngmethod], name)
+                # first instruction to prevent infinite loop with recursion
+                app.dependencies[ngmethod][name] = true
+
+                # recursively register usable dependencies
+                for dusable, i in resolvedDeps
+                    if dusable.$ng
+                        switch dusable.$ng
+                            when 'controller', 'directive', 'filter'
+                                # this is not an injectable dependency
+                                # unshift to loop from higher to lower
+                                # this ensure slice is done on the correct element
+                                toRemove.unshift ngmap[i]
+                            else
+                                ngdeps[ngmap[i]] = dusable.$name
+                
+                        dusable app, lazy
+
+                # remove non injectable dependencies
+                for index in toRemove
+                    ngdeps.splice index, 1
+
+                # register this usable
+                if lazy isnt false
+                    if withoutName
+                        app.register[ngmethod] ctor
+                    else
+                        app.register[ngmethod] name, ctor
+                else
+                    if withoutName
+                        app[ngmethod] ctor
+                    else
+                        app[ngmethod] name, ctor
+            return
+
+        switch ngmethod
+            when 'controller'
+                name = ctor::$name or (ctor::$name = $name)
+                ctor::$path = $path
+                ctor::$dirname = $dirname
+            when 'directive', 'filter'
+                name = $shortName.replace /\-([a-z])/g, (match) ->
+                    match[1].toUpperCase()
+            else
+                name = $name
+
+        ctor.$inject = ngdeps
+        usable.$name = name
+        usable.$path = $path
+        usable.$dirname = $dirname
+        usable.ctor = ctor
+        usable.$ng = ngmethod
+
+        usable
+
     browserExtend = (exports)->
         if typeof window is 'undefined' or typeof window.window isnt 'object' or window.window.window isnt window.window
             return
