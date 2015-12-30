@@ -20,12 +20,11 @@ function factory(require, QueryString) {
             return parse.call(QueryString);
         }
 
+        var args = arguments;
         if ('string' === typeof search && '?' === search.charAt(0)) {
-            search = search.substring(1);
+            var args = slice.call(arguments);
+            args[0] = search.substring(1);
         }
-
-        var args = slice.call(arguments);
-        args[0] = search;
 
         return parse.apply(QueryString, args);
     }
