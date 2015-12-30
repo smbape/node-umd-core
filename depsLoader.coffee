@@ -222,28 +222,39 @@
     has = Object::hasOwnProperty
 
     exports.createNgModule = (angular, name, ngdeps, ngmap, resolvedDeps)->
-        toRemove = []
+        toRegister = []
         for dusable, index in resolvedDeps
             if dusable.$ng
                 # this is not a module injectable dependency
-                toRemove.unshift index
+                toRegister.unshift index
 
         # remove non injectable dependencies
-        for index in toRemove
+        for index in toRegister
             ngdeps.splice ngmap[index], 1
 
         app = angular.module(name, ngdeps)
         app.name = name
 
         # register usables
-        for index in toRemove
-            resolvedDeps[index] app, false
+        for index in toRegister
+            resolvedDeps[index] app
 
         app
 
-    exports.createNgUsable = (ctor, ngmethod, $name, $path, $dirname, $shortName, ngdeps, resolvedDeps, ngmap, withoutName)->
+    exports.createNgUsable = (ctor, ngmethod, $name, $path, $dirname, $shortName, ngdeps, resolvedDeps, ngmap)->
 
-        usable = (app, lazy)->
+        switch ngmethod
+            when 'controller'
+                name = ctor::$name or (ctor::$name = $name)
+                ctor::$path = $path
+                ctor::$dirname = $dirname
+            when 'directive', 'filter'
+                name = $shortName.replace /\-([a-z])/g, (match) ->
+                    match[1].toUpperCase()
+            else
+                name = $name
+
+        usable = (app, lazy = app.lazy)->
             toRemove = []
             app.dependencies or (app.dependencies = {})
             app.dependencies[ngmethod] or (app.dependencies[ngmethod] = {})
@@ -256,7 +267,7 @@
                 for dusable, i in resolvedDeps
                     if dusable.$ng
                         switch dusable.$ng
-                            when 'controller', 'directive', 'filter'
+                            when 'usable', 'config', 'run', 'controller', 'directive', 'filter'
                                 # this is not an injectable dependency
                                 # unshift to loop from higher to lower
                                 # this ensure slice is done on the correct element
@@ -270,6 +281,12 @@
                 for index in toRemove
                     ngdeps.splice index, 1
 
+                if ngmethod is 'usable'
+                    ctor app, lazy
+                    return
+
+                withoutName = ngmethod in ['config', 'run']
+
                 # register this usable
                 if lazy isnt false
                     if withoutName
@@ -282,17 +299,6 @@
                     else
                         app[ngmethod] name, ctor
             return
-
-        switch ngmethod
-            when 'controller'
-                name = ctor::$name or (ctor::$name = $name)
-                ctor::$path = $path
-                ctor::$dirname = $dirname
-            when 'directive', 'filter'
-                name = $shortName.replace /\-([a-z])/g, (match) ->
-                    match[1].toUpperCase()
-            else
-                name = $name
 
         ctor.$inject = ngdeps
         usable.$name = name
