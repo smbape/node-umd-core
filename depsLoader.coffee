@@ -288,7 +288,7 @@
                 withoutName = ngmethod in ['config', 'run']
 
                 # register this usable
-                if lazy isnt false
+                if lazy
                     if withoutName
                         app.register[ngmethod] ctor
                     else
