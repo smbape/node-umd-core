@@ -288,16 +288,10 @@
                 withoutName = ngmethod in ['config', 'run']
 
                 # register this usable
-                if lazy
-                    if withoutName
-                        app.register[ngmethod] ctor
-                    else
-                        app.register[ngmethod] name, ctor
+                if withoutName
+                    app[ngmethod] ctor
                 else
-                    if withoutName
-                        app[ngmethod] ctor
-                    else
-                        app[ngmethod] name, ctor
+                    app[ngmethod] name, ctor
             return
 
         ctor.$inject = ngdeps

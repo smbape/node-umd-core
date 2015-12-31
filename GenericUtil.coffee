@@ -76,7 +76,7 @@ factory = (require)->
             str.charAt(0).toUpperCase() + str.slice 1
 
         toCamelDash: (str) ->
-            str.replace /\-([a-z])/g, (match) ->
+            str.replace /\-(\w)/g, (match) ->
                 match[1].toUpperCase()
 
         toCapitalCamelDash: (str) ->
