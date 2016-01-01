@@ -254,7 +254,7 @@
             else
                 name = $name
 
-        usable = (app, lazy = app.lazy)->
+        usable = (app)->
             toRemove = []
             app.dependencies or (app.dependencies = {})
             app.dependencies[ngmethod] or (app.dependencies[ngmethod] = {})
@@ -275,14 +275,14 @@
                             else
                                 ngdeps[ngmap[i]] = dusable.$name
                 
-                        dusable app, lazy
+                        dusable app
 
                 # remove non injectable dependencies
                 for index in toRemove
                     ngdeps.splice index, 1
 
                 if ngmethod is 'usable'
-                    ctor app, lazy
+                    ctor app
                     return
 
                 withoutName = ngmethod in ['config', 'run']
