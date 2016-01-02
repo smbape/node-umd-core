@@ -275,14 +275,14 @@
                             else
                                 ngdeps[ngmap[i]] = dusable.$name
                 
-                        dusable app
+                        dusable.apply null, arguments
 
                 # remove non injectable dependencies
                 for index in toRemove
                     ngdeps.splice index, 1
 
                 if ngmethod is 'usable'
-                    ctor app
+                    ctor.apply null, arguments
                     return
 
                 withoutName = ngmethod in ['config', 'run']
