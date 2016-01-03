@@ -1,4 +1,5 @@
 ((root, factory) ->
+    'use strict'
     if typeof exports isnt 'undefined'
         # Node/CommonJS
         module.exports = factory()
@@ -9,9 +10,16 @@
         root.depsLoader = factory root.pathBrowserify
     return
 ) this, (path)->
+    'use strict'
 
     isObject = (obj)->
         return typeof obj is 'object' and obj isnt null
+
+    extend = (target, src)->
+        if isObject(src) and isObject(target)
+            for own prop of src
+                target[prop] = src[prop]
+        target
 
     _specialDep = (self, dep)->
         switch dep.charAt(0)
@@ -456,7 +464,7 @@
                 completeback() if typeof completeback is 'function'
                 return
 
-            attributes = _.extend
+            attributes = extend
                 tag: 'script'
                 type: 'text/javascript'
                 src: src
