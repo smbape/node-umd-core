@@ -17,6 +17,7 @@
         switch dep.charAt(0)
             when '!'
                 # global depency requested
+                throw 'global scope is not defined' if not self
                 return self[dep.substring(1)]
             when '$'
                 # Ignore dependency. To use with angular as an example
@@ -43,6 +44,7 @@
             switch dep.charAt(0)
                 when '!'
                     # global depency requested
+                    throw 'global scope is not defined' if not self
                     libs.push self[dep.substring(1)]
                 when '$'
                     # Ignore dependency. To use with angular as an example
@@ -80,6 +82,7 @@
             switch dep.charAt(0)
                 when '!'
                     # global depency requested
+                    throw 'global scope is not defined' if not self
                     libs.push self[dep.substring(1)]
                 when '$'
                     # Ignore dependency. To use with angular as an example
@@ -123,6 +126,7 @@
                 switch dep.charAt(0)
                     when '!'
                         # global depency requested
+                        throw 'global scope is not defined' if not self
                         availables.push [index, self[dep.substring(1)]]
                     when '$'
                         # Ignore dependency. To use with angular as an example
@@ -169,6 +173,7 @@
                 switch dep.charAt(0)
                     when '!'
                         # global depency requested
+                        throw 'global scope is not defined' if not self
                         availables.push [index, self[dep.substring(1)]]
                     when '$'
                         # Ignore dependency. To use with angular as an example
