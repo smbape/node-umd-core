@@ -21,26 +21,13 @@
                 target[prop] = src[prop]
         target
 
-    _specialDep = (self, dep)->
-        switch dep.charAt(0)
-            when '!'
-                # global depency requested
-                throw 'global scope is not defined' if not self
-                return self[dep.substring(1)]
-            when '$'
-                # Ignore dependency. To use with angular as an example
-                return true
-            else
-                return false
-
     # Module definition for Common Specification
-    commonSpecDefine = (require, type, deps, factory)->
-        self = this
+    commonSpecDefine = (require, type, deps, factory, global)->
         deps = [] if typeof deps is 'undefined'
 
         # a call for require within the module, will call commonSpecRequire
         localRequire = (deps, callback, errback, options)->
-            commonSpecRequire.call self, require, type, deps, callback, errback, options
+            commonSpecRequire require, type, deps, callback, errback, options, global
 
         libs = [localRequire]
 
@@ -52,8 +39,8 @@
             switch dep.charAt(0)
                 when '!'
                     # global depency requested
-                    throw 'global scope is not defined' if not self
-                    libs.push self[dep.substring(1)]
+                    throw 'global scope is not defined' if not global
+                    libs.push global[dep.substring(1)]
                 when '$'
                     # Ignore dependency. To use with angular as an example
                     libs.push null
@@ -69,10 +56,9 @@
             else if isObject dep
                 _processDep dep[type]
 
-        factory.apply self, libs
+        factory.apply global, libs
 
-    commonSpecRequire = (require, type, deps, callback, errback, options)->
-        self = this
+    commonSpecRequire = (require, type, deps, callback, errback, options, global)->
 
         if typeof deps is 'string'
             deps = [deps]
@@ -90,8 +76,8 @@
             switch dep.charAt(0)
                 when '!'
                     # global depency requested
-                    throw 'global scope is not defined' if not self
-                    libs.push self[dep.substring(1)]
+                    throw 'global scope is not defined' if not global
+                    libs.push global[dep.substring(1)]
                 when '$'
                     # Ignore dependency. To use with angular as an example
                     libs.push null
@@ -112,14 +98,19 @@
                 _processDep dep[type]
 
         if hasError
-            errback.apply this, errors
+            errback.apply global, errors
         else if typeof callback is 'function'
-            callback.apply this, libs
+            callback.apply global, libs
         else if deps.length is 1
             libs[0]
 
-    amdDefine = (deps, factory)->
-        self = this
+    amdDefine = (name, deps, factory, global)->
+        if arguments.length is 3
+            global = factory
+            factory = deps
+            deps = name
+            name = null
+
         deps = [] if typeof deps is 'undefined'
         libs = ['require']
         availables = []
@@ -127,18 +118,18 @@
 
         _processDep = (dep, index)->
             if typeof dep is 'undefined'
-                availables.push [index, null]
+                availables[index] = null
                 return
 
             if typeof dep is 'string'
                 switch dep.charAt(0)
                     when '!'
                         # global depency requested
-                        throw 'global scope is not defined' if not self
-                        availables.push [index, self[dep.substring(1)]]
+                        throw 'global scope is not defined' if not global
+                        availables[index] = global[dep.substring(1)]
                     when '$'
                         # Ignore dependency. To use with angular as an example
-                        availables.push [index, null]
+                        availables[index] = null
                     else
                         map[libs.length] = index
                         libs.push dep
@@ -150,19 +141,26 @@
             else if isObject dependency
                 _processDep dependency.amd, index + 1
 
-        define libs, (require)->
+        callback = (require)->
+            # if name is 'ng-tutorial/controllers/HomeController'
+            #     debugger
             for index in [1...arguments.length] by 1
                 availables[map[index]] = arguments[index]
             
             localRequire = (deps, callback, errback, options)->
-                amdRequire require, deps, callback, errback, options
+                amdRequire require, deps, callback, errback, options, global
             availables[0] = localRequire
 
             factory.apply this, availables
-        return
 
-    amdRequire = (require, deps, callback, errback, options)->
-        self = this
+        # if name is 'ng-tutorial/controllers/HomeController'
+        #     debugger
+        if name
+            define name, libs, callback
+        else
+            define libs, callback
+
+    amdRequire = (require, deps, callback, errback, options, global)->
 
         if typeof deps is 'string'
             deps = [deps]
@@ -174,18 +172,18 @@
 
         _processDep = (dep, index)->
             if typeof dep is 'undefined'
-                availables.push [index, null]
+                availables[index] = null
                 return
 
             if typeof dep is 'string'
                 switch dep.charAt(0)
                     when '!'
                         # global depency requested
-                        throw 'global scope is not defined' if not self
-                        availables.push [index, self[dep.substring(1)]]
+                        throw 'global scope is not defined' if not global
+                        availables[index] = global[dep.substring(1)]
                     when '$'
                         # Ignore dependency. To use with angular as an example
-                        availables.push [index, null]
+                        availables[index] = null
                     else
                         try
                             availables[index] = require dep
@@ -205,12 +203,12 @@
             return availables[0]
 
         if libs.length is 0
-            return callback.apply this, availables
+            return callback.apply global, availables
 
         require libs, ->
             for lib, index in arguments
                 availables[map[index]] = lib
-            callback.apply this, availables
+            callback.apply global, availables
         , errback
         return
 
