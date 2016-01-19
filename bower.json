@@ -5,7 +5,7 @@
     "Stéphane MBAPE"
   ],
   "description": "umd core files",
-  "main": "**",
+  "main": "src/**",
   "umd": true,
   "license": "MIT",
   "ignore": [
