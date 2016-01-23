@@ -1,4 +1,8 @@
-factory = (require)->
+deps = [
+    {amb: 'backbone', common: '!Backbone', node: 'backbone'}
+]
+
+factory = (require, Backbone)->
     toString = ({}).toString;
     hasOwnProperty = Object::hasOwnProperty
     GenericUtil =

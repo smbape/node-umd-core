@@ -22,7 +22,7 @@ function factory(require, QueryString) {
 
         var args = arguments;
         if ('string' === typeof search && '?' === search.charAt(0)) {
-            var args = slice.call(arguments);
+            args = slice.call(arguments);
             args[0] = search.substring(1);
         }
 

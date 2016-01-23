@@ -5,7 +5,7 @@ deps = [
 ]
 factory = (require, _, GenericUtil, QueryString)->
 
-    hasOwnProperty = {}.hasOwnProperty
+    hasOwn = {}.hasOwnProperty
 
     splitPathReg = /^(.*?)([^\/]+?|)(\.[^.\/]*|)$/
     splitPath = (filename) ->
@@ -41,21 +41,23 @@ factory = (require, _, GenericUtil, QueryString)->
     # @author Stéphane Mbape
     #
     class RouterEngine
+        strict: true
         removeLeadTrail: _removeLeadTrail
+        validOptions: ['name', 'strict', 'route', 'baseUrl', 'prefix', 'suffix', 'camel', 'defaults']
 
         # Construct a new RouterEngine.
         # @param [Object] options the router engine options
         # @option defaults [Object] @see {RouterEngine#setDefaults}
         # @option route [String] @see {RouterEngine#setRoute}
-        constructor: (options)->
-            @handlers = {}
+        constructor: (options = {})->
             @defaults = {}
-            for prop of options
-                method = 'set' + GenericUtil.StringUtil.firstUpper prop
-                if typeof @[method] is 'function'
-                    @[method] options[prop]
-                else
-                    @[prop] = options[prop]
+            for prop in RouterEngine::validOptions
+                if hasOwn.call options, prop
+                    method = 'set' + GenericUtil.StringUtil.firstUpper prop
+                    if typeof @[method] is 'function'
+                        @[method] options[prop]
+                    else
+                        @[prop] = options[prop]
             return
 
         # Method used to encode url parts
@@ -173,16 +175,22 @@ factory = (require, _, GenericUtil, QueryString)->
         # Match given url against url template
         # @param [String] url url to match
         # @return [Object] Object of matches
-        getParams: (url) ->
+        getParams: (url, options = {}) ->
 
             url = _removeLeadTrail url
             if url.length is 0
                 url = _removeLeadTrail @getDefaultUrl()
 
-            # Partial match defaultUrl
-            defaultUrl = _removeLeadTrail @getDefaultUrl()
-            if _substringMatch url, defaultUrl
-                url = defaultUrl
+            strict = if hasOwn.call options, 'strict'
+                options.strict
+            else
+                @strict
+
+            if not strict
+                # Partial match defaultUrl
+                defaultUrl = _removeLeadTrail @getDefaultUrl()
+                if _substringMatch url, defaultUrl
+                    url = defaultUrl
 
             # Test matching against base url
             baseUrl = _removeLeadTrail @baseUrl
@@ -213,7 +221,10 @@ factory = (require, _, GenericUtil, QueryString)->
                 return
 
             if noMatch
-                throw NoMatch 'No matching'
+                if options.throws is false
+                    return false
+                else
+                    throw NoMatch 'No matching'
 
             params
 
@@ -224,14 +235,14 @@ factory = (require, _, GenericUtil, QueryString)->
         getUrl: (params = {}, options)->
             params = _.clone params
             for key of @defaults
-                if not hasOwnProperty.call params, key
+                if not hasOwn.call params, key
                     params[key] = _.result @defaults, key
 
             for own key of params
                 params[key] = _.result params, key
 
             url = @sanitized.replace /\{(\w+)\}/g, (match, variable) =>
-                if hasOwnProperty.call params, variable
+                if hasOwn.call params, variable
                     match = @encode params[variable]
                     delete params[variable]
                 match
@@ -270,6 +281,7 @@ factory = (require, _, GenericUtil, QueryString)->
         match: (url)->
             try
                 return @getParams url if typeof url is 'string' and url.length > 0
+            catch ex
             return false
 
         getShortUrl: (params, options)->

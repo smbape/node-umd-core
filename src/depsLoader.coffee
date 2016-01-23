@@ -187,7 +187,7 @@
                     else
                         try
                             availables[index] = require dep
-                        catch
+                        catch ex
                             map[libs.length] = index
                             libs.push dep
 
