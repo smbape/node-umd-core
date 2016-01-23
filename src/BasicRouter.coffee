@@ -24,12 +24,12 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             if url is null
                 if @_otherwise
                     @navigate @_otherwise
+                    return
                 else if @otherwise
                     url = ''
                     otherwise = true
                 else
                     throw new Error "unmatched route for #{url}"
-                return
 
             if typeof options is 'string'
                 url += '?' + options
