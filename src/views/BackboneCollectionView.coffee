@@ -39,7 +39,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this.model.on 'add', this.onAdd, this
             this.model.on 'remove', this.onRemove, this
             this.model.on 'reset', this.onReset, this
-            this.model.on 'change', this.onChange, this
             this.model.on 'switch', this.onSwitch, this
             this._viewAttributes.on 'change', this.onChange, this
             return
@@ -47,7 +46,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
         detachEvents: ->
             this._viewAttributes.off 'change', this.onChange, this
             this.model.off 'switch', this.onSwitch, this
-            this.model.off 'change', this.onChange, this
             this.model.off 'reset', this.onReset, this
             this.model.off 'remove', this.onRemove, this
             this.model.off 'add', this.onAdd, this
@@ -222,7 +220,7 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this.trigger 'reset'
             return
 
-        onChange: (model)->
+        onModelChange: (model)->
             if model is this.model
                 this.renderParent()
             else if model is this._viewAttributes
@@ -243,5 +241,5 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             return
 
         onSwitch: ->
-            this.render(this.container)
+            @reRender()
             return

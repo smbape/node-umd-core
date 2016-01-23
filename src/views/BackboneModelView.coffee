@@ -54,17 +54,6 @@ factory = (_, $, Backbone, eachSeries)->
         modelChangeTasks: ->
             this.unmountTasks(this.container).concat this.mountTasks(this.container)
 
-        onModelChange: ->
-            view = this
-            modelChangeTasks = view.modelChangeTasks(view.container)
-
-            ->
-                view.take()
-                eachSeries view, modelChangeTasks, (err)->
-                    view.give()
-                    return
-                return
-
         render: (container, done)->
             view = @
             view.container = container
@@ -83,6 +72,20 @@ factory = (_, $, Backbone, eachSeries)->
                 done() if 'function' is typeof done
                 return
 
+            return
+
+        onModelChange: (model, done)->
+            @reRender done
+            return
+
+        reRender: (done)->
+            view = this
+            modelChangeTasks = view.modelChangeTasks(view.container)
+            view.take()
+            eachSeries view, modelChangeTasks, (err)->
+                view.give()
+                done() if 'function' is typeof done
+                return
             return
 
         destroy: (done)->
@@ -143,11 +146,10 @@ factory = (_, $, Backbone, eachSeries)->
         # here do dom manipulations that need mount
         componentDidMount: ->
             if model = this.model
-                this._onModelChange = this.onModelChange()
-                model.on 'change', this._onModelChange
+                model.on 'change', this.onModelChange, this
             return
 
         # undo what have been done in componentDidMount
         componentWillUnmount: ->
             if model = this.model
-                model.off 'change', this._onModelChange
+                model.off 'change', this.onModelChange, this

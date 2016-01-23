@@ -15,6 +15,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             if not config.app
                 throw new Error 'app property is undefined'
 
+            @current = {}
             @app = config.app
             @_initRoutes config
             @_history = new StackArray()
@@ -96,6 +97,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                 pathParams
                 queryParams
                 params: _.extend {}, pathParams, queryParams
+                engine
             }
 
             index = 0
@@ -154,7 +156,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             if options.force
                 Backbone.history.fragment = null
                 options.trigger = true
-            else if @_location and location.pathname is @_location.pathname and location.search is @_location.search
+            else if @current.location and location.pathname is @current.location.pathname and location.search is @current.location.search
                 location = @app.getLocation fragment
                 @app.setLocationHash location.hash
                 return @
@@ -166,12 +168,13 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             html.replace /\b(href|src|data-main)="(?!mailto:|https?\:\/\/|[\/#!])([^"]+)/g, "$1=\"#{baseUrl}$2"
 
         onRouteChangeSuccess: (res, options)->
-            @_location = options.location
+            @current = _.clone options
+
             if res?.title
                 document.title = res.title
             return
 
-        onRouteChangeFailure: (options)->
+        onRouteChangeFailure: (err, options)->
 
         getPrevUrl: ->
             @_history.get -1
