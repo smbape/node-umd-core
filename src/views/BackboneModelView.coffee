@@ -16,9 +16,15 @@ factory = (_, $, Backbone, eachSeries)->
             @id = @id or _.uniqueId 'view_'
 
             proto = @constructor.prototype
+
             for own opt of options
-                if opt.charAt(0) isnt '_' and (hasOwn.call(proto, opt) or 'undefined' isnt typeof proto[opt])
-                    @[opt] = options[opt]
+                if opt.charAt(0) isnt '_'
+                    currProto = proto
+                    while currProto and not hasOwn.call(currProto, opt)
+                        currProto = currProto.prototype
+
+                    if currProto
+                        @[opt] = options[opt]
 
             super
 
