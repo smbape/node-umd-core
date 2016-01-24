@@ -53,6 +53,18 @@ factory = ({$, Backbone}, eachSeries)->
                     @_setLocationHash = @_customLocationHash
 
                 @_listenHrefClick()
+
+                # TODO: on push state
+                #   try route from hash
+                #   if success
+                #       /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
+                # TODO: on not push state and not location file
+                #   try route from hash
+                #   if failed
+                #       use route from pathname with partial match
+                #       preserve hash
+                #       /context/pathname?query#anchor -> /context/#pathname?query!anchor
+                #       
                 Backbone.history.start pushState: @hasPushState
                 return
             , @
@@ -115,7 +127,7 @@ factory = ({$, Backbone}, eachSeries)->
 
         _nativeLocationHash: (hash)->
             if window.location.hash is '#' + hash
-                element = document.getElementById(hash) or $("[name=#{hash.replace(/([\\\/])/g, '\\$1')}]")[0]
+                element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-.])/g, '\\$1')}]")[0]
                 element.scrollIntoView() if element
             else
                 window.location.hash = '#' + hash
