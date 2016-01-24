@@ -127,6 +127,7 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 xhtml[xhtml.length] = this.getChildXhtml model
             container = this.getChildrenContainer()
             container.empty().html xhtml.join('')
+
             return
 
         componentWillMount: ->
@@ -158,8 +159,7 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 model: model.toJSON()
                 view: this._viewAttributes.toJSON()
 
-            collection = model.collection
-            if collection
+            if collection = this.model
                 if 'function' is typeof collection.attrToJSON
                     context.collection = collection.attrToJSON()
                 else
@@ -198,26 +198,32 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
 
             this.setComparator(comparator) and this.renderChildren()
 
-        onAdd: (model)->
-            index = this.model.indexOf model
+        onAdd: (model, collection, options)->
             container = this.getChildrenContainer()
             xhtml = this.getChildXhtml model
             element = $ xhtml
-            container.insertAt element, index
+            index = options.index or this.model.indexOf model
+            if typeof index isnt 'undefined' and index isnt -1
+                container.insertAt index, element
+            else
+                container.append element
+
             return element
 
         onRemove: (model, collection, options)->
             index = options.index
             container = this.getChildrenContainer()
-            children = container.children()
-            element = children.eq index
+            element = $ container[0].children[index]
+
             element.destroy()
+
             return
 
         onReset: (model)->
             container = this.getChildrenContainer()
             container.empty()
             this.trigger 'reset'
+
             return
 
         onModelChange: (model)->
@@ -229,11 +235,12 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 else
                     this.renderParent()
             else
+                xhtml = this.getChildXhtml model
+
                 index = this.model.indexOf model
                 container = this.getChildrenContainer()
-                xhtml = this.getChildXhtml model
-                children = container.children()
-                element = children.eq index
+                element = $ container[0].children[index]
+
                 element.replaceWith xhtml
                 element.destroy()
 

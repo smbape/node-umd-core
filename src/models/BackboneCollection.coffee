@@ -4,6 +4,7 @@ deps = [
 ]
 
 factory = ({_, Backbone}, GenericUtil)->
+    hasOwn = {}.hasOwnProperty
 
     _lookup = (attr, model)->
         attr = attr.split '.'
@@ -47,21 +48,7 @@ factory = ({_, Backbone}, GenericUtil)->
                     collection.addIndex name, attrs
 
             if collection._options.strict
-                collection.on 'change', (model, options)->
-                    if model isnt this
-                        # maintain filter
-                        if this.selector and not this.selector model
-                            this.remove model
-                            return
-
-                        # maintain order
-                        if this.comparator
-                            at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
-                            index = this.indexOf model
-                            if at isnt index
-                                this.remove model
-                                this.add model
-                    return
+                collection.on 'change', @_onChange
 
         unsetAttribute: (name)->
             this._modelAttributes.unset name
@@ -117,7 +104,7 @@ factory = ({_, Backbone}, GenericUtil)->
                     break if found
                 return found
 
-            return if not this._keymap.hasOwnProperty indexName
+            return if not hasOwn.call this._keymap, indexName
 
             ref = this._keymap[indexName]
             key = this._keys[indexName]
@@ -154,7 +141,7 @@ factory = ({_, Backbone}, GenericUtil)->
                 for value, index in chain
                     if index is chain.length - 1
                         break
-                    if key.hasOwnProperty value
+                    if hasOwn key, value
                         key = key[value]
                     else
                         key = key[value] = {}
@@ -206,25 +193,105 @@ factory = ({_, Backbone}, GenericUtil)->
                     _model.set model
             _model
 
-        add: (models, options = {})->
-            if options.merge
-                if Array.isArray models
-                    for model, index in models
-                        _model = this._getClone model
-                        models[index] = _model if _model
-                else
-                    _model = this._getClone models
-                    models = _model if _model
+        _onChange: (model, options)->
+            if model isnt this
+                @_ensureEntegrity model, options
+            return
 
+        _ensureEntegrity: (model, options)->
             # maintain filter
-            if this.selector
-                models = _.filter models, this.selector
+            if this.selector and not this.selector model
+                index = this.indexOf model
+                this.remove model, options
+                return {remove: index}
 
-            super models, options
+            # maintain order
+            if this.comparator
+                at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
+                index = this.indexOf model
+                if at isnt index
+                    at = this.models.length if at is -1
+                    this.remove model, _.defaults {sort: false}, options
+                    this.add model, _.defaults {sort: false}, options
+                    return {remove: index, add: at}
+
+            return
+
+        add: (models, options = {})->
+            return if not models
+
+            res = []
+            singular = !_.isArray(models)
+            models = if singular then [models] else models
+            actions = []
+            {merge, silent} = options
+
+            for model in models
+                
+                # if model exists
+                # filter and order is already preserved
+                if existing = this.get model
+                    hasChanged = false
+
+                    if merge and model isnt existing
+                        attrs = if @_isModel(model) then model.attributes else model
+                        if options.parse
+                            attrs = existing.parse(attrs, options)
+                        existing.set attrs, options
+                        hasChanged = not _.isEmpty existing.changed
+
+                    if hasChanged
+                        opts = @_ensureEntegrity existing, _.defaults {silent: true}, options
+
+                        if opts
+                            if hasOwn.call opts, 'remove'
+                                actions.push ['remove', existing, opts.remove]
+
+                            if hasOwn.call opts, 'add'
+                                actions.push ['add', existing, opts.add]
+                                res.push existing
+
+                        continue
+                    else
+                        res.push existing
+                        continue
+
+                opts = _.defaults {sort: false, silent: true}, options
+
+                if not model = this._prepareModel model, opts
+                    continue
+
+                # maintain filter
+                if this.selector and not this.selector model
+                    continue
+
+                # maintain order
+                if this.comparator
+                    at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
+                    opts.at = if at is -1 then this.models.length else at
+                else
+                    opts.at = this.models.length
+
+                model = super model, opts
+                res.push model
+                actions.push ['add', model, opts.at]
+
+            if not silent and actions.length
+                for [name, model, index] in actions
+                    model.trigger name, model, this, _.defaults {index}, options
+
+                this.trigger 'update', this, options
+
+            return if singular then res[0] else res
 
         getSubSet: (options)->
             options = _.extend {}, this._options, options
             subSet = new this.constructor this.models, options
+            proto = this.constructor.prototype
+
+            for method in ['add', 'remove', 'reset', 'move']
+                do (method)->
+                    subSet[method] = -> throw new Error method + ' is not allowed on a subSet'
 
             subSet.parent = this
 
@@ -234,22 +301,17 @@ factory = ({_, Backbone}, GenericUtil)->
                     subSet.set attributes, options
                 return
 
-            this.on 'add', (model)->
-                subSet.add model
+            this.on 'add', (model, options)->
+                proto.add.call subSet, model
                 return
 
-            this.on 'remove', (model)->
-                subSet.remove model
+            this.on 'remove', (model, options)->
+                proto.remove.call subSet, model
                 return
 
-            this.on 'reset', (models, options)->
-                subSet.reset models, _.extend {proxy: true}, options
-                return
-
-            reset = subSet.reset
-            subSet.reset = (models, options = {})->
-                if options.proxy
-                    reset.apply @, arguments
+            this.on 'reset', (collection, options)->
+                if collection is subSet.parent
+                    proto.reset.call subSet, collection.models, options
                 return
 
             subSet

@@ -198,6 +198,8 @@ factory = ({$, Backbone}, eachSeries)->
 
                 return
 
+            return
+
     BasicBackboneApplication::emit = BasicBackboneApplication::trigger
 
     return BasicBackboneApplication

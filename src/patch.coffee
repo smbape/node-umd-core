@@ -85,20 +85,17 @@ factory = ($)->
             i++
         ret
 
-    $.fn.insertAt = (elements, index) ->
-        children = this.children()
-
-        if index >= children.size()
-            this.append elements
-            return this
-
-        childBefore = children.eq index
-
-        if childBefore.length > 0
-            $(elements).insertBefore childBefore
-        else
-            this.append elements
-
-        this
+    $.fn.insertAt = (index, elements)->
+        @domManip [elements], (elem) ->
+            if this.children
+                if this.children.length < index
+                    this.appendChild elem
+                else if index < 0
+                    this.insertBefore elem, this.firstChild
+                else
+                    this.insertBefore elem, this.children[index]
+            else
+                this.appendChild elem
+            return
 
     return

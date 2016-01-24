@@ -40,8 +40,9 @@ freact = ({_, Backbone, EventEmitter})->
                 @props.model?.toJSON() or null
 
             trackModelChange: ->
+                # make sure state updates view
                 @shouldUpdate = true
-                @setState {}
+                @setState {stuff: new Date().getTime()}
                 return
 
             attachEvents: ->

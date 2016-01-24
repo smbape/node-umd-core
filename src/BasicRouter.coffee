@@ -21,6 +21,37 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             @_history = new StackArray()
             @container = $ config.container or document.body
 
+        navigate: (fragment, options = {}, evt)->
+            # evt is defined when comming from a click on a[href]
+            options.evt = evt
+            if _.isObject evt
+                target = evt.target
+
+                if target.nodeName isnt 'A'
+                    # faster way to do a target.closest('a')
+                    while target and target.nodeName isnt 'A'
+                        target = target.parentNode
+
+                prefix = 'data-navigate-'
+                for attr in target.attributes
+                    {name, value} = attr
+                    if prefix is name.substring 0, prefix.length
+                        options[name.substring(prefix.length)] = value
+
+            location = @app.getLocation fragment
+            if location.pathname.charAt(0) in ['/', '#']
+                location.pathname = location.pathname.substring(1)
+
+            if options.force
+                Backbone.history.fragment = null
+                options.trigger = true
+            else if @current.location and location.pathname is @current.location.pathname and location.search is @current.location.search
+                location = @app.getLocation fragment
+                @app.setLocationHash location.hash
+                return @
+
+            super
+
         dispatch: (url, options, callback)->
             if url is null
                 if @_otherwise
@@ -109,6 +140,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                     if err
                         router.onRouteChangeFailure err, handlerOptions
                     else
+                        app.setLocationHash()
                         router.onRouteChangeSuccess res, handlerOptions
 
                     callback(err, res) if 'function' is typeof callback
@@ -131,37 +163,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             iterate(1)
 
             return
-
-        navigate: (fragment, options = {}, evt)->
-            # evt is defined when comming from a click on a[href]
-            options.evt = evt
-            if _.isObject evt
-                target = evt.target
-
-                if target.nodeName isnt 'A'
-                    # faster way to do a target.closest('a')
-                    while target and target.nodeName isnt 'A'
-                        target = target.parentNode
-
-                prefix = 'data-navigate-'
-                for attr in target.attributes
-                    {name, value} = attr
-                    if prefix is name.substring 0, prefix.length
-                        options[name.substring(prefix.length)] = value
-
-            location = @app.getLocation fragment
-            if location.pathname.charAt(0) in ['/', '#']
-                location.pathname = location.pathname.substring(1)
-
-            if options.force
-                Backbone.history.fragment = null
-                options.trigger = true
-            else if @current.location and location.pathname is @current.location.pathname and location.search is @current.location.search
-                location = @app.getLocation fragment
-                @app.setLocationHash location.hash
-                return @
-
-            super
 
         templateWillMount: (html, engineName, options)->
             baseUrl = @app.get 'baseUrl'
