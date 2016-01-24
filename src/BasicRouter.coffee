@@ -9,17 +9,27 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
     hasOwn = {}.hasOwnProperty
 
     class BasicRouter extends Backbone.Router
-        constructor: (config)->
+        constructor: (options)->
+            options = _.clone options
+
+            proto = @constructor.prototype
+
+            currProto = proto
+            while currProto
+                for own opt of currProto
+                    if opt.charAt(0) isnt '_' and not hasOwn.call(options, opt) and 'undefined' isnt typeof @[opt]
+                        options[opt] = @[opt]
+                currProto = currProto.prototype
+
             super routes: '*url': 'dispatch'
 
-            if not config.app
+            if not options.app
                 throw new Error 'app property is undefined'
 
             @current = {}
-            @app = config.app
-            @_initRoutes config
+            @_initRoutes options
             @_history = new StackArray()
-            @container = $ config.container or document.body
+            @container = $ options.container or document.body
 
         navigate: (fragment, options = {}, evt)->
             # evt is defined when comming from a click on a[href]
@@ -196,10 +206,11 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             # parsing is done in dispatch
             [fragment or null]
 
-        _initRoutes: ({routes, otherwise})->
+        _initRoutes: ({app, routes, otherwise})->
+            @app = app
+
             if  'string' is typeof otherwise
                 router = @
-                app = @app
                 location = app.getLocation otherwise
                 @_otherwise = otherwise
                 otherwise = do (otherwise, location, router, app)->
@@ -212,12 +223,11 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                         return
 
             @otherwise = otherwise if 'function' is typeof otherwise
-
             @routeCache = {}
             engines = @engines = {}
             routeByName = @routeByName = {}
             handlerByName = @handlerByName = {}
-            baseUrl = @app.get('baseUrl')
+            baseUrl = app.get('baseUrl')
 
             for route, config of routes
                 options = _.pick config, RouterEngine::validOptions
