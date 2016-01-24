@@ -10,12 +10,21 @@ factory = (_, $, Backbone, eachSeries)->
     hasOwn = {}.hasOwnProperty
 
     class BackboneView extends Backbone.View
+        events: {}
+
         constructor: (options)->
             @id = @id or _.uniqueId 'view_'
+
+            proto = @constructor.prototype
+            for own opt of options
+                if opt.charAt(0) isnt '_' and (hasOwn.call(proto, opt) or 'undefined' isnt typeof proto[opt])
+                    @[opt] = options[opt]
+
             super
 
         initialize: (options)->
             super
+
             overridables = [
                 'template'
                 'componentWillMount'
@@ -129,18 +138,9 @@ factory = (_, $, Backbone, eachSeries)->
             @.$el.empty().html xhtml
             return
 
-        # undo what have been done in componentWillMount
-        componenDidUnmount: ->
-
         mount: (container)->
             container.appendChild @el
             @mounted = true
-            return
-
-        # undo what have been done in mount
-        unmount: ->
-            @el.parentNode.removeChild @el if @el.parentNode
-            @mounted = false
             return
 
         # here do dom manipulations that need mount
@@ -153,3 +153,14 @@ factory = (_, $, Backbone, eachSeries)->
         componentWillUnmount: ->
             if model = this.model
                 model.off 'change', this.onModelChange, this
+
+            return
+
+        # undo what have been done in mount
+        unmount: ->
+            @el.parentNode.removeChild @el if @el.parentNode
+            @mounted = false
+            return
+
+        # undo what have been done in componentWillMount
+        componenDidUnmount: ->

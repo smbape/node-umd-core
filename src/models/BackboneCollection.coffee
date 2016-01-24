@@ -37,7 +37,7 @@ factory = ({_, Backbone}, GenericUtil)->
             if 'function' is typeof options.selector
                 collection.selector = options.selector
 
-            collection._options = _.extend {strict: true}, options
+            collection._options = _.clone options
 
             collection._keymap = {}
             collection._keys = {}
@@ -47,8 +47,7 @@ factory = ({_, Backbone}, GenericUtil)->
                 for name, attrs of indexes
                     collection.addIndex name, attrs
 
-            if collection._options.strict
-                collection.on 'change', @_onChange
+            collection.on 'change', @_onChange
 
         unsetAttribute: (name)->
             this._modelAttributes.unset name

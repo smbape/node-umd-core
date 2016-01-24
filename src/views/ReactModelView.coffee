@@ -7,11 +7,16 @@ freact = ({_, Backbone, EventEmitter})->
 
     class ReactView extends EventEmitter
         constructor: (options = {})->
-            for opt in ['model']
+            for opt in ['model', 'componentSpec']
                 this[opt] = options[opt] if hasOwn.call options, opt
 
             if this.model and not (this.model instanceof Backbone.Model) and not (this.model instanceof Backbone.Collection)
                 throw new Error 'model must be an instance of Backbone.Model or  Backbone.Collection'
+
+            proto = @constructor.prototype
+            for own opt of options
+                if opt.charAt(0) isnt '_' and (hasOwn.call(proto, opt) or 'undefined' isnt typeof proto[opt])
+                    @[opt] = options[opt]
 
         componentMixin: ->
             shouldComponentUpdate: (nextProps, nextState)->
@@ -47,17 +52,16 @@ freact = ({_, Backbone, EventEmitter})->
 
             attachEvents: ->
                 @props.model?.on 'change', @trackModelChange, @
+                @props.model?.on 'reset', @trackModelChange, @
                 return
 
             detachEvents: ->
                 @props.model?.off 'change', @trackModelChange, @
+                @props.model?.off 'reset', @trackModelChange, @
                 return
 
-        createComponent: (nomixin)->
-            if nomixin
-                React.createClass @componentSpec()
-            else
-                React.createClass _.defaults {}, @componentSpec(), @componentMixin()
+        createComponent: ->
+            React.createClass _.defaults {}, @componentSpec(), @componentMixin()
 
         destroy: ->
             ReactDOM.unmountComponentAtNode @container

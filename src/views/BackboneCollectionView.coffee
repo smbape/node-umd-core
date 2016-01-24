@@ -51,31 +51,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this.model.off 'add', this.onAdd, this
             return
 
-        # initUI: ->
-        #     @.$el.on 'click', '[data-set]', this.updateViewAttributes
-        #     return
-        # destroyUI: ->
-        #     @.$el.off 'click', '[data-set]', this.updateViewAttributes
-        #     return
-
-        # updateViewAttributes: (evt)=>
-        #     target = $ evt.currentTarget
-
-        #     evt.preventDefault()
-        #     evt.stopPropagation()
-        #     evt.stopImmediatePropagation()
-
-        #     value = target.attr('data-value')
-        #     if value
-        #         try
-        #             value = JSON.parse value
-        #         catch ex
-        #     else
-        #         value = target.val()
-        #     attr = target.attr 'data-set'
-        #     this._viewAttributes.set attr, value
-        #     return
-
         destroy: ->
             this.detachEvents()
             super
@@ -84,22 +59,22 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
         renderParent: ->
             # remove node from DOM existant container
             # it is better for performance since children are only rerender is explicetely asked to
-            container = this.getChildrenContainer()
-            if container.length > 0
-                container[0].parentNode.removeChild container[0]
+            if @_childContainer?.length > 0
+                container = @_childContainer
+                container[0].parentNode?.removeChild container[0]
 
-            if typeof this.template is 'function'
+            if typeof @template is 'function'
                 data = {}
 
                 # Collection model attributes
-                if 'function' is typeof this.model.attrToJSON
-                    data.model = this.model.attrToJSON()
+                if 'function' is typeof @model.attrToJSON
+                    data.model = @model.attrToJSON()
                 else
-                    data.model = _.clone this.model.attributes
+                    data.model = _.clone @model.attributes
 
-                data.view = this._viewAttributes.toJSON()
+                data.view = @_viewAttributes.toJSON()
 
-                xhtml = this.template data
+                xhtml = @template data
             else if 'string' is typeof @template
                 xhtml = @template
             else
@@ -108,10 +83,12 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             @.$el.empty().html xhtml
 
             # readd removed node
-            if container.length > 0
-                _toDestroy = this.getChildrenContainer()
+            if container
+                _toDestroy = @getChildrenContainer()
                 container.insertBefore _toDestroy
                 _toDestroy.destroy()
+            else
+                @_childContainer = @getChildrenContainer()
 
             return
 
@@ -135,18 +112,26 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this.renderChildren()
             return
 
+        componenDidUnmount: ->
+            delete @_childContainer
+            super
+            return
+
         getChildrenContainer: ->
-            if this.childrenContainer
-                return this.$el.find this.childrenContainer
+            if @_childContainer?.length > 0
+                return @_childContainer
+
+            if @childrenContainer
+                return @$el.find @childrenContainer
 
             containerId = @id + '-children'
 
-            container = this.$el.find '#' + containerId
+            container = @$el.find '#' + containerId
             return container if container.length > 0
 
             container = document.createElement 'span'
             container.id = containerId
-            this.el.appendChild container
+            @el.appendChild container
 
             return $ container
 
@@ -219,11 +204,9 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
 
             return
 
-        onReset: (model)->
-            container = this.getChildrenContainer()
-            container.empty()
-            this.trigger 'reset'
-
+        onReset: (collection, options)->
+            @reRender()
+            this.trigger 'reset', this, options
             return
 
         onModelChange: (model)->
@@ -249,4 +232,5 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
 
         onSwitch: ->
             @reRender()
+            this.trigger 'switch'
             return
