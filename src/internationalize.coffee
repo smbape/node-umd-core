@@ -97,13 +97,15 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
 
             if hasOwn.call locales, language
                 return if locales[language] is i18n.language
-                i18n.changeLanguage locales[language]
-                @set 'language', language
             else
                 return
 
+            i18n.changeLanguage locales[language]
+            @set 'language', language
+
             {location, pathParams} = @router.current
             if hasOwn.call pathParams, 'language'
+                pathParams.language = language
                 url = @router.current.engine.getUrl(pathParams) + location.search + location.hash
                 Backbone.history.navigate url, trigger: true, replace: true
 
@@ -113,12 +115,16 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
         app = @
         _.extend app, i18nMixin
 
-        app.router.onRouteChangeSuccess = (res, options)->
-            @current = _.clone options
+        if false isnt options?.i18n?.router
+            app.router.on 'routeChangeSuccess', (router, res, current)->
+                if res
+                    title = _.result(res, 'title')
+                    if not title and 'function' is typeof res?.get
+                        title = res?.get('title')
+                    if title
+                        document.title = i18n.t title
 
-            if res?.title
-                document.title = i18n.t res.title
-            return
+                return
 
         if app.router instanceof BasicRouter
             language = -> app.get('language')

@@ -3,6 +3,7 @@ deps = [
 ]
 
 factory = ($)->
+
     # https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Objets_globaux/Function/bind#Prothèse_d'émulation_(polyfill)
     unless Function::bind
         Function::bind = (oThis) ->
@@ -97,5 +98,43 @@ factory = ($)->
             else
                 this.appendChild elem
             return
+
+    # # http://stackoverflow.com/questions/333634/http-head-request-in-javascript-ajax#333657
+    # urlExists = (url, callback) ->
+    #     http = new XMLHttpRequest()
+    #     http.open 'HEAD', url
+
+    #     http.onreadystatechange = ->
+    #         if @readyState is @DONE
+    #             callback @status is 200
+    #         return
+
+    #     http.send()
+    #     return
+
+    # # try a faster error notfication for url that doesn't exists
+    # if 'undefined' isnt typeof requirejs
+    #     load = requirejs.load
+
+    #     requirejs.load = (context, moduleName, url) ->
+    #         config = (context and context.config) or {}
+    #         node = requirejs.createNode(config, moduleName, url)
+    #         node.setAttribute 'data-requirecontext', context.contextName
+    #         node.setAttribute 'data-requiremodule', moduleName
+    #         node.src = url
+
+    #         urlExists node.src, (exists)->
+    #             if not exists
+    #                 evt = document.createEvent('Event')
+    #                 evt.initEvent('error', true, true)
+    #                 node.addEventListener('error', context.onScriptError, false)
+    #                 node.dispatchEvent(evt)
+    #                 return
+
+    #             load context, moduleName, url
+    #             return
+
+    #         node
+    #         return
 
     return

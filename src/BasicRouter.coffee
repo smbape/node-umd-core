@@ -19,7 +19,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                 for own opt of currProto
                     if opt.charAt(0) isnt '_' and not hasOwn.call(options, opt) and 'undefined' isnt typeof @[opt]
                         options[opt] = @[opt]
-                currProto = currProto.prototype
+                currProto = currProto.constructor?.__super__
 
             super routes: '*url': 'dispatch'
 
@@ -29,7 +29,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             @current = {}
             @_initRoutes options
             @_history = new StackArray()
-            @container = $ options.container or document.body
+            @container = options.container or document.body
 
         navigate: (fragment, options = {}, evt)->
             # evt is defined when comming from a click on a[href]
@@ -105,14 +105,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             return
 
         _dispatch: ({container, location, url, prevUrl, otherwise}, options, callback)->
-            # {route, handler} = options
-
-            # if 'string' is typeof handler
-            #     if not hasOwn.call @handlerByName, handler
-            #         throw new Error "unknown handler '#{handler}'"
-
-            #     handler = @handlerByName[handler]
-
             app = @app
             router = @
             queryParams = qs.parse location.search
@@ -131,6 +123,12 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                     else
                         throw new Error "unmatched route for #{location.pathname}"
 
+            if app.$$rendable
+                app.$$rendable.destroy()
+                app.$$rendable = null
+
+            $(container).empty()
+
             handlerOptions = {
                 container
                 location
@@ -146,12 +144,20 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             iterate = (err, res)->
                 if not err or index is length
                     app.give()
+                    app.current = router.current = handlerOptions
+                    if _.isObject(res) and 'function' is typeof res.destroy
+                        app.$$rendable = res
+                    else
+                        app.$$rendable = null
 
                     if err
+                        container.innerHTML = err
                         router.onRouteChangeFailure err, handlerOptions
+                        app.emit 'routeChangeFailure', router, err, options
                     else
                         app.setLocationHash()
                         router.onRouteChangeSuccess res, handlerOptions
+                        app.emit 'routeChangeSuccess', router, res, options
 
                     callback(err, res) if 'function' is typeof callback
                     return
@@ -179,13 +185,22 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             html.replace /\b(href|src|data-main)="(?!mailto:|https?\:\/\/|[\/#!])([^"]+)/g, "$1=\"#{baseUrl}$2"
 
         onRouteChangeSuccess: (res, options)->
-            @current = _.clone options
+            if res
+                title = _.result(res, 'title')
+                if not title and 'function' is typeof res?.get
+                    title = res?.get('title')
+                if title
+                    document.title = res.title
 
-            if res?.title
-                document.title = res.title
             return
 
         onRouteChangeFailure: (err, options)->
+
+        engine: (name)->
+            @routeByName[name]?.engine
+
+        title: (name)->
+            @routeByName[name]?.title
 
         getPrevUrl: ->
             @_history.get -1
@@ -208,6 +223,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
         _initRoutes: ({app, routes, otherwise})->
             @app = app
+
+            if 'function' is typeof routes
+                routes = routes.call @
 
             if  'string' is typeof otherwise
                 router = @
@@ -237,7 +255,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
                 routeConfig = engines[route] =
                     engine: new RouterEngine options
-                    title: new RouterEngine config.title
+
+                if 'string' is typeof config.title
+                    routeConfig.title = new RouterEngine route: config.title
 
                 if 'string' is typeof config.name
                     if hasOwn.call routeByName, config.name
@@ -252,11 +272,11 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                 for handler, index in config.handlers
                     switch handler.type
                         when 'controller'
-                            fn = @_controllerHandler handler, config
+                            fn = @_controllerHandler handler, routeConfig
                         when 'view'
-                            fn = @_viewHandler handler, config
+                            fn = @_viewHandler handler, routeConfig
                         when 'template'
-                            fn = @_templateHandler handler, config
+                            fn = @_templateHandler handler, routeConfig
                         else
                             if 'function' isnt typeof handler.fn
                                 throw new Error "Error in route '#{route}', handler '#{handler.name}': unknown type or no fn 'function'"
@@ -272,9 +292,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                         handlerByName[handler.name] = fn
             return
 
-        _controllerHandler: (handler, config)->
+        _controllerHandler: (handler, routeConfig)->
             router = @
-            titleEngine = config.title
+            titleEngine = routeConfig.title
             engine = new RouterEngine handler
             (options, callback)->
 
@@ -283,22 +303,25 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
                 require [path], (Controller)->
                     if 'function' isnt typeof Controller
-                        return callback(new Error "invalid Controller at #{path}")
+                        return callback(new Error "invalid Controller at #{path}: not a function")
+
+                    if 'function' isnt typeof Controller::getMethod
+                        return callback(new Error "invalid Controller at #{path}: prototype property 'getMethod' must be a function")
 
                     method = Controller::getMethod options
 
-                    if 'function' isnt typeof Controller::method
-                        return callback(new Error "controller at #{path}: invalid method")
+                    if 'function' isnt typeof Controller::[method]
+                        return callback(new Error "controller at #{path}: prototype property '#{method}' is not a function")
 
-                    return callback(null, Controller) if options.constructor
+                    return callback(null, Controller) if options.checkOnly
 
                     controller = new Controller _.defaults {
                         title:  if titleEngine then titleEngine.getUrl(pathParams)
                         router: router
                     }, options
 
-                    if 'function' isnt controller[method]
-                        return callback(new Error 'invalid method')
+                    if 'function' isnt typeof controller[method]
+                        return callback(new Error "controller at #{path}: instance property '#{method}' is not a function")
 
                     if controller[method].length is 1
                         timeout = setTimeout ->
@@ -318,9 +341,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
                 return
 
-        _viewHandler: (handler, config)->
+        _viewHandler: (handler, routeConfig)->
             router = @
-            titleEngine = config.title
+            titleEngine = routeConfig.title
             engine = new RouterEngine handler
             (options, callback)->
 
@@ -331,9 +354,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                     if 'function' isnt typeof View
                         return callback(new Error "invalid View at #{path}")
 
-                    return callback(null, View) if options.constructor
+                    return callback(null, View) if options.checkOnly
 
-                    view = new View title:  if titleEngine then titleEngine.getUrl(pathParams)
+                    view = new View title: titleEngine?.getUrl(pathParams)
 
                     if 'function' isnt typeof view.render or view.render.length < 1 or view.render.length > 2
                         return callback(new Error "view at #{path}: invalid render method. It should be a function expecting one or two arguments")
@@ -353,12 +376,13 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                         callback null, view
 
                     return
+                , callback
 
                 return
 
-        _templateHandler: (handler, config)->
+        _templateHandler: (handler, routeConfig)->
             router = @
-            titleEngine = config.title
+            titleEngine = routeConfig.title
             engine = new RouterEngine handler
             (options, callback)->
 
@@ -372,11 +396,13 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                         when 'string'
                             html = template
                         else
-                            throw new Error "invalid template at #{path}"
+                            callback new Error "invalid template at #{path}"
+                            return
                     
-                    options.container.empty().html @templateWillMount html, engine.name, options
+                    $(options.container).html router.templateWillMount html, engine.name, options
                     callback null, title: if titleEngine then titleEngine.getUrl(pathParams)
 
                     return
+                , callback
 
                 return

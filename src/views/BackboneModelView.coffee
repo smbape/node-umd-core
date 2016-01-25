@@ -10,7 +10,8 @@ factory = (_, $, Backbone, eachSeries)->
     hasOwn = {}.hasOwnProperty
 
     class BackboneView extends Backbone.View
-        events: {}
+        events: null
+        title: null
 
         constructor: (options)->
             @id = @id or _.uniqueId 'view_'
@@ -21,7 +22,7 @@ factory = (_, $, Backbone, eachSeries)->
                 if opt.charAt(0) isnt '_'
                     currProto = proto
                     while currProto and not hasOwn.call(currProto, opt)
-                        currProto = currProto.prototype
+                        currProto = currProto.constructor?.__super__
 
                     if currProto
                         @[opt] = options[opt]

@@ -19,7 +19,7 @@ freact = ({_, Backbone, EventEmitter})->
                 if opt.charAt(0) isnt '_'
                     currProto = proto
                     while currProto and not hasOwn.call(currProto, opt)
-                        currProto = currProto.prototype
+                        currProto = currProto.constructor?.__super__
 
                     if currProto
                         @[opt] = options[opt]

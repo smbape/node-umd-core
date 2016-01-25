@@ -1,6 +1,7 @@
 deps = [
     './common'
     './eachSeries'
+    './patch'
 ]
 
 factory = ({$, Backbone}, eachSeries)->
@@ -70,12 +71,13 @@ factory = ({$, Backbone}, eachSeries)->
             , @
             return
 
-        start: (options)->
+        start: (options, done)->
             app = @
 
             eachSeries app, app.tasks.map((task)-> [task, options]), ->
                 throw new Error 'a router must be defined' if not app.router
                 app.emit 'start'
+                done() if 'function' is typeof done
                 return
 
             return
