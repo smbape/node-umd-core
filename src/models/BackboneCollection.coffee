@@ -21,6 +21,18 @@ factory = ({_, Backbone}, GenericUtil)->
 
     class BackboneCollection extends Backbone.Collection
         constructor: (models, options = {})->
+
+            proto = @constructor.prototype
+
+            for own opt of options
+                if opt.charAt(0) isnt '_'
+                    currProto = proto
+                    while currProto and not hasOwn.call(currProto, opt)
+                        currProto = currProto.prototype
+
+                    if currProto
+                        @[opt] = options[opt]
+
             super
 
             collection = this
