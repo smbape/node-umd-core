@@ -18,9 +18,18 @@ factory = ({$, Backbone}, eachSeries)->
             return
 
         initialize: ->
-            this.isFileLocation = appConfig.baseUrl is ''
-            this.set 'baseUrl', if this.isFileLocation then '#' else appConfig.baseUrl
-            this.set 'resource', appConfig.resource
+            @isFileLocation = appConfig.baseUrl is ''
+            @set 'baseUrl', if @isFileLocation then '#' else appConfig.baseUrl
+            @set 'resource', appConfig.resource
+
+            @hasPushState = not @isFileLocation and Modernizr.history
+
+            if @hasPushState
+                @getLocation = @_getPathLocation
+                @_setLocationHash = @_nativeLocationHash
+            else
+                @getLocation = @_getHashLocation
+                @_setLocationHash = @_customLocationHash
 
             @addInitializer ieTask = (options)->
                 # IE special task
@@ -44,28 +53,22 @@ factory = ({$, Backbone}, eachSeries)->
             @addInitializer @initRouter
 
             @once 'start', initHistory = (options)->
-                @hasPushState = not @isFileLocation and Modernizr.history
+                location = @_getHashLocation()
 
                 if @hasPushState
-                    @getLocation = @_getPathLocation
-                    @_setLocationHash = @_nativeLocationHash
-                else
-                    @getLocation = @_getHashLocation
-                    @_setLocationHash = @_customLocationHash
+                    #   /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
+                    if routeInfo = @router.getRouteInfo location
+                        [engine, pathParams] = routeInfo
+                        window.location.href = appConfig.baseUrl + location.pathname + location.search + '#' + location.hash.substring(1)
+                        return
+                else if not @router.getRouteInfo location
+                    #   use route from pathname with partial match
+                    #   preserve hash
+                    #   /context/pathname?query#anchor -> /context/#pathname?query!anchor
+                    url = appConfig.baseUrl + '#' + location.pathname + location.search + location.hash
+                    window.location.href = url if url isnt window.location.href
 
                 @_listenHrefClick()
-
-                # TODO: on push state
-                #   try route from hash
-                #   if success
-                #       /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
-                # TODO: on not push state and not location file
-                #   try route from hash
-                #   if failed
-                #       use route from pathname with partial match
-                #       preserve hash
-                #       /context/pathname?query#anchor -> /context/#pathname?query!anchor
-                #       
                 Backbone.history.start pushState: @hasPushState
                 return
             , @

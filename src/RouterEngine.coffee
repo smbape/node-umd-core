@@ -27,7 +27,7 @@ factory = (require, _, GenericUtil, QueryString)->
             if 'string' is typeof url
                 url.replace rchars, ''
             else
-                ''
+                url
 
     _substringMatch = (pattern, target)->
         pattern is target or (
@@ -176,17 +176,17 @@ factory = (require, _, GenericUtil, QueryString)->
         # @param [String] url url to match
         # @return [Object] Object of matches
         getParams: (url, options = {}) ->
-
-            url = _removeLeadTrail url
-            if url.length is 0
-                url = _removeLeadTrail @getDefaultUrl()
-
             strict = if hasOwn.call options, 'strict'
                 options.strict
             else
                 @strict
 
+            url = _removeLeadTrail url
+
             if not strict
+                if url.length is 0
+                    url = _removeLeadTrail @getDefaultUrl()
+
                 # Partial match defaultUrl
                 defaultUrl = _removeLeadTrail @getDefaultUrl()
                 if _substringMatch url, defaultUrl

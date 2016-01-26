@@ -11,10 +11,11 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
 
     # Add choice handler
     ###
-    (function(application, i18n) {
+    // !!!!!!!!!!!!! be in english before 
+    (function(app, i18n) {
         'use strict';
 
-        application.updateResources({
+        app.updateResources({
             'en-GB': {
                 translation: {
                     'girls-and-boys': {
@@ -120,10 +121,12 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                 if res
                     title = _.result(res, 'title')
                     if not title and 'function' is typeof res?.get
-                        title = res?.get('title')
+                        title = res.get('title')
                     if title
                         document.title = i18n.t title
 
+                # publicly notify render
+                appConfig.render() if 'function' is typeof appConfig.render
                 return
 
         if app.router instanceof BasicRouter
@@ -134,7 +137,12 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                     if ~variables.indexOf 'language'
                         engine.defaults.language = language
 
-        language = (navigator.browserLanguage or navigator.language).slice 0, 2
+        location = app.getLocation()
+        routeInfo = app.router.getRouteInfo location
+        if routeInfo
+            [engine, pathParams] = routeInfo
+
+        language = pathParams?.language or (navigator.browserLanguage or navigator.language).slice(0, 2)
 
         locales = app.getLocales()
 

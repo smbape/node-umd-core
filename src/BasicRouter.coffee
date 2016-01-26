@@ -104,6 +104,16 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             @_dispatch {container, location, url, prevUrl, otherwise}, options, callback
             return
 
+        getRouteInfo: (location, options)->
+            options = _.defaults {throws: false}, options
+            for route, routeConfig of @engines
+                {engine, handlers} = routeConfig
+                pathParams = engine.getParams location.pathname, options
+                break if pathParams
+
+            if pathParams
+                return [engine, pathParams, handlers]
+
         _dispatch: ({container, location, url, prevUrl, otherwise}, options, callback)->
             app = @app
             router = @
@@ -111,17 +121,12 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
             if otherwise
                 handlers = [@otherwise]
+            else if routeInfo = @getRouteInfo location
+                [engine, pathParams, handlers] = routeInfo
+            else if @otherwise
+                handlers = [@otherwise]
             else
-                for route, routeConfig of @engines
-                    {engine, handlers} = routeConfig
-                    pathParams = engine.getParams location.pathname, {throws: false}
-                    break if pathParams
-
-                if not pathParams
-                    if @otherwise
-                        handlers = [@otherwise]
-                    else
-                        throw new Error "unmatched route for #{location.pathname}"
+                throw new Error "unmatched route for #{location.pathname}"
 
             if app.$$rendable
                 app.$$rendable.destroy()
@@ -188,10 +193,12 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             if res
                 title = _.result(res, 'title')
                 if not title and 'function' is typeof res?.get
-                    title = res?.get('title')
+                    title = res.get('title')
                 if title
                     document.title = res.title
 
+            # publicly notify render
+            appConfig.render() if 'function' is typeof appConfig.render
             return
 
         onRouteChangeFailure: (err, options)->
