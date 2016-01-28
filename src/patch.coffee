@@ -22,7 +22,7 @@ factory = ($)->
             if @prototype
                 # Les fonctions natives n'ont pas de prototype
                 fNOP.prototype = @prototype
-            fBound.prototype = new fNOP
+            fBound.prototype = new fNOP()
             fBound
 
     # https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Objets_globaux/Array/isArray#Prothèse_d'émulation_(polyfill)

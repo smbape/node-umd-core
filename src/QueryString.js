@@ -1,7 +1,7 @@
 deps = [{
     amd: 'qs',
     common: '!Qs'
-}]
+}];
 
 function factory(require, QueryString) {
     'use strict';
@@ -27,7 +27,7 @@ function factory(require, QueryString) {
         }
 
         return parse.apply(QueryString, args);
-    }
+    };
 
     return QueryString;
 }

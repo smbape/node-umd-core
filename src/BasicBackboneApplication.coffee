@@ -27,9 +27,11 @@ factory = ({$, Backbone}, eachSeries)->
             if @hasPushState
                 @getLocation = @_getPathLocation
                 @_setLocationHash = @_nativeLocationHash
+                @hashChar = '#'
             else
                 @getLocation = @_getHashLocation
                 @_setLocationHash = @_customLocationHash
+                @hashChar = '!'
 
             @addInitializer ieTask = (options)->
                 # IE special task

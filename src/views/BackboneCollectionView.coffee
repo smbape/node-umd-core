@@ -8,6 +8,8 @@ deps = [
 factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)->
     hasOwn = {}.hasOwnProperty
 
+    INDEX_ATTR = 'bb-cdx'
+
     class BackboneCollectionView extends BackboneModelView
 
         constructor: (options = {})->
@@ -36,19 +38,21 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this._viewAttributes.get attr
 
         attachEvents: ->
-            this.model.on 'add', this.onAdd, this
-            this.model.on 'remove', this.onRemove, this
-            this.model.on 'reset', this.onReset, this
-            this.model.on 'switch', this.onSwitch, this
+            if this.model
+                this.model.on 'add', this.onAdd, this
+                this.model.on 'remove', this.onRemove, this
+                this.model.on 'reset', this.onReset, this
+                this.model.on 'switch', this.onSwitch, this
             this._viewAttributes.on 'change', this.onChange, this
             return
 
         detachEvents: ->
             this._viewAttributes.off 'change', this.onChange, this
-            this.model.off 'switch', this.onSwitch, this
-            this.model.off 'reset', this.onReset, this
-            this.model.off 'remove', this.onRemove, this
-            this.model.off 'add', this.onAdd, this
+            if this.model
+                this.model.off 'switch', this.onSwitch, this
+                this.model.off 'reset', this.onReset, this
+                this.model.off 'remove', this.onRemove, this
+                this.model.off 'add', this.onAdd, this
             return
 
         destroy: ->
@@ -63,22 +67,23 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 container = @_childContainer
                 container[0].parentNode?.removeChild container[0]
 
-            if typeof @template is 'function'
-                data = {}
+            switch typeof @template
+                when 'function'
+                    data = {}
 
-                # Collection model attributes
-                if 'function' is typeof @model.attrToJSON
-                    data.model = @model.attrToJSON()
+                    # Collection model attributes
+                    if 'function' is typeof @model.attrToJSON
+                        data.model = @model.attrToJSON()
+                    else
+                        data.model = _.clone @model.attributes
+
+                    data.view = @_viewAttributes.toJSON()
+
+                    xhtml = @template.call @, data
+                when 'string'
+                    xhtml = @template
                 else
-                    data.model = _.clone @model.attributes
-
-                data.view = @_viewAttributes.toJSON()
-
-                xhtml = @template data
-            else if 'string' is typeof @template
-                xhtml = @template
-            else
-                xhtml = ''
+                    xhtml = ''
 
             @.$el.empty().html xhtml
 
@@ -100,10 +105,45 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             # http://www.lua.org/pil/11.6.html
             # http://www.sitepoint.com/javascript-fast-string-concatenation/
             xhtml = []
-            for model in models
-                xhtml[xhtml.length] = this.getChildXhtml model
+            for model, index in models
+                element = $ this.getChildXhtml model
+                element.attr INDEX_ATTR, index
+                span = document.createElement 'span'
+                span.appendChild element[0]
+                xhtml[xhtml.length] = span.innerHTML
+                span = null
             container = this.getChildrenContainer()
             container.empty().html xhtml.join('')
+
+            container.on 'click.delegateEvents.' + @cid, '[bb-click]', _.bind (evt)->
+                # hack to prevent bubble on this specific handler
+                # for triggered user action event or triggered event
+                memo = evt.originalEvent or evt
+                return if memo['bb-click']
+                memo['bb-click'] = true
+
+                expr = evt.currentTarget.getAttribute('bb-click')
+                if !expr
+                    return
+
+                node = evt.currentTarget.closest '[' + INDEX_ATTR + ']'
+                if not node
+                    return
+                index = parseInt node.getAttribute(INDEX_ATTR), 10
+
+                if index < 0
+                    return
+
+                if not (model = @model.models[index])
+                    return
+
+                fn = @_expressionCache[expr]
+                if !fn
+                    fn = @_expressionCache[expr] = @_parseExpression(expr)
+                
+                return fn.call @, {event: evt, model}, window
+            , @
+
 
             return
 
@@ -113,8 +153,8 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             return
 
         componenDidUnmount: ->
+            @_childContainer.off '.delegateEvents.' + @cid
             delete @_childContainer
-            super
             return
 
         getChildrenContainer: ->
@@ -150,7 +190,7 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 else
                     context.collection = _.clone collection.attributes
 
-            template context
+            template.call @, context
 
         setComparator: (comparator)->
             this.detachEvents()
@@ -187,11 +227,13 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             container = this.getChildrenContainer()
             xhtml = this.getChildXhtml model
             element = $ xhtml
+
             index = options.index or this.model.indexOf model
             if typeof index isnt 'undefined' and index isnt -1
                 container.insertAt index, element
             else
                 container.append element
+            element.attr INDEX_ATTR, index
 
             return element
 
@@ -223,6 +265,7 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 index = this.model.indexOf model
                 container = this.getChildrenContainer()
                 element = $ container[0].children[index]
+                element.attr INDEX_ATTR, index
 
                 element.replaceWith xhtml
                 element.destroy()

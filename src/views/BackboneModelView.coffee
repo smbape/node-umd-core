@@ -3,17 +3,138 @@ deps = [
     {amd: 'jquery', common: '!jQuery'}
     {amd: 'backbone', common: '!Backbone'}
     '../eachSeries'
+    '../../lib/acorn'
     '../patch'
 ]
 
-factory = (_, $, Backbone, eachSeries)->
+factory = (_, $, Backbone, eachSeries, acorn)->
     hasOwn = {}.hasOwnProperty
 
+    zip = (keys, values)->
+        res = {}
+
+        if keys.length is 0
+            return res
+
+        for index in [0...keys.length] by 1
+            res[keys[index]] = values[index]
+
+        res
+
+    class Environment
+        constructor: (params = [], args = [], @outer)->
+            @attributes = {}
+            @update zip params, args
+        update: (attrs)->
+            for own attr of attrs
+                @attributes[attr] = attrs[attr]
+            @
+        find: (x)->
+            if hasOwn.call @attributes, x
+                return @
+            else if @outer
+                @outer.find x
+        get: (x)->
+            @attributes[x]
+        set: (x, val)->
+            @attributes[x] = val
+        has: (x)->
+            !!@find x
+        findGet: (x)->
+            env = @find x
+            return env.get x if env
+        findEnv: (x)->
+            @find(x) or @
+
+    computeIdentifier = (node, env, globalEnv)->
+        if not env.has node.name
+            # variable has not been declared
+            globalEnv.set node.name, true
+
+        return
+
+    computeNode = (node, env, globalEnv)->
+        return if node is null
+
+        switch node.type
+
+            when 'Identifier'
+                computeIdentifier node, env, globalEnv
+
+            when 'FunctionDeclaration', 'FunctionExpression'
+                env.set node.id.name, true if 'FunctionDeclaration' is node.type
+                params = []
+
+                for arg in node.params
+                    params.push arg.name if 'Identifier' is arg.type
+
+                env = new Environment params, [], env
+                computeNode node.body, env, globalEnv
+
+            when 'Program', 'BlockStatement'
+                body = []
+                fnIndex = 0
+                for expr in node.body
+                    if expr.type is 'FunctionDeclaration'
+                        # Hoisting
+                        body.splice fnIndex++, 0, expr
+                    else
+                        body.push expr
+
+                for expr in body
+                    computeNode expr, env, globalEnv
+
+            when 'ExpressionStatement'
+                computeNode node.expression, env, globalEnv
+
+            when 'VariableDeclaration'
+                for declaration in node.declarations
+                    computeNode declaration, env, globalEnv
+
+            when 'VariableDeclarator'
+                if node.init
+                    computeNode node.init, env, globalEnv
+
+                if node.id.type is 'Identifier'
+                    env.set node.id.name, true
+
+            when 'CallExpression'
+                for arg in node.arguments
+                    computeNode arg, env, globalEnv
+
+                computeNode node.callee, env, globalEnv
+
+            when 'MemberExpression'
+                if node.object.type is 'Identifier'
+                    computeIdentifier node.object, env, globalEnv
+
+            when 'BinaryExpression'
+                computeNode node.left, env, globalEnv
+                computeNode node.right, env, globalEnv
+
+            when 'ConditionalExpression', 'IfStatement'
+                computeNode node.test, env, globalEnv
+                computeNode node.consequent, env, globalEnv
+                computeNode node.alternate, env, globalEnv
+
+            when 'SwitchStatement'
+                computeNode node.discriminant, env, globalEnv
+                for cnode in node.cases
+                    computeNode cnode, env, globalEnv
+
+            when 'SwitchCase'
+                computeNode node.test, env, globalEnv
+                for cnode in node.consequent
+                    computeNode cnode, env, globalEnv
+
+        return
+
     class BackboneView extends Backbone.View
+        _expressionCache: {}
         events: null
         title: null
 
-        constructor: (options)->
+        constructor: (options = {})->
             @id = @id or _.uniqueId 'view_'
 
             proto = @constructor.prototype
@@ -27,7 +148,71 @@ factory = (_, $, Backbone, eachSeries)->
                     if currProto
                         @[opt] = options[opt]
 
+            super options
+
+        delegateEvents: ->
             super
+
+            @$el.on 'click.delegateEvents.' + @cid, '[bb-click]', _.bind (evt)->
+                # hack to prevent bubble on this specific handler
+                # for triggered user action event or triggered event
+                memo = evt.originalEvent or evt
+                return if memo['bb-click']
+                memo['bb-click'] = true
+
+                expr = evt.currentTarget.getAttribute('bb-click')
+                if !expr
+                    return
+
+                fn = @_expressionCache[expr]
+                if !fn
+                    fn = @_expressionCache[expr] = @_parseExpression(expr)
+                
+                return fn.call @, {event: evt}, window
+            , @
+
+            @$el.on 'submit.delegateEvents.' + @cid, '[bb-submit]', _.bind (evt)->
+                # hack to prevent bubble on this specific handler
+                # for triggered user action event or triggered event
+                memo = evt.originalEvent or evt
+                return if memo['bb-submit']
+                memo['bb-submit'] = true
+
+                expr = evt.currentTarget.getAttribute('bb-submit')
+                if !expr
+                    return
+
+                fn = @_expressionCache[expr]
+                if !fn
+                    fn = @_expressionCache[expr] = @_parseExpression(expr)
+                
+                return fn.call @, {event: evt}, window
+            , @
+
+            return
+
+        _parseExpression: (body)->
+            ast = acorn.parse(body)
+            globalEnv = new Environment()
+            computeNode ast, env = new Environment(), globalEnv
+            globals = _.keys globalEnv.attributes
+
+            vars = ''
+            if globals.length
+                declaration = []
+                for arg in globals
+                    declaration.push "#{arg} = 'undefined' === typeof locals.#{arg} ? globals.#{arg} : locals.#{arg}"
+
+                vars = 'var ' + declaration.join(',\n    ') + ';'
+
+
+            fnText = """
+                #{vars}
+                #{body}
+            """
+
+            ### jshint -W054 ###
+            return new Function 'locals', 'globals', fnText
 
         initialize: (options)->
             super
@@ -131,16 +316,17 @@ factory = (_, $, Backbone, eachSeries)->
         # here do dom manipulations that do not need mount
         # it will be faster than doing it when element is mounted
         componentWillMount: ->
-            if typeof @template is 'function'
-                if @model instanceof Backbone.Model
-                    data = @model.toJSON()
-                else if @model instanceof Backbone.Collection and 'function' is typeof @model.attrToJSON
-                    data = @model.attrToJSON()
-                xhtml = @template data
-            else if 'string' is typeof @template
-                xhtml = @template
-            else
-                xhtml = ''
+            switch typeof @template
+                when 'function'
+                    if @model instanceof Backbone.Model
+                        data = @model.toJSON()
+                    else if @model instanceof Backbone.Collection and 'function' is typeof @model.attrToJSON
+                        data = @model.attrToJSON()
+                    xhtml = @template.call @, data
+                when 'string'
+                    xhtml = @template
+                else
+                    xhtml = ''
 
             @.$el.empty().html xhtml
             return

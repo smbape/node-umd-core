@@ -3,9 +3,10 @@ deps = [
     './GenericUtil'
     './QueryString'
 ]
-factory = (require, _, GenericUtil, QueryString)->
+factory = (require, _, GenericUtil, qs)->
 
     hasOwn = {}.hasOwnProperty
+    push = [].push
 
     splitPathReg = /^(.*?)([^\/]+?|)(\.[^.\/]*|)$/
     splitPath = (filename) ->
@@ -233,6 +234,8 @@ factory = (require, _, GenericUtil, QueryString)->
         # @return [String] generated url
         # 
         getUrl: (params = {}, options)->
+            self = @
+
             params = _.clone params
             for key of @defaults
                 if not hasOwn.call params, key
@@ -241,28 +244,42 @@ factory = (require, _, GenericUtil, QueryString)->
             for own key of params
                 params[key] = _.result params, key
 
-            url = @sanitized.replace /\{(\w+)\}/g, (match, variable) =>
+            url = self.sanitized.replace /\{(\w+)\}/g, (match, variable) ->
                 if hasOwn.call params, variable
-                    match = @encode params[variable]
+                    match = self.encode params[variable]
                     delete params[variable]
                 match
+
+            url = [url]
 
             if @wildcard
                 extra = []
                 for own key of params
                     if params[key]
                         extra.push.call extra, key, @encode params[key]
-                url += '/' + extra.join '/' if extra.length > 0
+
+                push.call url, '/', extra.join '/' if extra.length > 0
 
             baseUrl = @baseUrl
+
             if _.isObject(options)
                 baseUrl = '' if options.noBase
-                if options.query
-                    query = QueryString.stringify options.query
-                    if not _.isEmpty query
-                        url += '?' + query
+                query = options.query
 
-            baseUrl + url
+                if _.isObject query
+                    query = qs.stringify query
+
+                if 'string' is typeof query and query.length isnt 0
+                    push.call url, '?', query
+
+                hash = options.hash
+                if 'string' is typeof hash and hash.length isnt 0
+                    hashChar = options.hashChar or '#'
+                    push.call url, hashChar, hash
+
+            url.unshift baseUrl
+
+            return url.join ''
 
         getFilePath: (params, options)->
             url = @getUrl params, _.defaults {noBase: true}, options
