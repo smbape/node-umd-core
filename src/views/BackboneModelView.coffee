@@ -3,134 +3,18 @@ deps = [
     {amd: 'jquery', common: '!jQuery'}
     {amd: 'backbone', common: '!Backbone'}
     '../eachSeries'
-    '../../lib/acorn'
+    '../ExpressionParser'
     '../patch'
 ]
 
-factory = (_, $, Backbone, eachSeries, acorn)->
+factory = (_, $, Backbone, eachSeries, ExpressionParser)->
     hasOwn = {}.hasOwnProperty
 
-    zip = (keys, values)->
-        res = {}
-
-        if keys.length is 0
-            return res
-
-        for index in [0...keys.length] by 1
-            res[keys[index]] = values[index]
-
-        res
-
-    class Environment
-        constructor: (params = [], args = [], @outer)->
-            @attributes = {}
-            @update zip params, args
-        update: (attrs)->
-            for own attr of attrs
-                @attributes[attr] = attrs[attr]
-            @
-        find: (x)->
-            if hasOwn.call @attributes, x
-                return @
-            else if @outer
-                @outer.find x
-        get: (x)->
-            @attributes[x]
-        set: (x, val)->
-            @attributes[x] = val
-        has: (x)->
-            !!@find x
-        findGet: (x)->
-            env = @find x
-            return env.get x if env
-        findEnv: (x)->
-            @find(x) or @
-
-    computeIdentifier = (node, env, globalEnv)->
-        if not env.has node.name
-            # variable has not been declared
-            globalEnv.set node.name, true
-
-        return
-
-    computeNode = (node, env, globalEnv)->
-        return if node is null
-
-        switch node.type
-
-            when 'Identifier'
-                computeIdentifier node, env, globalEnv
-
-            when 'FunctionDeclaration', 'FunctionExpression'
-                env.set node.id.name, true if 'FunctionDeclaration' is node.type
-                params = []
-
-                for arg in node.params
-                    params.push arg.name if 'Identifier' is arg.type
-
-                env = new Environment params, [], env
-                computeNode node.body, env, globalEnv
-
-            when 'Program', 'BlockStatement'
-                body = []
-                fnIndex = 0
-                for expr in node.body
-                    if expr.type is 'FunctionDeclaration'
-                        # Hoisting
-                        body.splice fnIndex++, 0, expr
-                    else
-                        body.push expr
-
-                for expr in body
-                    computeNode expr, env, globalEnv
-
-            when 'ExpressionStatement'
-                computeNode node.expression, env, globalEnv
-
-            when 'VariableDeclaration'
-                for declaration in node.declarations
-                    computeNode declaration, env, globalEnv
-
-            when 'VariableDeclarator'
-                if node.init
-                    computeNode node.init, env, globalEnv
-
-                if node.id.type is 'Identifier'
-                    env.set node.id.name, true
-
-            when 'CallExpression'
-                for arg in node.arguments
-                    computeNode arg, env, globalEnv
-
-                computeNode node.callee, env, globalEnv
-
-            when 'MemberExpression'
-                if node.object.type is 'Identifier'
-                    computeIdentifier node.object, env, globalEnv
-
-            when 'BinaryExpression'
-                computeNode node.left, env, globalEnv
-                computeNode node.right, env, globalEnv
-
-            when 'ConditionalExpression', 'IfStatement'
-                computeNode node.test, env, globalEnv
-                computeNode node.consequent, env, globalEnv
-                computeNode node.alternate, env, globalEnv
-
-            when 'SwitchStatement'
-                computeNode node.discriminant, env, globalEnv
-                for cnode in node.cases
-                    computeNode cnode, env, globalEnv
-
-            when 'SwitchCase'
-                computeNode node.test, env, globalEnv
-                for cnode in node.consequent
-                    computeNode cnode, env, globalEnv
-
-        return
-
     class BackboneView extends Backbone.View
+        _parseExpression: ExpressionParser.parse
         _expressionCache: {}
+
+        container: null
         events: null
         title: null
 
@@ -191,29 +75,6 @@ factory = (_, $, Backbone, eachSeries, acorn)->
 
             return
 
-        _parseExpression: (body)->
-            ast = acorn.parse(body)
-            globalEnv = new Environment()
-            computeNode ast, env = new Environment(), globalEnv
-            globals = _.keys globalEnv.attributes
-
-            vars = ''
-            if globals.length
-                declaration = []
-                for arg in globals
-                    declaration.push "#{arg} = 'undefined' === typeof locals.#{arg} ? globals.#{arg} : locals.#{arg}"
-
-                vars = 'var ' + declaration.join(',\n    ') + ';'
-
-
-            fnText = """
-                #{vars}
-                #{body}
-            """
-
-            ### jshint -W054 ###
-            return new Function 'locals', 'globals', fnText
-
         initialize: (options)->
             super
 
@@ -255,18 +116,8 @@ factory = (_, $, Backbone, eachSeries, acorn)->
         modelChangeTasks: ->
             this.unmountTasks(this.container).concat this.mountTasks(this.container)
 
-        render: (container, done)->
+        doRender: (done)->
             view = @
-            view.container = container
-
-            if 'function' isnt typeof view.render
-                done new Error 'view must implement a render method'
-                return
-
-            if 'function' isnt typeof view.mount
-                done new Error 'view must implement a mount method'
-                return
-
             view.take()
             eachSeries view, this.mountTasks(), (err)->
                 view.give()
@@ -291,6 +142,7 @@ factory = (_, $, Backbone, eachSeries, acorn)->
 
         destroy: (done)->
             view = @
+            return if view.destroyed
             
             view.take()
 
@@ -304,6 +156,7 @@ factory = (_, $, Backbone, eachSeries, acorn)->
                 for own prop of view
                     view[prop] = null
 
+                view.destroyed = true
                 done() if 'function' is typeof done
                 return
 

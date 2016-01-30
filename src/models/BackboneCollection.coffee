@@ -5,6 +5,7 @@ deps = [
 
 factory = ({_, Backbone}, GenericUtil)->
     hasOwn = {}.hasOwnProperty
+    slice = [].slice
 
     _lookup = (attr, model)->
         attr = attr.split '.'
@@ -63,19 +64,12 @@ factory = ({_, Backbone}, GenericUtil)->
 
         unsetAttribute: (name)->
             this._modelAttributes.unset name
-            this
+            return
         getAttribute: (name)->
             this._modelAttributes.get name
-        setAttribute: (name, value)->
-            switch arguments.length
-                when 0
-                    this._modelAttributes.set.call this._modelAttributes
-                when 1
-                    this._modelAttributes.set.call this._modelAttributes, arguments[0]
-                else
-                    this._modelAttributes.set.call this._modelAttributes, arguments[0], arguments[1]
-
-            this
+        setAttribute: ->
+            this._modelAttributes.set.call this._modelAttributes, arguments
+            return
         attrToJSON: ->
             this._modelAttributes.toJSON()
 
@@ -149,8 +143,9 @@ factory = ({_, Backbone}, GenericUtil)->
 
                 key = this._keys[name]
 
+                length = chain.length
                 for value, index in chain
-                    if index is chain.length - 1
+                    if index is length - 1
                         break
                     if hasOwn key, value
                         key = key[value]
@@ -213,7 +208,7 @@ factory = ({_, Backbone}, GenericUtil)->
             # maintain filter
             if this.selector and not this.selector model
                 index = this.indexOf model
-                this.remove model, options
+                this.remove model, _.defaults {bubble: 0, sort: false}, options
                 return {remove: index}
 
             # maintain order
@@ -222,8 +217,8 @@ factory = ({_, Backbone}, GenericUtil)->
                 index = this.indexOf model
                 if at isnt index
                     at = this.models.length if at is -1
-                    this.remove model, _.defaults {sort: false}, options
-                    this.add model, _.defaults {sort: false}, options
+                    this.remove model, _.defaults {bubble: 0, sort: false}, options
+                    this.add model, _.defaults {bubble: 0, sort: false}, options
                     return {remove: index, add: at}
 
             return
@@ -255,12 +250,12 @@ factory = ({_, Backbone}, GenericUtil)->
                         opts = @_ensureEntegrity existing, _.defaults {silent: true}, options
 
                         if opts
-                            if hasOwn.call opts, 'remove'
-                                actions.push ['remove', existing, opts.remove]
-
                             if hasOwn.call opts, 'add'
-                                actions.push ['add', existing, opts.add]
+                                actions.push ['move', existing, opts.add, opts.remove]
                                 res.push existing
+
+                            else if hasOwn.call opts, 'remove'
+                                actions.push ['remove', existing, opts.remove]
 
                         continue
                     else
@@ -288,8 +283,8 @@ factory = ({_, Backbone}, GenericUtil)->
                 actions.push ['add', model, opts.at]
 
             if not silent and actions.length
-                for [name, model, index] in actions
-                    model.trigger name, model, this, _.defaults {index}, options
+                for [name, model, index, from] in actions
+                    model.trigger name, model, this, _.defaults {index, from}, options
 
                 this.trigger 'update', this, options
 
@@ -326,3 +321,26 @@ factory = ({_, Backbone}, GenericUtil)->
                 return
 
             subSet
+
+        _onModelEvent: (event, model, collection, options) ->
+            if (event is 'add' or event is 'remove') and collection isnt this
+                return
+            if event is 'destroy'
+                @remove model, options
+            if event is 'change'
+                prevId = @modelId(model.previousAttributes())
+                id = @modelId(model.attributes)
+                if prevId != id
+                    if prevId != null
+                        delete @_byId[prevId]
+                    if id != null
+                        @_byId[id] = model
+
+            if 'undefined' is typeof options
+                options = collection
+                bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
+                @trigger event, model, options
+            else
+                bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
+                @trigger event, model, collection, options
+            return

@@ -69,11 +69,10 @@ factory = ($)->
             return
 
     discard = (element) ->
-        discard element.firstChild while element.firstChild
+        # http://jsperf.com/emptying-a-node
+        discard element.lastChild while element.lastChild
         if element.nodeType is 1 and not /^(?:IMG|SCRIPT|INPUT)$/.test element.nodeName
-            try
-                element.innerHTML = ''
-            catch ex
+            element.innerHTML = ''
         element.parentNode.removeChild element if element.parentNode
         return
 

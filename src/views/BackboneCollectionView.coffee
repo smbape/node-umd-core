@@ -37,25 +37,59 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
         getAttribute: (attr)->
             this._viewAttributes.get attr
 
+        setComparator: (comparator)->
+            this.detachEvents()
+
+            if 'function' is typeof comparator
+                this._model = this.model if not this._model
+                this.model = this._model.getSubSet comparator: comparator
+                res = true
+            else if comparator is null and this._model
+                this.model = this._model
+                delete this._model
+                res = true
+            else
+                res = false
+
+            this.attachEvents()
+
+            res
+
+        sort: (comparator, reverse)->
+            if 'string' is typeof comparator
+                comparator = GenericUtil.comparators.PropertyComarator comparator
+
+            if arguments.length is 1 and 'boolean' is typeof comparator
+                reverse = comparator
+                comparator = this.model.comparator
+
+            if reverse
+                comparator = GenericUtil.comparators.reverse comparator
+
+            this.setComparator(comparator) and this.renderChildren()
+
         attachEvents: ->
             if this.model
                 this.model.on 'add', this.onAdd, this
+                this.model.on 'move', this.onMove, this
                 this.model.on 'remove', this.onRemove, this
                 this.model.on 'reset', this.onReset, this
                 this.model.on 'switch', this.onSwitch, this
-            this._viewAttributes.on 'change', this.onChange, this
+            this._viewAttributes.on 'change', this.onModelChange, this
             return
 
         detachEvents: ->
-            this._viewAttributes.off 'change', this.onChange, this
+            this._viewAttributes.off 'change', this.onModelChange, this
             if this.model
                 this.model.off 'switch', this.onSwitch, this
                 this.model.off 'reset', this.onReset, this
                 this.model.off 'remove', this.onRemove, this
+                this.model.off 'move', this.onMove, this
                 this.model.off 'add', this.onAdd, this
             return
 
         destroy: ->
+            return if @destroyed
             this.detachEvents()
             super
             return
@@ -192,37 +226,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
 
             template.call @, context
 
-        setComparator: (comparator)->
-            this.detachEvents()
-
-            if 'function' is typeof comparator
-                this._model = this.model if not this._model
-                this.model = this._model.getSubSet comparator: comparator
-                res = true
-            else if comparator is null and this._model
-                this.model = this._model
-                delete this._model
-                res = true
-            else
-                res = false
-
-            this.attachEvents()
-
-            res
-
-        sort: (comparator, reverse)->
-            if 'string' is typeof comparator
-                comparator = GenericUtil.comparators.PropertyComarator comparator
-
-            if arguments.length is 1 and 'boolean' is typeof comparator
-                reverse = comparator
-                comparator = this.model.comparator
-
-            if reverse
-                comparator = GenericUtil.comparators.reverse comparator
-
-            this.setComparator(comparator) and this.renderChildren()
-
         onAdd: (model, collection, options)->
             container = this.getChildrenContainer()
             xhtml = this.getChildXhtml model
@@ -234,8 +237,27 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             else
                 container.append element
             element.attr INDEX_ATTR, index
+            return
 
-            return element
+        onMove: (model, collection, options)->
+            {index, from} = options
+
+            xhtml = this.getChildXhtml model
+
+            newElement = $ xhtml
+            newElement.attr INDEX_ATTR, index
+            container = this.getChildrenContainer()
+
+            container = this.getChildrenContainer()
+            oldElement = $ container[0].children[from]
+            oldElement.destroy()
+
+            if index isnt -1
+                container.insertAt index, newElement
+            else
+                container.append newElement
+
+            return
 
         onRemove: (model, collection, options)->
             index = options.index
@@ -251,7 +273,17 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this.trigger 'reset', this, options
             return
 
+        onSwitch: ->
+            @reRender()
+            return
+
         onModelChange: (model)->
+            options = arguments[arguments.length - 1]
+
+            # Ignore events originally comming deeper that collection child
+            # for collection of collections
+            return if options.level > 1
+
             if model is this.model
                 this.renderParent()
             else if model is this._viewAttributes
@@ -260,20 +292,15 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 else
                     this.renderParent()
             else
-                xhtml = this.getChildXhtml model
-
                 index = this.model.indexOf model
+
+                xhtml = this.getChildXhtml model
+                newElement = $ xhtml
+                newElement.attr INDEX_ATTR, index
+
                 container = this.getChildrenContainer()
-                element = $ container[0].children[index]
-                element.attr INDEX_ATTR, index
+                oldElement = $ container[0].children[index]
+                oldElement.replaceWith newElement
+                oldElement.destroy()
 
-                element.replaceWith xhtml
-                element.destroy()
-
-            this.trigger 'change'
-            return
-
-        onSwitch: ->
-            @reRender()
-            this.trigger 'switch'
             return

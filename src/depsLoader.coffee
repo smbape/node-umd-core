@@ -142,8 +142,6 @@
                 _processDep dependency.amd, index + 1
 
         callback = (require)->
-            # if name is 'ng-tutorial/controllers/HomeController'
-            #     debugger
             for index in [1...arguments.length] by 1
                 availables[map[index]] = arguments[index]
             
@@ -153,8 +151,6 @@
 
             factory.apply this, availables
 
-        # if name is 'ng-tutorial/controllers/HomeController'
-        #     debugger
         if name
             define name, libs, callback
         else

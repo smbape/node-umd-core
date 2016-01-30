@@ -114,9 +114,21 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             if pathParams
                 return [engine, pathParams, handlers]
 
-        _dispatch: ({container, location, url, prevUrl, otherwise}, options, callback)->
+        _dispatch: (copts, options, callback)->
             app = @app
             router = @
+
+            if app.$$busy
+                # changing is too fast
+                # wait 200 ms and retry
+                clearTimeout @_waiting
+                @_waiting = setTimeout _.bind(->
+                    @_dispatch copts, options, callback
+                    return
+                , @), 200
+                return
+
+            {container, location, url, prevUrl, otherwise} = copts
             queryParams = qs.parse location.search
 
             if otherwise
@@ -363,23 +375,25 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
                     return callback(null, View) if options.checkOnly
 
-                    view = new View title: titleEngine?.getUrl(pathParams)
+                    view = new View
+                        container: options.container
+                        title: titleEngine?.getUrl(pathParams)
 
-                    if 'function' isnt typeof view.render or view.render.length < 1 or view.render.length > 2
-                        return callback(new Error "view at #{path}: invalid render method. It should be a function expecting one or two arguments")
+                    if 'function' isnt typeof view.doRender or view.doRender.length > 1
+                        return callback(new Error "view at #{path}: invalid render method. It should be a function expectingat most ine argument")
 
-                    if view.render.length is 2
+                    if view.doRender.length is 1
                         timeout = setTimeout ->
                             console.log 'taking too long to render. Make sure you called done function'
                             return
                         , 1000
-                        view.render options.container, (err)->
+                        view.doRender (err)->
                             clearTimeout timeout
                             callback err, view
                             return
 
                     else
-                        view.render options.container
+                        view.doRender()
                         callback null, view
 
                     return
