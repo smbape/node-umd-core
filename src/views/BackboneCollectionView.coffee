@@ -8,12 +8,10 @@ deps = [
 factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)->
     hasOwn = {}.hasOwnProperty
 
-    INDEX_ATTR = 'bb-cdx'
-
     class BackboneCollectionView extends BackboneModelView
 
         constructor: (options = {})->
-            this._viewAttributes = new Backbone.Model options.attributes or this.attributes
+            @_viewAttributes = new Backbone.Model options.attributes or this.attributes
 
             super
 
@@ -27,15 +25,10 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             this.setComparator options.comparator
 
         setAttribute: ->
-            switch arguments.length
-                when 1
-                    this._viewAttributes.set arguments[0]
-                when 2
-                    this._viewAttributes.set arguments[0], arguments[1]
-                else
-                    this._viewAttributes.set arguments[0], arguments[1], arguments[2]
+            @_viewAttributes.set.apply @_viewAttributes, arguments
+
         getAttribute: (attr)->
-            this._viewAttributes.get attr
+            @_viewAttributes.get attr
 
         setComparator: (comparator)->
             this.detachEvents()
@@ -75,11 +68,11 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 this.model.on 'remove', this.onRemove, this
                 this.model.on 'reset', this.onReset, this
                 this.model.on 'switch', this.onSwitch, this
-            this._viewAttributes.on 'change', this.onModelChange, this
+            @_viewAttributes.on 'change', this.onModelChange, this
             return
 
         detachEvents: ->
-            this._viewAttributes.off 'change', this.onModelChange, this
+            @_viewAttributes.off 'change', this.onModelChange, this
             if this.model
                 this.model.off 'switch', this.onSwitch, this
                 this.model.off 'reset', this.onReset, this
@@ -140,44 +133,10 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             # http://www.sitepoint.com/javascript-fast-string-concatenation/
             xhtml = []
             for model, index in models
-                element = $ this.getChildXhtml model
-                element.attr INDEX_ATTR, index
-                span = document.createElement 'span'
-                span.appendChild element[0]
-                xhtml[xhtml.length] = span.innerHTML
+                xhtml.push this.getChildXhtml model
                 span = null
             container = this.getChildrenContainer()
             container.empty().html xhtml.join('')
-
-            container.on 'click.delegateEvents.' + @cid, '[bb-click]', _.bind (evt)->
-                # hack to prevent bubble on this specific handler
-                # for triggered user action event or triggered event
-                memo = evt.originalEvent or evt
-                return if memo['bb-click']
-                memo['bb-click'] = true
-
-                expr = evt.currentTarget.getAttribute('bb-click')
-                if !expr
-                    return
-
-                node = evt.currentTarget.closest '[' + INDEX_ATTR + ']'
-                if not node
-                    return
-                index = parseInt node.getAttribute(INDEX_ATTR), 10
-
-                if index < 0
-                    return
-
-                if not (model = @model.models[index])
-                    return
-
-                fn = @_expressionCache[expr]
-                if !fn
-                    fn = @_expressionCache[expr] = @_parseExpression(expr)
-                
-                return fn.call @, {event: evt, model}, window
-            , @
-
 
             return
 
@@ -187,7 +146,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             return
 
         componenDidUnmount: ->
-            @_childContainer.off '.delegateEvents.' + @cid
             delete @_childContainer
             return
 
@@ -216,7 +174,7 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
 
             context =
                 model: model.toJSON()
-                view: this._viewAttributes.toJSON()
+                view: @_viewAttributes.toJSON()
 
             if collection = this.model
                 if 'function' is typeof collection.attrToJSON
@@ -236,7 +194,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
                 container.insertAt index, element
             else
                 container.append element
-            element.attr INDEX_ATTR, index
             return
 
         onMove: (model, collection, options)->
@@ -245,7 +202,6 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             xhtml = this.getChildXhtml model
 
             newElement = $ xhtml
-            newElement.attr INDEX_ATTR, index
             container = this.getChildrenContainer()
 
             container = this.getChildrenContainer()
@@ -277,8 +233,8 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
             @reRender()
             return
 
-        onModelChange: (model)->
-            options = arguments[arguments.length - 1]
+        onModelChange: (model, collection, options)->
+            options = collection if 'undefined' is typeof options
 
             # Ignore events originally comming deeper that collection child
             # for collection of collections
@@ -286,21 +242,18 @@ factory = ({_, $, Backbone}, BackboneCollection, BackboneModelView, GenericUtil)
 
             if model is this.model
                 this.renderParent()
-            else if model is this._viewAttributes
+            else if model is @_viewAttributes
                 if sort = model.changed.sort
                     this.sort sort.attribute, sort.value is 'desc'
                 else
                     this.renderParent()
             else
                 index = this.model.indexOf model
-
                 xhtml = this.getChildXhtml model
-                newElement = $ xhtml
-                newElement.attr INDEX_ATTR, index
 
                 container = this.getChildrenContainer()
                 oldElement = $ container[0].children[index]
-                oldElement.replaceWith newElement
+                oldElement.replaceWith xhtml
                 oldElement.destroy()
 
             return

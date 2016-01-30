@@ -180,8 +180,9 @@ factory = ({_, Backbone}, GenericUtil)->
 
                 key = this._keys[name]
 
+                length = chain.length
                 for value, index in chain
-                    if not key or index is chain.length - 1
+                    if not key or index is length - 1
                         break
                     key = key[value]
 
@@ -216,7 +217,7 @@ factory = ({_, Backbone}, GenericUtil)->
                 at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
                 index = this.indexOf model
                 if at isnt index
-                    at = this.models.length if at is -1
+                    at = this.length if at is -1
                     this.remove model, _.defaults {bubble: 0, sort: false}, options
                     this.add model, _.defaults {bubble: 0, sort: false}, options
                     return {remove: index, add: at}
@@ -233,9 +234,6 @@ factory = ({_, Backbone}, GenericUtil)->
             {merge, silent} = options
 
             for model in models
-                
-                # if model exists
-                # filter and order is already preserved
                 if existing = this.get model
                     hasChanged = false
 
@@ -274,9 +272,9 @@ factory = ({_, Backbone}, GenericUtil)->
                 # maintain order
                 if this.comparator
                     at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
-                    opts.at = if at is -1 then this.models.length else at
+                    opts.at = if at is -1 then this.length else at
                 else
-                    opts.at = this.models.length
+                    opts.at = this.length
 
                 model = super model, opts
                 res.push model
@@ -298,6 +296,7 @@ factory = ({_, Backbone}, GenericUtil)->
             for method in ['add', 'remove', 'reset', 'move']
                 do (method)->
                     subSet[method] = -> throw new Error method + ' is not allowed on a subSet'
+                    return
 
             subSet.parent = this
 

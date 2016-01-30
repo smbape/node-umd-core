@@ -9,10 +9,12 @@ factory = (_, acorn)->
     zip = (keys, values)->
         res = {}
 
-        if keys.length is 0
+        length = keys.length
+
+        if length is 0
             return res
 
-        for index in [0...keys.length] by 1
+        for index in [0...length] by 1
             res[keys[index]] = values[index]
 
         res

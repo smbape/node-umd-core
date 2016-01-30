@@ -4,6 +4,7 @@ deps = [
     './QueryString'
 ]
 factory = (require, _, GenericUtil, qs)->
+    # TODO : perf
 
     hasOwn = {}.hasOwnProperty
     push = [].push
@@ -31,10 +32,11 @@ factory = (require, _, GenericUtil, qs)->
                 url
 
     _substringMatch = (pattern, target)->
+        length = pattern.length
         pattern is target or (
-            pattern.length < target.length and 
-            pattern is target.substring(0, pattern.length) and 
-            (pattern is '' or target.charAt(pattern.length) is '/')
+            length < target.length and 
+            pattern is target.substring(0, length) and 
+            (pattern is '' or target.charAt(length) is '/')
         )
 
     # Class that matches and generates url based on a patter

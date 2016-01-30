@@ -43,10 +43,11 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                         target = target.parentNode
 
                 prefix = 'data-navigate-'
+                length = prefix.length
                 for attr in target.attributes
                     {name, value} = attr
-                    if prefix is name.substring 0, prefix.length
-                        options[name.substring(prefix.length)] = value
+                    if prefix is name.substring 0, length
+                        options[name.substring(length)] = value
 
             location = @app.getLocation fragment
             if location.pathname.charAt(0) in ['/', '#']
@@ -201,13 +202,21 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             baseUrl = @app.get 'baseUrl'
             html.replace /\b(href|src|data-main)="(?!mailto:|https?\:\/\/|[\/#!])([^"]+)/g, "$1=\"#{baseUrl}$2"
 
-        onRouteChangeSuccess: (res, options)->
-            if res
-                title = _.result(res, 'title')
-                if not title and 'function' is typeof res?.get
-                    title = res.get('title')
-                if title
-                    document.title = res.title
+        getRendableTitle: (rendable)->
+            if rendable
+                title = _.result(rendable, 'title')
+
+                if not title and 'function' is typeof rendable?.get
+                    title = _.result null, rendable.get('title')
+
+                if not title and rendable.props?.title
+                    title = rendable.props.title
+
+            return title
+
+        onRouteChangeSuccess: (rendable, options)->
+            if title = @getRendableTitle rendable
+                document.title = title
 
             # publicly notify render
             appConfig.render() if 'function' is typeof appConfig.render
@@ -375,9 +384,14 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
                     return callback(null, View) if options.checkOnly
 
-                    view = new View
+                    props =
                         container: options.container
                         title: titleEngine?.getUrl(pathParams)
+
+                    if 'function' is typeof View.createElement
+                        view = View.createElement props
+                    else
+                        view = new View props
 
                     if 'function' isnt typeof view.doRender or view.doRender.length > 1
                         return callback(new Error "view at #{path}: invalid render method. It should be a function expectingat most ine argument")

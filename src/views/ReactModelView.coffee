@@ -3,16 +3,43 @@ deps = [
     '../ExpressionParser'
 ]
 
-freact = ({_, $, Backbone}, ExpressionParser)->
+freact = ({_, $, Backbone, EventEmitter}, ExpressionParser)->
     hasOwn = {}.hasOwnProperty
 
-    class ReactModelView extends React.Component
-        title: null
-        container: null
-        done: null
+    componentCache = {}
+    _parseExpression = ExpressionParser.parse
+    _expressionCache = {}
 
-        _parseExpression: ExpressionParser.parse
-        _expressionCache: {}
+    handleInlineEventScript = (attr)->
+        (evt)->
+            expr = evt.currentTarget.getAttribute(attr)
+            if !expr
+                return
+
+            fn = _expressionCache[expr]
+            if !fn
+                fn = _expressionCache[expr] = _parseExpression(expr)
+
+            reactNode = $(evt.currentTarget)
+            while (reactNode = reactNode.closest('[data-reactid]')).length
+                nodeID = reactNode[0].getAttribute('data-reactid')
+                if hasOwn.call componentCache, nodeID
+                    component = componentCache[nodeID]
+                    break
+
+                reactNode = reactNode.parent().closest('[data-reactid]')
+
+            if component
+                return fn.call component, {event: evt}, window
+
+
+    $document = $(document)
+    $document.on 'click', '[data-click]', handleInlineEventScript('data-click')
+    $document.on 'submit', '[data-submit]', handleInlineEventScript('data-submit')
+
+    class ReactModelView extends React.Component
+        container: null
+        model: null
 
         constructor: (options = {})->
             @id = _.uniqueId 'view_'
@@ -42,8 +69,11 @@ freact = ({_, $, Backbone}, ExpressionParser)->
 
             super
 
-            if not (@props.model instanceof Backbone.Model) and not (@props.model instanceof Backbone.Collection)
+            if not (@model instanceof Backbone.Model) and not (@model instanceof Backbone.Collection)
                 throw new Error 'model must be an instance of Backbone.Model or Backbone.Collection'
+
+            
+            @props.mediator?.trigger 'instance', @
 
         shouldComponentUpdate: (nextProps, nextState)->
             shouldUpdate = if typeof @shouldUpdate is 'undefined'
@@ -57,13 +87,15 @@ freact = ({_, $, Backbone}, ExpressionParser)->
         # otherwise, route changes will hang up
         componentDidMount: ->
             @attachEvents()
-
-            if 'function' is typeof @done
-                @done null, @
-                delete @done
+            _rootNodeID = @_reactInternalInstance._rootNodeID
+            componentCache[_rootNodeID] = @
+            @props.mediator?.trigger 'mount', @
             return
 
         componentWillUnmount: ->
+            # @props.mediator?.trigger 'unmount', @
+            _rootNodeID = @_reactInternalInstance._rootNodeID
+            delete componentCache[_rootNodeID]
             @detachEvents()
             return
 
@@ -84,54 +116,54 @@ freact = ({_, $, Backbone}, ExpressionParser)->
 
         attachEvents: ->
             @detachEvents()
-            @props.model.on 'change', @onModelChange, @
+            @model.on 'change', @onModelChange, @
 
-            if @_reactInternalInstance and container = ReactDOM.findDOMNode @
-                container = $ container
+            # if @_reactInternalInstance and container = ReactDOM.findDOMNode @
+            #     container = $ container
 
-                container.on 'click.delegateEvents.' + @props.model.cid, '[data-click]', _.bind (evt)->
-                    # hack to prevent bubble on this specific handler
-                    # for triggered user action event or triggered event
-                    memo = evt.originalEvent or evt
-                    return if memo['data-click']
-                    memo['data-click'] = true
+            #     container.on 'click.delegateEvents.' + @model.cid, '[data-click]', _.bind (evt)->
+            #         # hack to prevent bubble on this specific handler
+            #         # for triggered user action event or triggered event
+            #         memo = evt.originalEvent or evt
+            #         return if memo['data-click']
+            #         memo['data-click'] = true
 
-                    expr = evt.currentTarget.getAttribute('data-click')
-                    if !expr
-                        return
+            #         expr = evt.currentTarget.getAttribute('data-click')
+            #         if !expr
+            #             return
 
-                    fn = @_expressionCache[expr]
-                    if !fn
-                        fn = @_expressionCache[expr] = @_parseExpression(expr)
+            #         fn = @_expressionCache[expr]
+            #         if !fn
+            #             fn = @_expressionCache[expr] = @_parseExpression(expr)
                     
-                    return fn.call @, {event: evt}, window
-                , @
+            #         return fn.call @, {event: evt}, window
+            #     , @
 
-                container.on 'submit.delegateEvents.' + @props.model.cid, '[data-submit]', _.bind (evt)->
-                    # hack to prevent bubble on this specific handler
-                    # for triggered user action event or triggered event
-                    memo = evt.originalEvent or evt
-                    return if memo['data-submit']
-                    memo['data-submit'] = true
+            #     container.on 'submit.delegateEvents.' + @model.cid, '[data-submit]', _.bind (evt)->
+            #         # hack to prevent bubble on this specific handler
+            #         # for triggered user action event or triggered event
+            #         memo = evt.originalEvent or evt
+            #         return if memo['data-submit']
+            #         memo['data-submit'] = true
 
-                    expr = evt.currentTarget.getAttribute('data-submit')
-                    if !expr
-                        return
+            #         expr = evt.currentTarget.getAttribute('data-submit')
+            #         if !expr
+            #             return
 
-                    fn = @_expressionCache[expr]
-                    if !fn
-                        fn = @_expressionCache[expr] = @_parseExpression(expr)
+            #         fn = @_expressionCache[expr]
+            #         if !fn
+            #             fn = @_expressionCache[expr] = @_parseExpression(expr)
                     
-                    return fn.call @, {event: evt}, window
-                , @
+            #         return fn.call @, {event: evt}, window
+            #     , @
 
             return
 
         detachEvents: ->
-            if @_reactInternalInstance and container = ReactDOM.findDOMNode @
-                $(container).off '.delegateEvents.' + @props.model.cid
+            # if @_reactInternalInstance and container = ReactDOM.findDOMNode @
+            #     $(container).off '.delegateEvents.' + @model.cid
 
-            @props.model.off 'change', @onModelChange, @
+            @model.off 'change', @onModelChange, @
             return
 
         destroy: ->
@@ -141,8 +173,7 @@ freact = ({_, $, Backbone}, ExpressionParser)->
             if @container
                 ReactDOM.unmountComponentAtNode @container
 
-            if @props.owner
-                @props.owner.destroy()
+            @props.mediator?.trigger 'destroy', @
 
             for own prop of @
                 delete @[prop]
@@ -150,8 +181,70 @@ freact = ({_, $, Backbone}, ExpressionParser)->
             @destroyed = true
             return
 
-        doRender: (done)->
-            # BAD: find a better way
-            element = React.createElement this.constructor, _.defaults {done, owner: this}, @_options
-            ReactDOM.render element, @container
+    emptyObject = (obj)->
+        for own prop of obj
+            delete obj[prop]
+
+        return
+
+    _doRender = (element, {mediator, container})->
+        (done)->
+            if 'function' is typeof done
+                mediator.once 'mount', ->
+                    done null, element
+                    return
+
+            mediator.once 'instance', (component)->
+                element._component = component
+                return
+
+            mediator.once 'destroy', ->
+                mediator.off 'mount'
+                emptyObject element
+                emptyObject mediator
+                return
+
+            ReactDOM.render element._internal, container
             return
+
+    class Element
+        constructor: (Component, props)->
+            {mediator, container} = props
+            mediator = _.extend {}, Backbone.Events
+            @props = props = _.extend {mediator}, props
+
+            if not container
+                throw new Error 'container must be defined'
+
+            @_internal = React.createElement Component, props
+
+        doRender: (done)->
+            element = @
+            {container, mediator} = @props
+            if 'function' is typeof done
+                mediator.once 'mount', ->
+                    done null, element
+                    return
+
+            mediator.once 'instance', (component)->
+                element._component = component
+                return
+
+            mediator.once 'destroy', ->
+                mediator.off 'mount'
+                emptyObject element
+                emptyObject mediator
+                return
+
+            ReactDOM.render element._internal, container
+            return
+
+        destroy: ->
+            if @_component
+                @_component.destroy()
+            return
+
+    ReactModelView.createElement = (props)->
+        return new Element this, props
+
+    ReactModelView

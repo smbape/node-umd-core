@@ -8,6 +8,7 @@ deps = [
 factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
 
     class ReactCollectionView extends ReactModelView
+        comparator: null
 
         constructor: ->
             super
@@ -16,16 +17,11 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
                 throw new Error 'model must be an instance of BackboneCollection'
 
             @_viewAttributes = new Backbone.Model @attributes
-            @setComparator @props.comparator, {silent: true}
+            @setComparator @comparator, {silent: true}
+            @originalModel = @model
 
         setAttribute: ->
-            switch arguments.length
-                when 1
-                    @_viewAttributes.set arguments[0]
-                when 2
-                    @_viewAttributes.set arguments[0], arguments[1]
-                else
-                    @_viewAttributes.set arguments[0], arguments[1], arguments[2]
+            @_viewAttributes.set.apply @_viewAttributes, arguments
 
         getAttribute: (attr)->
             @_viewAttributes.get attr
@@ -34,19 +30,18 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             @detachEvents() if not options.silent
 
             if 'function' is typeof comparator
-                @props._model = @props.model if not @props._model
-                @props.model = @props._model.getSubSet comparator: comparator
+                @_model = @model if not @_model
+                @model = @_model.getSubSet comparator: comparator
                 res = true
-            else if not comparator and @props._model
-                @props.model = @props._model
-                delete @props._model
+            else if not comparator and @_model
+                @model = @_model
+                delete @_model
                 res = true
             else
                 res = false
 
             @attachEvents() if not options.silent
-
-            res
+            return res
 
         sort: (comparator, reverse)->
             if 'string' is typeof comparator
@@ -54,7 +49,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
 
             if arguments.length is 1 and 'boolean' is typeof comparator
                 reverse = comparator
-                comparator = @props.model.comparator
+                comparator = @model.comparator
 
             if reverse
                 comparator = GenericUtil.comparators.reverse comparator
@@ -67,17 +62,17 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             if @_childNodeList
                 return @_childNodeList
 
-            @_childNodeList = @props.model.models.map _.bind @childNode, @
+            @_childNodeList = @model.models.map _.bind @childNode, @
 
         attachEvents: ->
             super
 
-            if @props.model
-                @props.model.on 'add', this.onAdd, this
-                @props.model.on 'remove', this.onRemove, this
-                @props.model.on 'move', this.onMove, this
-                @props.model.on 'reset', this.onReset, this
-                @props.model.on 'switch', this.onSwitch, this
+            if @model
+                @model.on 'add', this.onAdd, this
+                @model.on 'remove', this.onRemove, this
+                @model.on 'move', this.onMove, this
+                @model.on 'reset', this.onReset, this
+                @model.on 'switch', this.onSwitch, this
             @_viewAttributes.on 'change', this.onModelChange, this
 
             @attched = true
@@ -85,36 +80,33 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
 
         detachEvents: ->
             @_viewAttributes.off 'change', this.onModelChange, this
-            if @props.model
-                @props.model.off 'switch', this.onSwitch, this
-                @props.model.off 'reset', this.onReset, this
-                @props.model.off 'move', this.onMove, this
-                @props.model.off 'remove', this.onRemove, this
-                @props.model.off 'add', this.onAdd, this
+            if @model
+                @model.off 'switch', this.onSwitch, this
+                @model.off 'reset', this.onReset, this
+                @model.off 'move', this.onMove, this
+                @model.off 'remove', this.onRemove, this
+                @model.off 'add', this.onAdd, this
 
             super
             return
 
         onAdd: (model, collection, options)->
-            options = arguments[arguments.length - 1]
             if options.bubble > 1
                 # ignore bubbled events
                 return
 
-            index = options.index or @props.model.indexOf model
+            index = options.index or @model.indexOf model
             if index is -1
-                index = @props.model.models.length
+                index = @model.models.length
 
             childNodeList = @childNodeList()
             childNode = @childNode model, index
             childNodeList.splice index, 0, childNode
 
             @_updateView()
-            # @props.checkIntegrity()
             return
 
         onRemove: (model, collection, options)->
-            options = arguments[arguments.length - 1]
             if options.bubble > 1
                 # ignore bubbled events
                 return
@@ -128,11 +120,9 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             childNodeList.splice(index, 1)
 
             @_updateView()
-            # @props.checkIntegrity()
             return
 
         onMove: (model, collection, options)->
-            options = arguments[arguments.length - 1]
             if options.bubble > 1
                 # ignore bubbled events
                 return
@@ -143,11 +133,9 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             childNodeList.splice from, 1
             childNodeList.splice index, 0, childNode
             @_updateView()
-            # @props.checkIntegrity()
             return
 
         onReset: (collection, options)->
-            options = arguments[arguments.length - 1]
             if options.bubble > 1
                 # ignore bubbled events
                 return
@@ -156,7 +144,6 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             return
 
         onSwitch: (collection, options)->
-            options = arguments[arguments.length - 1]
             if options.bubble > 1
                 # ignore bubbled events
                 return
@@ -164,13 +151,13 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             @reRender()
             return
 
-        onModelChange: (model)->
-            options = arguments[arguments.length - 1]
+        onModelChange: (model, collection, options)->
+            options = collection if 'undefined' is typeof options
             if options.bubble > 0
                 # ignore bubbled events
                 return
 
-            if model is @props.model
+            if model is @model
                 @_updateView()
             else if model is @_viewAttributes
                 if sort = model.changed.sort
@@ -178,13 +165,12 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
                 else
                     @_updateView()
             else
-                index = @props.model.indexOf model
+                index = @model.indexOf model
                 childNodeList = @childNodeList()
                 childNodeList[index] = @childNode model, index
 
                 @_updateView()
 
-            # @props.checkIntegrity()
             return
 
         reRender: ->

@@ -10,9 +10,38 @@ deps = [
 factory = (_, $, Backbone, eachSeries, ExpressionParser)->
     hasOwn = {}.hasOwnProperty
 
+    componentCache = {}
+    _parseExpression = ExpressionParser.parse
+    _expressionCache = {}
+
+    handleInlineEventScript = (attr)->
+        (evt)->
+            expr = evt.currentTarget.getAttribute(attr)
+            if !expr
+                return
+
+            fn = _expressionCache[expr]
+            if !fn
+                fn = _expressionCache[expr] = _parseExpression(expr)
+
+            reactNode = $(evt.currentTarget)
+            while (reactNode = reactNode.closest('[id^=view_]')).length
+                nodeID = reactNode[0].id
+                if hasOwn.call componentCache, nodeID
+                    component = componentCache[nodeID]
+                    break
+
+                reactNode = reactNode.parent().closest('[id^=view_]')
+
+            if component
+                return fn.call component, {event: evt}, window
+
+
+    $document = $(document)
+    $document.on 'click', '[data-click]', handleInlineEventScript('data-click')
+    $document.on 'submit', '[data-submit]', handleInlineEventScript('data-submit')
+
     class BackboneView extends Backbone.View
-        _parseExpression: ExpressionParser.parse
-        _expressionCache: {}
 
         container: null
         events: null
@@ -20,6 +49,7 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
 
         constructor: (options = {})->
             @id = @id or _.uniqueId 'view_'
+            componentCache[@id] = @
 
             proto = @constructor.prototype
 
@@ -33,47 +63,6 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
                         @[opt] = options[opt]
 
             super options
-
-        delegateEvents: ->
-            super
-
-            @$el.on 'click.delegateEvents.' + @cid, '[bb-click]', _.bind (evt)->
-                # hack to prevent bubble on this specific handler
-                # for triggered user action event or triggered event
-                memo = evt.originalEvent or evt
-                return if memo['bb-click']
-                memo['bb-click'] = true
-
-                expr = evt.currentTarget.getAttribute('bb-click')
-                if !expr
-                    return
-
-                fn = @_expressionCache[expr]
-                if !fn
-                    fn = @_expressionCache[expr] = @_parseExpression(expr)
-                
-                return fn.call @, {event: evt}, window
-            , @
-
-            @$el.on 'submit.delegateEvents.' + @cid, '[bb-submit]', _.bind (evt)->
-                # hack to prevent bubble on this specific handler
-                # for triggered user action event or triggered event
-                memo = evt.originalEvent or evt
-                return if memo['bb-submit']
-                memo['bb-submit'] = true
-
-                expr = evt.currentTarget.getAttribute('bb-submit')
-                if !expr
-                    return
-
-                fn = @_expressionCache[expr]
-                if !fn
-                    fn = @_expressionCache[expr] = @_parseExpression(expr)
-                
-                return fn.call @, {event: evt}, window
-            , @
-
-            return
 
         initialize: (options)->
             super
@@ -121,7 +110,7 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
             view.take()
             eachSeries view, this.mountTasks(), (err)->
                 view.give()
-                done() if 'function' is typeof done
+                done null, view if 'function' is typeof done
                 return
 
             return
@@ -143,6 +132,8 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
         destroy: (done)->
             view = @
             return if view.destroyed
+
+            delete componentCache[@id]
             
             view.take()
 
