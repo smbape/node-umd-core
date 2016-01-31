@@ -14,32 +14,76 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
     _parseExpression = ExpressionParser.parse
     _expressionCache = {}
 
-    handleInlineEventScript = (attr)->
-        (evt)->
-            expr = evt.currentTarget.getAttribute(attr)
-            if !expr
-                return
+    do ->
+        delegateEvents = [
+            'blur'
+            'change'
+            'click'
+            'drag'
+            'drop'
+            'focus'
+            'input'
+            'load'
+            'mouseenter'
+            'mouseleave'
+            'mousemove'
+            'propertychange'
+            'reset'
+            'scroll'
+            'submit'
 
-            fn = _expressionCache[expr]
-            if !fn
-                fn = _expressionCache[expr] = _parseExpression(expr)
+            'abort'
+            'canplay'
+            'canplaythrough'
+            'durationchange'
+            'emptied'
+            'encrypted'
+            'ended'
+            'error'
+            'loadeddata'
+            'loadedmetadata'
+            'loadstart'
+            'pause'
+            'play'
+            'playing'
+            'progress'
+            'ratechange'
+            'seeked'
+            'seeking'
+            'stalled'
+            'suspend'
+            'timeupdate'
+            'volumechange'
+            'waiting'
+        ]
 
-            reactNode = $(evt.currentTarget)
-            while (reactNode = reactNode.closest('[id^=view_]')).length
-                nodeID = reactNode[0].id
-                if hasOwn.call componentCache, nodeID
-                    component = componentCache[nodeID]
-                    break
+        $document = $(document)
+        delegate = (type)->
+            attr = 'data-' + type
+            $document.on type, "[#{attr}]", (evt)->
+                expr = evt.currentTarget.getAttribute(attr)
+                if !expr
+                    return
 
-                reactNode = reactNode.parent().closest('[id^=view_]')
+                fn = _expressionCache[expr]
+                if !fn
+                    fn = _expressionCache[expr] = _parseExpression(expr)
 
-            if component
-                return fn.call component, {event: evt}, window
+                reactNode = $(evt.currentTarget)
+                while (reactNode = reactNode.closest('[id^=view_]')).length
+                    nodeID = reactNode[0].id
+                    if hasOwn.call componentCache, nodeID
+                        component = componentCache[nodeID]
+                        break
+
+                    reactNode = reactNode.parent().closest('[id^=view_]')
+
+                if component
+                    return fn.call component, {event: evt}, window
 
 
-    $document = $(document)
-    $document.on 'click', '[data-click]', handleInlineEventScript('data-click')
-    $document.on 'submit', '[data-submit]', handleInlineEventScript('data-submit')
+        for evt in delegateEvents
+            delegate evt
 
     class BackboneView extends Backbone.View
 

@@ -103,8 +103,7 @@ factory = (_, acorn)->
                 searchGlobals node.callee, env, globalEnv
 
             when 'MemberExpression'
-                if node.object.type is 'Identifier'
-                    computeIdentifier node.object, env, globalEnv
+                searchGlobals node.object, env, globalEnv
 
             when 'BinaryExpression'
                 searchGlobals node.left, env, globalEnv
@@ -128,11 +127,15 @@ factory = (_, acorn)->
         return
 
 
-    parse: (str)->
+    _searchGlobals = (str)->
         ast = acorn.parse(str)
         globalEnv = new Environment()
         searchGlobals ast, env = new Environment(), globalEnv
         globals = _.keys globalEnv.attributes
+
+    searchGlobals: _searchGlobals
+    parse: (str)->
+        globals = _searchGlobals
 
         vars = ''
         if globals.length
