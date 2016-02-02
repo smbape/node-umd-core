@@ -1,7 +1,7 @@
 deps = [
     './common'
     '../lib/acorn'
-    '!escodegen'
+    '../lib/escodegen'
 ]
 
 freact = ({_, $}, acorn, escodegen)->
