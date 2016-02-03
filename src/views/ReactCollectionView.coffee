@@ -91,7 +91,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             return
 
         onAdd: (model, collection, options)->
-            if options.bubble > 1
+            if options?.bubble > 1
                 # ignore bubbled events
                 return
 
@@ -107,7 +107,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             return
 
         onRemove: (model, collection, options)->
-            if options.bubble > 1
+            if options?.bubble > 1
                 # ignore bubbled events
                 return
 
@@ -123,7 +123,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             return
 
         onMove: (model, collection, options)->
-            if options.bubble > 1
+            if options?.bubble > 1
                 # ignore bubbled events
                 return
 
@@ -136,7 +136,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             return
 
         onReset: (collection, options)->
-            if options.bubble > 1
+            if options?.bubble > 1
                 # ignore bubbled events
                 return
 
@@ -144,7 +144,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
             return
 
         onSwitch: (collection, options)->
-            if options.bubble > 1
+            if options?.bubble > 1
                 # ignore bubbled events
                 return
 
@@ -153,7 +153,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
 
         onModelChange: (model, collection, options)->
             options = collection if 'undefined' is typeof options
-            if options.bubble > 0
+            if options?.bubble > 0
                 # ignore bubbled events
                 return
 

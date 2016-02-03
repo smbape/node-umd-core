@@ -4,7 +4,7 @@ deps = [
     '../makeTwoWayBinbing'
 ]
 
-freact = ({_, $, Backbone, EventEmitter}, ExpressionParser, makeTwoWayBinbing)->
+freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
     hasOwn = {}.hasOwnProperty
 
     emptyObject = (obj)->

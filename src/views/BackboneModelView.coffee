@@ -245,3 +245,8 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
 
         # undo what have been done in componentWillMount
         componenDidUnmount: ->
+
+    BackboneView.createElement = (props)->
+        new this props
+
+    BackboneView
