@@ -18,20 +18,23 @@ factory = ({$, Backbone}, eachSeries)->
             return
 
         initialize: ->
-            @isFileLocation = appConfig.baseUrl is ''
-            @set 'baseUrl', if @isFileLocation then '#' else appConfig.baseUrl
-            @set 'resource', appConfig.resource
+            @addInitializer initializer = (options)->
+                @isFileLocation = appConfig.baseUrl is ''
+                @set 'baseUrl', if @isFileLocation then '#' else appConfig.baseUrl
+                @set 'resource', appConfig.resource
 
-            @hasPushState = not @isFileLocation and Modernizr.history
+                @hasPushState = not @isFileLocation and Modernizr.history
 
-            if @hasPushState
-                @getLocation = @_getPathLocation
-                @_setLocationHash = @_nativeLocationHash
-                @hashChar = '#'
-            else
-                @getLocation = @_getHashLocation
-                @_setLocationHash = @_customLocationHash
-                @hashChar = '!'
+                if @hasPushState
+                    @getLocation = @_getPathLocation
+                    @_setLocationHash = @_nativeLocationHash
+                    @hashChar = '#'
+                else
+                    @getLocation = @_getHashLocation
+                    @_setLocationHash = @_customLocationHash
+                    @hashChar = '!'
+
+                return
 
             @addInitializer ieTask = (options)->
                 # IE special task

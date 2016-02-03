@@ -119,7 +119,7 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
 
             super
 
-            if not (@model instanceof Backbone.Model) and not (@model instanceof Backbone.Collection)
+            if @model and not (@model instanceof Backbone.Model) and not (@model instanceof Backbone.Collection)
                 throw new Error 'model must be an instance of Backbone.Model or Backbone.Collection'
 
             
@@ -170,11 +170,11 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
 
         attachEvents: ->
             @detachEvents()
-            @model.on 'change', @onModelChange, @
+            @model?.on 'change', @onModelChange, @
             return
 
         detachEvents: ->
-            @model.off 'change', @onModelChange, @
+            @model?.off 'change', @onModelChange, @
             return
 
         destroy: ->
@@ -242,6 +242,10 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
                 return
 
             ReactDOM.render element._internal, container
+            return
+
+        reRender: ->
+            @_component._updateView()
             return
 
         destroy: ->
