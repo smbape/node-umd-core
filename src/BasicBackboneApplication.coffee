@@ -74,7 +74,11 @@ factory = ({$, Backbone}, eachSeries)->
                 Backbone.history.start pushState: @hasPushState
                 return
             , @
+
+            @init()
             return
+
+        init: ->
 
         start: (options, done)->
             app = @
