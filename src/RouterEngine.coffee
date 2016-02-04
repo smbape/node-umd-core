@@ -169,7 +169,7 @@ factory = (require, _, GenericUtil, qs)->
             if baseUrl is '#'
                 @baseUrl = baseUrl
             else if 'string' is typeof baseUrl
-                if baseUrl.charAt(baseUrl.length - 1) is '/'
+                if baseUrl is '' or baseUrl.charAt(baseUrl.length - 1) is '/'
                     @baseUrl = baseUrl
                 else
                     @baseUrl = baseUrl + '/'

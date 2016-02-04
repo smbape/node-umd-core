@@ -85,6 +85,28 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
         for evt in delegateEvents
             delegate evt
 
+    isDeclaredProperty = (currProto, prop, stopPrototype)->
+        while currProto and not hasOwn.call(currProto, prop)
+            if currProto is stopPrototype
+                currProto = undefined
+            else if currProto.constructor?.__super__
+                currProto = currProto.constructor.__super__
+            else if currProto.constructor.prototype is currProto
+                # backup original constructor
+                proto = currProto
+                ctor = proto.constructor
+
+                # expose parent constructor
+                delete currProto.constructor
+                currProto = currProto.constructor?.prototype
+
+                # restore constructor
+                proto.constructor = ctor
+            else
+                currProto = undefined
+
+        currProto
+
     class BackboneView extends Backbone.View
 
         container: null
@@ -96,14 +118,11 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
             componentCache[@id] = @
 
             proto = @constructor.prototype
+            stopPrototype = Backbone.View.prototype
 
             for own opt of options
                 if opt.charAt(0) isnt '_'
-                    currProto = proto
-                    while currProto and not hasOwn.call(currProto, opt)
-                        currProto = currProto.constructor?.__super__
-
-                    if currProto
+                    if isDeclaredProperty proto, opt, stopPrototype
                         @[opt] = options[opt]
 
             super options

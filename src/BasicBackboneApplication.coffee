@@ -6,6 +6,14 @@ deps = [
 
 factory = ({$, Backbone}, eachSeries)->
 
+    headEl = document.getElementsByTagName('head')[0]
+    addTag = (name, attributes) ->
+        el = document.createElement(name)
+        for attrName of attributes
+            el.setAttribute attrName, attributes[attrName]
+        headEl.appendChild(el)
+        return
+
     class BasicBackboneApplication extends Backbone.Model
 
         take: ->
@@ -19,11 +27,15 @@ factory = ({$, Backbone}, eachSeries)->
 
         initialize: ->
             @addInitializer initializer = (options)->
-                @isFileLocation = appConfig.baseUrl is ''
-                @set 'baseUrl', if @isFileLocation then '#' else appConfig.baseUrl
-                @set 'resource', appConfig.resource
+                if @isFileLocation = appConfig.baseUrl is ''
+                    @set 'baseUrl', '#'
+                    @hasPushState = false
+                else
+                    @set 'baseUrl', appConfig.baseUrl
+                    # addTag 'base', href: appConfig.baseUrl
+                    @hasPushState = Modernizr.history
 
-                @hasPushState = not @isFileLocation and Modernizr.history
+                @set 'resource', appConfig.resource
 
                 if @hasPushState
                     @getLocation = @_getPathLocation
@@ -64,17 +76,25 @@ factory = ({$, Backbone}, eachSeries)->
                     #   /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
                     if routeInfo = @router.getRouteInfo location
                         [engine, pathParams] = routeInfo
-                        window.location.href = appConfig.baseUrl + location.pathname + location.search + '#' + location.hash.substring(1)
-                        return
+                        window.history.replaceState {}, document.title, appConfig.baseUrl + location.pathname + location.search + '#' + location.hash.substring(1)
+
                 else if not @router.getRouteInfo location
                     #   use route from pathname with partial match
                     #   preserve hash
                     #   /context/pathname?query#anchor -> /context/#pathname?query!anchor
                     url = appConfig.baseUrl + '#' + location.pathname + location.search + location.hash
-                    window.location.href = url if url isnt window.location.href
+                    if url isnt window.location.href
+                        window.location.href = url
 
                 @_listenHrefClick()
-                Backbone.history.start pushState: @hasPushState
+
+                # history.start do not take hash into account, silent it and do loadUrl
+                Backbone.history.start pushState: @hasPushState, silent: true
+
+                if location.pathname is ''
+                    location = window.location
+
+                Backbone.history.loadUrl location.pathname + location.search + location.hash
                 return
             , @
 
@@ -108,11 +128,11 @@ factory = ({$, Backbone}, eachSeries)->
             throw new Error 'a router must be defined'
 
         setLocationHash: (hash)->
-            hash or (hash = @getLocation().hash)
-            return false if not hash
-            if hash.charAt(0) in ['#', '!']
-                hash = hash.substring 1
-            return false if hash.length is 0
+            type = typeof hash
+            if 'undefined' is type
+                hash = @getLocation().hash
+            else if 'string' isnt type
+                return false
 
             @_setLocationHash hash
             return true
@@ -140,6 +160,14 @@ factory = ({$, Backbone}, eachSeries)->
             hash: split[3] or ''
 
         _nativeLocationHash: (hash)->
+            location = window.location
+            if hash is ''
+                if location.href isnt (location.protocol + '//' + location.host + location.pathname + location.search)
+                    window.history.pushState {}, document.title, location.pathname + location.search
+                return
+
+            hash = hash.substring(1)
+
             if window.location.hash is '#' + hash
                 element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-.])/g, '\\$1')}]")[0]
                 element.scrollIntoView() if element
@@ -150,6 +178,13 @@ factory = ({$, Backbone}, eachSeries)->
 
         _customLocationHash: (hash)->
             location = @_getHashLocation()
+
+            if hash is ''
+                window.location.hash = '#' + location.pathname + location.search
+                return
+
+            hash = hash.substring(1)
+
             location.hash = '!' + hash
             window.location.hash = '#' + location.pathname + location.search + location.hash
             element = document.getElementById(hash) or $("[name=#{hash}]")[0]
@@ -202,7 +237,7 @@ factory = ({$, Backbone}, eachSeries)->
                         return
 
                 # Get the absolute root path
-                root = window.location.protocol + '//' + window.location.host
+                root = window.location.protocol + '//' + window.location.host + appConfig.baseUrl
 
                 # Only care about relative path
                 return if this.href.slice(0, root.length) isnt root

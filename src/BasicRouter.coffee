@@ -33,21 +33,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
         navigate: (fragment, options = {}, evt)->
             # evt is defined when comming from a click on a[href]
-            options.evt = evt
-            if _.isObject evt
-                target = evt.target
-
-                if target.nodeName isnt 'A'
-                    # faster way to do a target.closest('a')
-                    while target and target.nodeName isnt 'A'
-                        target = target.parentNode
-
-                prefix = 'data-navigate-'
-                length = prefix.length
-                for attr in target.attributes
-                    {name, value} = attr
-                    if prefix is name.substring 0, length
-                        options[name.substring(length)] = value
 
             location = @app.getLocation fragment
             if location.pathname.charAt(0) in ['/', '#']
@@ -198,10 +183,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
             return
 
-        templateWillMount: (html, engineName, options)->
-            baseUrl = @app.get 'baseUrl'
-            html.replace /\b(href|src|data-main)="(?!mailto:|https?\:\/\/|[\/#!])([^"]+)/g, "$1=\"#{baseUrl}$2"
-
         getRendableTitle: (rendable)->
             if rendable
                 title = _.result(rendable, 'title')
@@ -280,7 +261,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
                 options.baseUrl = baseUrl
                 options.route = route
-
+                
                 routeConfig = engines[route] =
                     engine: new RouterEngine options
 
@@ -434,7 +415,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                             callback new Error "invalid template at #{path}"
                             return
                     
-                    $(options.container).html router.templateWillMount html, engine.name, options
+                    $(options.container).html html
                     callback null, title: if titleEngine then titleEngine.getUrl(pathParams)
 
                     return

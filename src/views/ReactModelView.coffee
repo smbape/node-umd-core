@@ -92,6 +92,28 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
 
         return
 
+    isDeclaredProperty = (currProto, prop, stopPrototype)->
+        while currProto and not hasOwn.call(currProto, prop)
+            if currProto is stopPrototype
+                currProto = undefined
+            else if currProto.constructor?.__super__
+                currProto = currProto.constructor.__super__
+            else if currProto.constructor.prototype is currProto
+                # backup original constructor
+                proto = currProto
+                ctor = proto.constructor
+
+                # expose parent constructor
+                delete currProto.constructor
+                currProto = currProto.constructor?.prototype
+
+                # restore constructor
+                proto.constructor = ctor
+            else
+                currProto = undefined
+
+        currProto
+
     class ReactModelView extends React.Component
         model: null
 
@@ -99,23 +121,12 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
             @id = _.uniqueId 'view_'
             options = @_options = _.clone options
             proto = @constructor.prototype
-
-            if proto is ReactModelView.prototype
-                for own opt of options
-                    if opt.charAt(0) isnt '_'
-                        if hasOwn.call(proto, opt)
-                            @[opt] = options[opt]
-                            delete options[opt]
-            else
-                for own opt of options
-                    if opt.charAt(0) isnt '_'
-                        currProto = proto
-                        while currProto and not hasOwn.call(currProto, opt)
-                            currProto = currProto.constructor?.__super__
-
-                        if currProto
-                            @[opt] = options[opt]
-                            delete options[opt]
+            stopPrototype = ReactModelView.prototype
+            for own opt of options
+                if opt.charAt(0) isnt '_'
+                    if isDeclaredProperty proto, opt, stopPrototype
+                        @[opt] = options[opt]
+                        delete options[opt]
 
             super
 
