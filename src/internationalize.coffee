@@ -84,10 +84,6 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
         getLocales: ->
             'en': 'en-GB'
             'fr': 'fr-FR'
-        
-        getFlags: ->
-            'en': 'gb'
-            'fr': 'fr'
 
         getLocale: (language)->
             @getLocales()[language]

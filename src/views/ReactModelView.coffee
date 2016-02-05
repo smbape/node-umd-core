@@ -130,6 +130,7 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
 
             super
 
+            @_filters = new Backbone.Model()
             if @model and not (@model instanceof Backbone.Model) and not (@model instanceof Backbone.Collection)
                 throw new Error 'model must be an instance of Backbone.Model or Backbone.Collection'
 
@@ -140,7 +141,7 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
             shouldUpdate = if typeof @shouldUpdate is 'undefined'
                 true
             else
-                @shouldUpdate
+                @shouldUpdate or !_.isEqual this.state, nextState
             @shouldUpdate = false
             shouldUpdate
 
@@ -202,6 +203,22 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
 
             @destroyed = true
             return
+
+        getFilter: (value)->
+            value = @_filters.get value
+            switch typeof value
+                when 'string'
+                    value = new RegExp value.replace(/[\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}]/g, '\\'), 'i'
+                    (model)->
+                        for own prop of model.attributes
+                            if value.test(model.attributes[prop]) 
+                                return true
+
+                        return false
+                when 'function'
+                    value
+                else
+                    -> true
 
     _doRender = (element, {mediator, container})->
         (done)->

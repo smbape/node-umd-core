@@ -288,7 +288,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                             fn = @_templateHandler handler, routeConfig
                         else
                             if 'function' isnt typeof handler.fn
-                                throw new Error "Error in route '#{route}', handler '#{handler.name}': unknown type or no fn 'function'"
+                                throw new Error "Error in route '#{route}', handler '#{handler.name}': unknown type '#{handler.type}' or no fn 'function'"
 
                             fn = handler.fn
 

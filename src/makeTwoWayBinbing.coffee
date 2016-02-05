@@ -7,6 +7,7 @@ deps = [
 freact = ({_, $}, acorn, escodegen)->
     hasOwn = {}.hasOwnProperty
     _expressionCache = {}
+    uid = ('makeTwoWayBinbing' + Math.random()).replace /\D/g, ''
 
     emptyObject = (obj)->
         for own prop of obj
@@ -33,10 +34,16 @@ freact = ({_, $}, acorn, escodegen)->
             return
 
     _makeTwoWayBinbing = (type, config, element)->
-        {spModel: model, spModelAttr: property, spModelLink: expr} = config.spModel
+        if not config
+            return
+
+        {spModel: model, spModelAttr: property, spModelLink: expr} = config
 
         if model
-            if 'string' isnt typeof property
+            if 'string' is typeof model
+                property = model
+                model = @_filters
+            else if 'string' isnt typeof property
                 return
         else if expr
             if not hasOwn.call _expressionCache, expr
@@ -78,7 +85,11 @@ freact = ({_, $}, acorn, escodegen)->
                 return
 
             _onModelChange: (model, value, options)->
-                return if options.dom
+                if options.dom
+                    state = {}
+                    state[uid] = new Date()
+                    binding.context.setState state
+                    return
                 binding.set binding, value
                 return
 
@@ -166,5 +177,5 @@ freact = ({_, $}, acorn, escodegen)->
         return binding
 
     makeTwoWayBinbing = (element, type, config, toSetElement)->
-        if config?.spModelLink and element?._owner?._instance and element._owner._instance.props?.model
+        if element?._owner?._instance
             _makeTwoWayBinbing.call(element._owner._instance, type, config, toSetElement or element)
