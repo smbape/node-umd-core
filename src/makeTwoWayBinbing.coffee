@@ -105,6 +105,8 @@ freact = ({_, $}, acorn, escodegen)->
                     node.reactex = binding.id
 
                 if (existing = @_bindexists[node.reactex]) and existing isnt binding
+                    index = binding.index
+
                     if existing.model isnt binding.model
                         # BAD, model changed
                         @_bindings.splice index, 1
@@ -116,6 +118,9 @@ freact = ({_, $}, acorn, escodegen)->
 
                         # onChange is always a new function, make sure it uses the correct binding object
                         binding = existing
+
+                    for i in [index...@_bindings.length] by 1
+                        @_bindings[i].index--
                     return
 
                 @_bindexists[binding.id] = binding
@@ -125,7 +130,7 @@ freact = ({_, $}, acorn, escodegen)->
                 binding._attach binding
                 return
 
-        index = @_bindings.length
+        binding.index = @_bindings.length
         @_bindings.push binding
 
         if type is 'input' and config.type is 'checkbox'

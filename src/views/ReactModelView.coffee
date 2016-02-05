@@ -112,7 +112,7 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
             else
                 currProto = undefined
 
-        currProto
+        currProto and typeof currProto[prop] isnt 'function'
 
     class ReactModelView extends React.Component
         model: null
@@ -166,9 +166,10 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
             return
 
         _updateView: ->
-            # make sure state updates view
-            @shouldUpdate = true
-            @setState {time: new Date().getTime()}
+            if @_reactInternalInstance
+                # make sure state updates view
+                @shouldUpdate = true
+                @setState {time: new Date().getTime()}
             return
 
         onModelChange: ->
@@ -204,17 +205,21 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
             @destroyed = true
             return
 
-        getFilter: (value)->
-            value = @inline.get value
+        getFilter: (value, isValue)->
+            if not isValue
+                value = @inline.get value
+
             switch typeof value
                 when 'string'
-                    value = new RegExp value.replace(/[\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}]/g, '\\'), 'i'
-                    (model)->
+                    regexp = new RegExp value.replace(/[\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}]/g, '\\'), 'i'
+                    fn = (model)->
                         for own prop of model.attributes
-                            if value.test(model.attributes[prop]) 
+                            if regexp.test(model.attributes[prop]) 
                                 return true
 
                         return false
+                    fn.value = value
+                    fn
                 when 'function'
                     value
                 else

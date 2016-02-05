@@ -4,7 +4,7 @@ deps = [
 
 factory = (require, Backbone)->
     toString = ({}).toString;
-    hasOwnProperty = Object::hasOwnProperty
+    hasOwn = Object::hasOwnProperty
     GenericUtil =
 
         # Based on jQuery 1.11

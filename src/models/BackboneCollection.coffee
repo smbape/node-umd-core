@@ -1,11 +1,27 @@
 deps = [
     '../common'
-    '../GenericUtil'
 ]
 
-factory = ({_, Backbone}, GenericUtil)->
+factory = ({_, Backbone})->
     hasOwn = {}.hasOwnProperty
     slice = [].slice
+
+    binaryIndex = (value, array, compare, fromIndex = 0)->
+        if fromIndex < 0
+            high = array.length
+            low = high - fromIndex
+        else
+            high = array.length
+            low = fromIndex
+
+        while low < high
+            mid = (low + high) >> 1
+            if 0 > compare array[mid], value
+                low = mid + 1
+            else
+                high = mid
+
+        low
 
     _lookup = (attr, model)->
         attr = attr.split '.'
@@ -34,18 +50,7 @@ factory = ({_, Backbone}, GenericUtil)->
                     if currProto
                         @[opt] = options[opt]
 
-            super
-
             collection = this
-
-            collection._modelAttributes = new Backbone.Model options.attributes
-
-            # TODO : destroy method
-            collection._modelAttributes.on 'change', (model, options)->
-                for attr of model.changed
-                    collection.trigger 'change:' + attr, collection, model.attributes[attr], options
-                collection.trigger 'change', collection, options
-                return
 
             if 'function' is typeof options.selector
                 collection.selector = options.selector
@@ -60,7 +65,17 @@ factory = ({_, Backbone}, GenericUtil)->
                 for name, attrs of indexes
                     collection.addIndex name, attrs
 
+            collection._modelAttributes = new Backbone.Model options.attributes
+
+            # TODO : destroy method
+            collection._modelAttributes.on 'change', (model, options)->
+                for attr of model.changed
+                    collection.trigger 'change:' + attr, collection, model.attributes[attr], options
+                collection.trigger 'change', collection, options
+                return
+
             collection.on 'change', @_onChange
+            super
 
         unsetAttribute: (name)->
             this._modelAttributes.unset name
@@ -214,7 +229,7 @@ factory = ({_, Backbone}, GenericUtil)->
 
             # maintain order
             if this.comparator
-                at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
+                at  model, this.models, this.comparator
                 index = this.indexOf model
                 if at isnt index
                     at = this.length if at is -1
@@ -271,7 +286,7 @@ factory = ({_, Backbone}, GenericUtil)->
 
                 # maintain order
                 if this.comparator
-                    at = GenericUtil.comparators.binaryIndex model, this.models, this.comparator
+                    at = binaryIndex model, this.models, this.comparator
                     opts.at = if at is -1 then this.length else at
                 else
                     opts.at = this.length
@@ -288,7 +303,10 @@ factory = ({_, Backbone}, GenericUtil)->
 
             return if singular then res[0] else res
 
-        getSubSet: (options)->
+        getSubSet: (options = {})->
+            if not options.comparator and not options.selector
+                return @
+
             options = _.extend {}, this._options, options
             subSet = new this.constructor this.models, options
             proto = this.constructor.prototype

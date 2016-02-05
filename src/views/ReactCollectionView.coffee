@@ -2,13 +2,42 @@ deps = [
     '../common'
     '../models/BackboneCollection'
     './ReactModelView'
-    '../GenericUtil'
 ]
 
-factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
+factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
+
+    byProperty = (property)->
+        fn = (a, b)->
+            if a instanceof Backbone.Model
+                a = a.attributes
+            if b instanceof Backbone.Model
+                b = b.attributes
+
+            if a[property] > b[property]
+                1
+            else if a[property] < b[property]
+                -1
+            else
+                0
+
+        fn.property = property
+        fn
+
+    reverse = (compare)->
+        return compare.original if compare.reverse and compare.original
+
+        fn = (a, b)-> -compare(a, b)
+
+        fn.reverse = true
+        fn.original = compare
+        fn.property = compare.property
+
+        fn
 
     class ReactCollectionView extends ReactModelView
+        order: null
         comparator: null
+        filter: null
 
         constructor: ->
             super
@@ -17,8 +46,11 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
                 throw new Error 'model must be an instance of BackboneCollection'
 
             @_viewAttributes = new Backbone.Model @attributes
-            @setComparator @comparator, {silent: true}
             @originalModel = @model
+            @setSubset {
+                comparator: @comparator or @order
+                filter: @filter
+            }, {silent: true}
 
         setAttribute: ->
             @_viewAttributes.set.apply @_viewAttributes, arguments
@@ -26,36 +58,82 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView, GenericUtil)->
         getAttribute: (attr)->
             @_viewAttributes.get attr
 
-        setComparator: (comparator, options = {})->
-            @detachEvents() if not options.silent
+        componentWillReceiveProps: (nextProps)->
+            if @setSubset {
+                comparator: nextProps.order
+                filter: nextProps.filter
+            }, {silent: true, reverse: nextProps.reverse}
+                @shouldUpdate = true
+                delete @_childNodeList
+            return
 
-            if 'function' is typeof comparator
-                @_model = @model if not @_model
-                @model = @_model.getSubSet comparator: comparator
-                res = true
-            else if not comparator and @_model
-                @model = @_model
-                delete @_model
-                res = true
-            else
-                res = false
+        setSubset: (config = {}, options = {})->
+            {comparator, filter} = config
+            @detachEvents()
 
-            @attachEvents() if not options.silent
+            res = false
+
+            switch typeof comparator
+                when 'function'
+                    if options.reverse
+                        comparator = reverse comparator
+                    if @model.comparator isnt comparator
+                        res = true
+                when 'string'
+                    if @model.comparator?.property isnt comparator
+                        if comparator.length is 0
+                            comparator = null
+                        else
+                            comparator = byProperty(comparator)
+                        res = true
+                    else if options.reverse and not @model.comparator.reverse
+                        comparator = reverse @model.comparator
+                        res = true
+                    else
+                        # comparator didn't change
+                        comparator = @model.comparator
+                else
+                    # unsupported comparator
+                    comparator = null
+                    res = true
+
+            switch typeof filter
+                when 'function'
+                    if @model.selector isnt filter
+                        res = true
+                when 'string'
+                    if @model.selector?.value isnt filter
+                        if filter.length is 0
+                            filter = null
+                        else
+                            filter = @getFilter filter, true
+                        res = true
+                    else
+                        # filter didn't change
+                        filter = @model.selector
+                else
+                    # unsupported comparator
+                    filter = null
+                    res = true
+
+            if comparator is null and filter is null
+                if @model isnt @originalModel
+                    @model = @originalModel
+                    res = true
+                else
+                    res = false
+            else if res
+                @model = @originalModel.getSubSet {comparator: comparator, selector: filter}
+
+            @attachEvents()
             return res
 
-        sort: (comparator, reverse)->
-            if 'string' is typeof comparator
-                comparator = GenericUtil.comparators.PropertyComarator comparator
-
-            if arguments.length is 1 and 'boolean' is typeof comparator
-                reverse = comparator
-                comparator = @model.comparator
-
-            if reverse
-                comparator = GenericUtil.comparators.reverse comparator
-
-            if @setComparator(comparator)
-                @reRender()
+        sort: (prop, options)->
+            if @setSubset({comparator: prop}, options)
+                if options.silent
+                    @shouldUpdate = true
+                else
+                    @reRender()
                 return true
 
         childNodeList: ->
