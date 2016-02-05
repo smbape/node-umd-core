@@ -42,7 +42,7 @@ freact = ({_, $}, acorn, escodegen)->
         if model
             if 'string' is typeof model
                 property = model
-                model = @_filters
+                model = @inline
             else if 'string' isnt typeof property
                 return
         else if expr

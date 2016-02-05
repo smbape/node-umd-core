@@ -130,7 +130,7 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
 
             super
 
-            @_filters = new Backbone.Model()
+            @inline = new Backbone.Model()
             if @model and not (@model instanceof Backbone.Model) and not (@model instanceof Backbone.Collection)
                 throw new Error 'model must be an instance of Backbone.Model or Backbone.Collection'
 
@@ -205,7 +205,7 @@ freact = ({_, $, Backbone}, ExpressionParser, makeTwoWayBinbing)->
             return
 
         getFilter: (value)->
-            value = @_filters.get value
+            value = @inline.get value
             switch typeof value
                 when 'string'
                     value = new RegExp value.replace(/[\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}]/g, '\\'), 'i'
