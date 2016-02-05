@@ -33,20 +33,23 @@ freact = ({_, $}, acorn, escodegen)->
             return
 
     _makeTwoWayBinbing = (type, config, element)->
-        expr = config.modelValue
-        if not expr
-            return
+        {spModel: model, spModelAttr: property, spModelLink: expr} = config.spModel
 
-        if not hasOwn.call _expressionCache, expr
-            _expressionCache[expr] = parseBinding expr
-
-        if fn = _expressionCache[expr]
-            try
-                [model, property] = fn.call(this)
-            catch ex
-                console.error ex, ex.stack
+        if model
+            if 'string' isnt typeof property
                 return
-        else
+        else if expr
+            if not hasOwn.call _expressionCache, expr
+                _expressionCache[expr] = parseBinding expr
+
+            if fn = _expressionCache[expr]
+                try
+                    [model, property] = fn.call(this)
+                catch ex
+                    console.error ex, ex.stack
+                    return
+
+        if not _.isObject(model) or not property or 'function' isnt typeof model.on or 'function' isnt typeof model.off
             return
 
         # until creation, instance is not known
@@ -163,5 +166,5 @@ freact = ({_, $}, acorn, escodegen)->
         return binding
 
     makeTwoWayBinbing = (element, type, config, toSetElement)->
-        if config?.modelValue and element?._owner?._instance and element._owner._instance.props?.model
+        if config?.spModelLink and element?._owner?._instance and element._owner._instance.props?.model
             _makeTwoWayBinbing.call(element._owner._instance, type, config, toSetElement or element)
