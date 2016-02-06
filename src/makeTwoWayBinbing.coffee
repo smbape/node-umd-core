@@ -1,10 +1,8 @@
 deps = [
     './common'
-    '../lib/acorn'
-    '../lib/escodegen'
 ]
 
-freact = ({_, $}, acorn, escodegen)->
+freact = ({_, $})->
     hasOwn = {}.hasOwnProperty
     _expressionCache = {}
     uid = ('makeTwoWayBinbing' + Math.random()).replace /\D/g, ''
@@ -15,46 +13,19 @@ freact = ({_, $}, acorn, escodegen)->
 
         return
 
-    parseBinding = (expr)->
-        try
-            ast = acorn.parse expr
-            if ast.body.length is 1 and ast.body[0].type is 'ExpressionStatement' and ast.body[0].expression.type is 'MemberExpression'
-                {object, property} = ast.body[0].expression
-
-                property.end -= property.start
-                property.start = 0
-
-                object = escodegen.generate object
-                property = escodegen.generate property
-
-                ### jshint -W054 ###
-                return new Function "return [#{object}, '#{property}'];"
-        catch ex
-            console.error ex, ex.stack
-            return
-
     _makeTwoWayBinbing = (type, config, element)->
         if not config
             return
 
-        {spModel: model, spModelAttr: property, spModelLink: expr} = config
+        {spModel: model} = config
 
-        if model
-            if 'string' is typeof model
-                property = model
-                model = @inline
-            else if 'string' isnt typeof property
-                return
-        else if expr
-            if not hasOwn.call _expressionCache, expr
-                _expressionCache[expr] = parseBinding expr
-
-            if fn = _expressionCache[expr]
-                try
-                    [model, property] = fn.call(this)
-                catch ex
-                    console.error ex, ex.stack
-                    return
+        if 'string' is typeof model
+            property = model
+            model = @inline
+        else if _.isArray model
+            [model, property] = model
+        else
+            return
 
         if not _.isObject(model) or not property or 'function' isnt typeof model.on or 'function' isnt typeof model.off
             return
@@ -108,7 +79,7 @@ freact = ({_, $}, acorn, escodegen)->
                     index = binding.index
 
                     if existing.model isnt binding.model
-                        # BAD, model changed
+                        # model changed
                         @_bindings.splice index, 1
                         existing._detach existing
 
