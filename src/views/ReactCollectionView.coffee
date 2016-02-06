@@ -47,6 +47,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             return true
 
         componentWillMount: ->
+            super()
             # getInitialState is not allowed on plain javascript class
             @setState model: @_initialModel
             return

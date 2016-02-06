@@ -34,6 +34,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             @shouldUpdate = false
             shouldUpdate
 
+        componentWillMount: ->
+
         # make sure to call this method,
         # otherwise, route changes will hang up
         componentDidMount: ->
