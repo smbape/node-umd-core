@@ -35,63 +35,62 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
         fn
 
     class ReactCollectionView extends ReactModelView
-        order: null
-        comparator: null
-        filter: null
 
-        constructor: ->
+        constructor: (props)->
             super
+            if model = @computeModel(props)
+                @_initialModel = model
 
-            if @model and not (@model instanceof BackboneCollection)
+        checkModel:->
+            if @props.model and not (@props.model instanceof BackboneCollection)
                 throw new Error 'model must be an instance of BackboneCollection'
+            return true
 
-            @_viewAttributes = new Backbone.Model @attributes
-            @originalModel = @model
-            @setSubset {
-                comparator: @comparator or @order
-                filter: @filter
-            }, {silent: true}
-
-        setAttribute: ->
-            @_viewAttributes.set.apply @_viewAttributes, arguments
-
-        getAttribute: (attr)->
-            @_viewAttributes.get attr
-
-        componentWillReceiveProps: (nextProps)->
-            if @setSubset {
-                comparator: nextProps.order
-                filter: nextProps.filter
-            }, {silent: true, reverse: nextProps.reverse}
-                @shouldUpdate = true
-                delete @_childNodeList
+        componentWillMount: ->
+            # getInitialState is not allowed on plain javascript class
+            @setState model: @_initialModel
             return
 
-        setSubset: (config = {}, options = {})->
-            {comparator, filter} = config
+        componentWillReceiveProps: (nextProps)->
+            super
+            if model = @computeModel(nextProps)
+                delete @_childNodeList
+                @setState model: model
+            return
+
+        getModel: ->
+            @state?.model
+
+        getOriginalModel: ->
+            @props.model
+
+        computeModel: (config = {}, options = {})->
             @detachEvents()
 
+            {order: comparator, filter, reverse: isReverse} = config
+            original = @getOriginalModel()
+            model = @getModel() or original
             res = false
 
             switch typeof comparator
                 when 'function'
-                    if options.reverse
+                    if isReverse
                         comparator = reverse comparator
-                    if @model.comparator isnt comparator
+                    if model.comparator isnt comparator
                         res = true
                 when 'string'
-                    if @model.comparator?.property isnt comparator
+                    if model.comparator?.property isnt comparator
                         if comparator.length is 0
                             comparator = null
                         else
                             comparator = byProperty(comparator)
                         res = true
-                    else if options.reverse and not @model.comparator.reverse
-                        comparator = reverse @model.comparator
+                    else if isReverse and not model.comparator.reverse
+                        comparator = reverse model.comparator
                         res = true
                     else
                         # comparator didn't change
-                        comparator = @model.comparator
+                        comparator = model.comparator
                 else
                     # unsupported comparator
                     comparator = null
@@ -99,10 +98,10 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             switch typeof filter
                 when 'function'
-                    if @model.selector isnt filter
+                    if model.selector isnt filter
                         res = true
                 when 'string'
-                    if @model.selector?.value isnt filter
+                    if model.selector?.value isnt filter
                         if filter.length is 0
                             filter = null
                         else
@@ -110,62 +109,46 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                         res = true
                     else
                         # filter didn't change
-                        filter = @model.selector
+                        filter = model.selector
                 else
                     # unsupported comparator
                     filter = null
                     res = true
 
             if comparator is null and filter is null
-                if @model isnt @originalModel
-                    @model = @originalModel
+                if model isnt original
+                    model = original
                     res = true
                 else
                     res = false
             else if res
-                @model = @originalModel.getSubSet {comparator: comparator, selector: filter}
+                model = original.getSubSet {comparator: comparator, selector: filter}
 
             @attachEvents()
-            return res
-
-        sort: (prop, options)->
-            if @setSubset({comparator: prop}, options)
-                if options.silent
-                    @shouldUpdate = true
-                else
-                    @reRender()
-                return true
+            return res and model
 
         childNodeList: ->
             if @_childNodeList
                 return @_childNodeList
 
-            @_childNodeList = @model.models.map _.bind @childNode, @
+            @_childNodeList = @getModel().models.map _.bind @childNode, @
 
         attachEvents: ->
-            super
-
-            if @model
-                @model.on 'add', this.onAdd, this
-                @model.on 'remove', this.onRemove, this
-                @model.on 'move', this.onMove, this
-                @model.on 'reset', this.onReset, this
-                @model.on 'switch', this.onSwitch, this
-            @_viewAttributes.on 'change', this.onModelChange, this
-
-            @attched = true
+            if super() and model = @getModel()
+                model.on 'add', this.onAdd, this
+                model.on 'remove', this.onRemove, this
+                model.on 'move', this.onMove, this
+                model.on 'reset', this.onReset, this
+                model.on 'switch', this.onSwitch, this
             return
 
         detachEvents: ->
-            @_viewAttributes.off 'change', this.onModelChange, this
-            if @model
-                @model.off 'switch', this.onSwitch, this
-                @model.off 'reset', this.onReset, this
-                @model.off 'move', this.onMove, this
-                @model.off 'remove', this.onRemove, this
-                @model.off 'add', this.onAdd, this
-
-            super
+            if super() and model = @getModel()
+                model.off 'switch', this.onSwitch, this
+                model.off 'reset', this.onReset, this
+                model.off 'move', this.onMove, this
+                model.off 'remove', this.onRemove, this
+                model.off 'add', this.onAdd, this
             return
 
         onAdd: (model, collection, options)->
@@ -173,7 +156,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 # ignore bubbled events
                 return
 
-            index = options.index or @model.indexOf model
+            index = options.index or @getModel().indexOf model
             if index is -1
                 index = @model.models.length
 
@@ -235,15 +218,11 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 # ignore bubbled events
                 return
 
-            if model is @model
+            collection = @getModel()
+            if model is collection
                 @_updateView()
-            else if model is @_viewAttributes
-                if sort = model.changed.sort
-                    @sort sort.attribute, sort.value is 'desc'
-                else
-                    @_updateView()
             else
-                index = @model.indexOf model
+                index = collection.indexOf model
                 childNodeList = @childNodeList()
                 childNodeList[index] = @childNode model, index
 
