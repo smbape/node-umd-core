@@ -66,7 +66,6 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             @props.model
 
         computeModel: (config = {}, options = {})->
-            @detachEvents()
 
             {order: comparator, filter, reverse: isReverse} = config
             original = @getOriginalModel()
@@ -125,7 +124,6 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             else if res
                 model = original.getSubSet {comparator: comparator, selector: filter}
 
-            @attachEvents()
             return res and model
 
         childNodeList: ->
