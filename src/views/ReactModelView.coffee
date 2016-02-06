@@ -30,7 +30,11 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             shouldUpdate = if typeof @shouldUpdate is 'undefined'
                 true
             else
-                @shouldUpdate or !_.isEqual(this.state, nextState) or !_.isEqual(this.props, nextProps)
+                @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
+
+            if @getModel(@state, @props) isnt @getModel(nextState, nextProps)
+                @detachEvents()
+
             @shouldUpdate = false
             shouldUpdate
 
@@ -79,8 +83,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             @_updateView()
             return
 
-        getModel: ->
-            @props.model
+        getModel: (props, state)->
+            (props or @props).model
 
         attachEvents: ->
             return false if @_attached

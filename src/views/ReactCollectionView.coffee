@@ -55,12 +55,13 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
         componentWillReceiveProps: (nextProps)->
             super
             if model = @computeModel(nextProps)
+                @detachEvents()
                 delete @_childNodeList
                 @setState model: model
             return
 
-        getModel: ->
-            @state?.model
+        getModel: (props, state)->
+            (state or @state)?.model
 
         getOriginalModel: ->
             @props.model
@@ -133,22 +134,24 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             @_childNodeList = @getModel().models.map _.bind @childNode, @
 
         attachEvents: ->
-            if super() and model = @getModel()
+            res = super()
+            if res and model = @getModel()
                 model.on 'add', this.onAdd, this
                 model.on 'remove', this.onRemove, this
                 model.on 'move', this.onMove, this
                 model.on 'reset', this.onReset, this
                 model.on 'switch', this.onSwitch, this
-            return
+            return res
 
         detachEvents: ->
-            if super() and model = @getModel()
+            res = super()
+            if res and model = @getModel()
                 model.off 'switch', this.onSwitch, this
                 model.off 'reset', this.onReset, this
                 model.off 'move', this.onMove, this
                 model.off 'remove', this.onRemove, this
                 model.off 'add', this.onAdd, this
-            return
+            return res
 
         onAdd: (model, collection, options)->
             if options?.bubble > 1

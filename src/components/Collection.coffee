@@ -1,9 +1,8 @@
 deps = [
-    '../common'
     '../views/ReactCollectionView'
 ]
 
-freact = ({_}, ReactCollectionView)->
+freact = (ReactCollectionView)->
     class Collecion extends ReactCollectionView
         tagName: 'div'
         constructor: (props)->
