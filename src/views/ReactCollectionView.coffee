@@ -60,8 +60,8 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 @setState model: model
             return
 
-        getModel: (props, state)->
-            (state or @state)?.model
+        getModel: (props = @props, state = @state)->
+            state?.model
 
         getOriginalModel: ->
             @props.model

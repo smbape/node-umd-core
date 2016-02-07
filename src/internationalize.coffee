@@ -20,16 +20,16 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                 translation: {
                     'girls-and-boys': {
                         choice: {
-                            0: '$t(girls, {"choice": __girls__}) and no boys',
-                            1: '$t(girls, {"choice": __girls__}) and a boy',
-                            2: '$t(girls, {"choice": __girls__}) and __choice__ boys'
+                            0: '$t(girls, { "choice": {{girls}} }) and no boys',
+                            1: '$t(girls, { "choice": {{girls}} }) and a boy',
+                            2: '$t(girls, { "choice": {{girls}} }) and {{choice}} boys'
                         }
                     },
                     girls: {
                         choice: {
                             0: 'No girls',
-                            1: '__choice__ girl',
-                            2: '__choice__ girls',
+                            1: 'a girl',
+                            2: '{{choice}} girls',
                             6: 'More than 5 girls'
                         }
                     }
@@ -37,12 +37,27 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
             }
         });
 
-        console.log(i18n.t('girls-and-boys', {choice: 2, girls: 3})); // -> 3 girls and 2 boys
-        console.log(i18n.t('girls-and-boys', {choice: 7, girls: 0})); // -> No girls and 7 boys
-        console.log(i18n.t('girls-and-boys', {choice: 0, girls: 0})); // -> No girls and no boys
-        console.log(i18n.t('girls-and-boys', {choice: 0, girls: 1})); // -> 1 girl and no boys
-        console.log(i18n.t('girls-and-boys', {choice: 1, girls: 0})); // -> No girls and a boy
-        console.log(i18n.t('girls-and-boys', {choice: 2, girls: 7})); // -> More than 5 girls and 2 boys
+        assertStrictEqual(i18n.t('girls', {choice: 0}), 'No girls');
+        assertStrictEqual(i18n.t('girls', {choice: 1}), 'a girl');
+        assertStrictEqual(i18n.t('girls', {choice: 2}), '2 girls');
+        assertStrictEqual(i18n.t('girls', {choice: 3}), '3 girls');
+        assertStrictEqual(i18n.t('girls', {choice: 4}), '4 girls');
+        assertStrictEqual(i18n.t('girls', {choice: 5}), '5 girls');
+        assertStrictEqual(i18n.t('girls', {choice: 6}), 'More than 5 girls');
+        assertStrictEqual(i18n.t('girls', {choice: 9}), 'More than 5 girls');
+
+        assertStrictEqual(i18n.t('girls-and-boys', {girls: 0, choice: 0}), 'No girls and no boys');
+        assertStrictEqual(i18n.t('girls-and-boys', {girls: 0, choice: 1}), 'No girls and a boy');
+        assertStrictEqual(i18n.t('girls-and-boys', {girls: 0, choice: 7}), 'No girls and 7 boys');
+        assertStrictEqual(i18n.t('girls-and-boys', {girls: 1, choice: 0}), 'a girl and no boys');
+        assertStrictEqual(i18n.t('girls-and-boys', {girls: 3, choice: 2}), '3 girls and 2 boys');
+        assertStrictEqual(i18n.t('girls-and-boys', {girls: 7, choice: 2}), 'More than 5 girls and 2 boys');
+
+        function assertStrictEqual(actual, expected) {
+            if (actual !== expected) {
+                throw new Error('Expecting ' + actual + ' to equal ' + expected);
+            }
+        }
 
     }(require('application'), require('i18next')));
     ###
@@ -52,10 +67,9 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
     # ================================
     i18nOptions =
         lng: 'en-GB'
-        resources: resources
         interpolation: 
-            prefix: '__'
-            suffix: '__'
+            prefix: '{{'
+            suffix: '}}'
             escapeValue: false
             unescapeSuffix: 'HTML'
         returnedObjectHandler: (key, value, options)->
@@ -71,9 +85,16 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
 
             i18n.t "#{key}.choice.#{choice}", options
 
+    if 'function'is typeof resources
+        resources = resources(i18nOptions)
+    i18nOptions.resources = resources
+
     i18nMixin =
 
         updateResources: (resources)->
+            if 'function'is typeof resources
+                resources = resources(i18nOptions)
+
             if _.isPlainObject resources
                 for lng of resources
                     if _.isPlainObject resources[lng]
@@ -111,6 +132,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
     internationalize = (options, done)->
         app = @
         _.extend app, i18nMixin
+        _.extend i18nOptions, options?.i18n
 
         if false isnt options?.i18n?.router
             app.router.on 'routeChangeSuccess', (router, rendable, current)->

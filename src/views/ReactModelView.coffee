@@ -83,8 +83,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             @_updateView()
             return
 
-        getModel: (props, state)->
-            (props or @props).model
+        getModel: (props = @props, state = @state)->
+            props.model
 
         attachEvents: ->
             return false if @_attached
@@ -200,8 +200,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
         makeTwoWayBinbing element, type, config
 
         # # DEV ONLY
-        # Object.freeze element.props
-        # Object.freeze element
+        Object.freeze element.props
+        Object.freeze element
 
         return element
 

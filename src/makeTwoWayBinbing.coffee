@@ -17,7 +17,7 @@ freact = ({_, $})->
         if not config
             return
 
-        {spModel: model} = config
+        {spModel: model, validate} = config
 
         if 'string' is typeof model
             property = model
@@ -45,6 +45,7 @@ freact = ({_, $})->
             model: model
             property: property
             value: model.attributes[property]
+            validate: validate
 
             _attach: (binding)->
                 binding.model.on binding.event, binding._onModelChange, binding.context
@@ -65,7 +66,7 @@ freact = ({_, $})->
                 return
 
             __onChange: (evt)->
-                binding.model.set(property, binding.get(binding), {dom: true})
+                binding.model.set property, binding.get(binding), {dom: true, validate: binding.validate}
                 return
 
             __ref: (ref)->
