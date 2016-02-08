@@ -8,13 +8,6 @@ factory = ({_, Backbone, i18n}, resources)->
 
     hasOwn = {}.hasOwnProperty
 
-    translateErrorMsg = (message)->
-        if Array.isArray message
-            _.map message, (message)->
-                translateErrorMsg message
-        else
-            i18n.t message.error, message.options
-
     # Returns an object with undefined properties for all
     # attributes on the model that has defined one or more
     # validation rules.
@@ -75,8 +68,6 @@ factory = ({_, Backbone, i18n}, resources)->
                                 if not _.isArray invalidAttrs[attr]
                                     invalidAttrs[attr] = [invalidAttrs[attr]]
 
-                                for message, index in invalidAttrs[attr]
-                                    invalidAttrs[attr][index] = translateErrorMsg(message)
                             else
                                 isAttrValid = true
                             model.trigger 'translated:validated:' + attr, !hasOwn.call(invalidAttrs, attr), attr, model, invalidAttrs[attr] or []

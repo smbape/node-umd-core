@@ -4,10 +4,9 @@ deps = [
 
 freact = (ReactCollectionView)->
     class Collecion extends ReactCollectionView
-        tagName: 'div'
         constructor: (props)->
             super
             @childNode = @props.forEach
 
         render:->
-            React.createElement @tagName, @props, @childNodeList()
+            React.createElement @props.tagName or 'div', @props, @childNodeList()

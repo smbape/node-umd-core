@@ -148,12 +148,18 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                 if not err or index is length
                     app.give()
                     app.current = router.current = handlerOptions
+
                     if _.isObject(res) and 'function' is typeof res.destroy
                         app.$$rendable = res
                     else
                         app.$$rendable = null
 
                     if err
+                        if app.$$rendable
+                            app.$$rendable.destroy()
+                            app.$$rendable = null
+
+                        console.error err, err.stack
                         container.innerHTML = err
                         router.onRouteChangeFailure err, handlerOptions
                         app.emit 'routeChangeFailure', router, err, options
@@ -172,10 +178,15 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                     return
                 , 1000
 
-                handler.call router, handlerOptions, (err, res)->
+                try
+                    handler.call router, handlerOptions, (err, res)->
+                        clearTimeout timeout
+                        iterate err, res
+                        return
+                catch err
                     clearTimeout timeout
                     iterate err, res
-                    return
+                
                 return
 
             app.take()
@@ -337,13 +348,20 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                             console.log 'taking too long to render. Make sure you called done function'
                             return
                         , 1000
-                        controller[method] (err)->
+
+                        try
+                            controller[method] (err)->
+                                clearTimeout timeout
+                                callback err, controller
+                                return
+                        catch err
                             clearTimeout timeout
                             callback err, controller
-                            return
                     else
-                        controller[method]()
-                        callback null, controller
+                        try
+                            controller[method]()
+                        catch err
+                        callback err, controller
 
                     return
                 , callback
@@ -382,14 +400,20 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                             console.log 'taking too long to render. Make sure you called done function'
                             return
                         , 1000
-                        view.doRender (err)->
+                        try
+                            view.doRender (err)->
+                                clearTimeout timeout
+                                callback err, view
+                                return
+                        catch err
                             clearTimeout timeout
                             callback err, view
-                            return
 
                     else
-                        view.doRender()
-                        callback null, view
+                        try
+                            view.doRender()
+                        catch err
+                        callback err, view
 
                     return
                 , callback

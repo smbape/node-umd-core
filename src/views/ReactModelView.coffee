@@ -44,7 +44,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
         # otherwise, route changes will hang up
         componentDidMount: ->
             @attachEvents()
-            _rootNodeID = @_reactInternalInstance._rootNodeID
             @props.mediator?.trigger 'mount', @
             return
 
@@ -54,7 +53,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
                 for binding in @_bindings
                     binding._detach binding
 
-            _rootNodeID = @_reactInternalInstance._rootNodeID
             @detachEvents()
             return
 

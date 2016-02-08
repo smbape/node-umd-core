@@ -3,10 +3,8 @@ deps = [
     '../views/ReactModelView'
 ]
 
-freact = ({_, i18n}, ReactModelView)->
+freact = ({_}, ReactModelView)->
     class ModelListener extends ReactModelView
-        tagName: 'span'
-
         _onModelEvent: ->
             callback = @props.onEvent
             @_children = callback.apply @, arguments
@@ -38,4 +36,4 @@ freact = ({_, i18n}, ReactModelView)->
             return true
 
         render:->
-            React.createElement @tagName, @props, @_children
+            React.createElement @props.tagName or 'span', @props, @_children
