@@ -1,6 +1,10 @@
-deps = [{amd: 'lodash', common: '!_', node: 'lodash'}]
+deps = ['../common']
 
-factory = (_)->
+factory = ({_, i18n})->
+    makeError = (error, options)->
+        {error, options}
+
+
     # Determines whether or not a value is empty
     isEmpty = (value) ->
         switch typeof value
@@ -17,15 +21,19 @@ factory = (_)->
     email: (options)->
         fn: (value, attr, computed)->
             if 'string' is typeof value and not /^.+@.+\..+$/.test value
-                error: 'email'
-                options: attr: if 'function' is typeof options?.label
-                    options.label attr
-                else
-                    "'" + attr + "'"
+                attr = if 'function' is typeof options?.label then options.label(attr) else "'" + attr + "'"
+                makeError 'error.email', {field: attr}
+
+    pattern: (pattern)->
+        return if not _.isRegExp(pattern)
+        fn: (value, attr, computed)->
+            if 'string' is typeof value and not pattern.test value
+                attr = if 'function' is typeof options?.label then options.label(attr) else "'" + attr + "'"
+                makeError 'error.pattern', {field: attr, pattern}
+
     required: fn: (value, attr, computed)->
         if isEmpty(value)
-            error: 'required_field'
-            options: field: attr
+            makeError 'error.required_field', field: attr
 
     either: (list)->
         return if not _.isArray list
@@ -35,58 +43,54 @@ factory = (_)->
                 if 'string' is typeof computed[attr] and computed[attr].length > 0
                     invalid = false
                     break
+
             if invalid
-                error: 'either'
-                options: list: list.join ', '
+                makeError 'error.either', list: list.join(', ')
+
     range: (minLength, maxLength)->
         fn: (value, attr, computed) ->
             if typeof value is 'string'
                 if value.length > maxLength
-                    error: 'maxLength'
-                    options:
+                    makeError 'error.maxLength',
                         maxLength: maxLength
                         given: value.length
                 else if value.length < minLength
-                    error: 'minLength'
-                    options:
+                    makeError 'error.minLength',
                         minLength: minLength
                         given: value.length
+
     maxLength: (maxLength)->
         fn: (value, attr, computed) ->
             if typeof value is 'string' and value.length > maxLength
-                error: 'maxLength'
-                options:
+                makeError 'error.maxLength',
                     maxLength: maxLength
                     given: value.length
+
     minLength: (minLength)->
         fn: (value, attr, computed) ->
             if typeof value is 'string' and value.length < minLength
-                error: 'minLength'
-                options:
+                makeError 'error.minLength',
                     minLength: minLength
                     given: value.length
+
     length: (length)->
         fn: (value, attr, computed) ->
             if typeof value isnt 'string' or value.length isnt length
-                error: 'length'
-                options:
+                makeError 'error.length',
                     length: length
                     given: value.length
+
     password: fn: (value, attr, computed) ->
         errorList = []
         if typeof value is 'string' and value.length < 6
-            errorList.push
-                error: 'minLength'
-                options:
-                    minLength: 6
-                    given: value.length
+            errorList.push makeError 'error.minLength',
+                minLength: 6
+                given: value.length
 
         if typeof value is 'string' and value.length > 255
-            errorList.push
-                error: 'maxLength'
-                options:
-                    maxLength: 6
-                    given: value.length
+            errorList.push makeError 'error.maxLength',
+                maxLength: 6
+                given: value.length
 
         errorsArray = [
             'digit'
@@ -104,5 +108,7 @@ factory = (_)->
             if errorsArray.length is 0
                 break
 
-        errorList = errorList.concat errorsArray
+        for error in errorsArray
+            errorList.push makeError error
+
         errorList if errorList.length > 0
