@@ -67,7 +67,7 @@ factory = ({_, Backbone, i18n}, resources)->
                             invalidAttrs[attr] = [invalidAttrs[attr]]
 
                 if validateAll
-                    model.invalidAttrs = invalidAttrs
+                    model.invalidAttrs = invalidAttrs or {}
                 else
                     if hasOwn.call model, 'invalidAttrs'
                         prevInvalidAttrs = model.invalidAttrs
