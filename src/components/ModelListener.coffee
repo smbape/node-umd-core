@@ -11,6 +11,12 @@ freact = ({_}, ReactModelView)->
             @_updateView()
             return
 
+        componentWillMount: ->
+            if @props.init isnt false
+                callback = @props.onEvent
+                @_children = callback.call @
+            return
+
         _getEventConfig: (props = @props, state = @state)->
             if (callback = props.onEvent) and
             (events = props.events) and
@@ -36,4 +42,7 @@ freact = ({_}, ReactModelView)->
             return true
 
         render:->
-            React.createElement @props.tagName or 'span', @props, @_children
+            if @props.bare
+                @_children or null
+            else
+                React.createElement @props.tagName or 'span', @props, @_children

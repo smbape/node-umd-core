@@ -13,6 +13,7 @@ freact = ({_, $}, componentHandler)->
             return
 
         componentWillUnmount: ->
+            @props.binding?.instance = @
             el = ReactDOM.findDOMNode @
             componentHandler.downgradeElements [el]
             return

@@ -87,6 +87,10 @@ freact = ({_, $}, makeTwoWayBinbing)->
         render: -> `(<div {...this.props}/>)`
 
         componentWillUnmount: ->
+            @props.binding?.instance = @
+            return
+
+        componentWillUnmount: ->
             # remove every references
             for own prop of @
                 delete @[prop]

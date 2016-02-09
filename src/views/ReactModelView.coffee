@@ -39,6 +39,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             shouldUpdate
 
         componentWillMount: ->
+            @props.binding?.instance = @
+            return
 
         # make sure to call this method,
         # otherwise, route changes will hang up
@@ -195,7 +197,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
     createElement = React.createElement
     React.createElement = (type, config)->
         element = createElement.apply React, arguments
-        makeTwoWayBinbing element, type, config
+        binding = makeTwoWayBinbing element, type, config
+        element.props.binding = binding
 
         # # DEV ONLY
         Object.freeze element.props

@@ -14,7 +14,7 @@ factory = ->
                 lowercase: "Missing a lowercase character"
                 uppercase: "Missing an uppercase character"
                 special: "Missing a special character"
-                email: "#{prefix}field#{suffix} is not a valid email"
+                email: "Invalid email address"
                 pattern: "#{prefix}field#{suffix} does not validate #{prefix}pattern#{suffix}"
         "fr-FR": translation:
             error:
@@ -28,5 +28,5 @@ factory = ->
                 lowercase: "Une minuscule est requise"
                 uppercase: "Une majuscule est requise"
                 special: "Un caractère spécial est requis"
-                email: "#{prefix}field#{suffix} n'est pas une adresse email valide"
+                email: "Adresse email incorrect"
                 pattern: "#{prefix}field#{suffix} ne valide pas #{prefix}pattern#{suffix}"

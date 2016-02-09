@@ -56,7 +56,7 @@ factory = ({_, i18n})->
             if hasValue(value)
                 if 'function' is typeof config.label
                     attr = config.label(attr)
-                makeError 'error.required_field', {field: attr}, config
+                makeError 'error.required', {field: attr}, config
 
     either: (list, config)->
         config = _.extend {}, defaultOptions, config

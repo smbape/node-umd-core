@@ -5,7 +5,7 @@ deps = [
 freact = ({_, $})->
     hasOwn = {}.hasOwnProperty
     _expressionCache = {}
-    uid = ('makeTwoWayBinbing' + Math.random()).replace /\D/g, ''
+    uid = 'makeTwoWayBinbing' + ('' + Math.random()).replace(/\D/g, '')
 
     emptyObject = (obj)->
         for own prop of obj
@@ -15,6 +15,9 @@ freact = ({_, $})->
 
     _makeTwoWayBinbing = (type, config, element)->
         if not config
+            return
+
+        if 'function' is typeof type and type.getBinding is false
             return
 
         {spModel: model, validate} = config
@@ -41,18 +44,18 @@ freact = ({_, $})->
         binding =
             id: _.uniqueId 'bd'
             event: "change:#{property}"
-            context: this
+            owner: this
             model: model
             property: property
             value: model.attributes[property]
             validate: validate
 
             _attach: (binding)->
-                binding.model.on binding.event, binding._onModelChange, binding.context
+                binding.model.on binding.event, binding._onModelChange, binding.owner
                 return
 
             _detach: (binding)->
-                binding.model.off binding.event, binding._onModelChange, binding.context
+                binding.model.off binding.event, binding._onModelChange, binding.owner
                 emptyObject binding
                 return
 
@@ -60,7 +63,10 @@ freact = ({_, $})->
                 if options.dom
                     state = {}
                     state[uid] = new Date()
-                    binding.context.setState state
+
+                    # https://facebook.github.io/react/docs/two-way-binding-helpers.html
+                    # set state on owner to trigger rerender
+                    binding.owner.setState state
                     return
                 binding.set binding, value
                 return
@@ -81,8 +87,10 @@ freact = ({_, $})->
 
                     if existing.model isnt binding.model
                         # model changed
+                        index = existing.index
                         @_bindings.splice index, 1
                         existing._detach existing
+                        emptyObject existing
 
                     else
                         @_bindings.splice index, 1
@@ -122,16 +130,15 @@ freact = ({_, $})->
                 $(binding._node).val value
                 return
 
-        binding.__ref = _.bind binding.__ref, binding.context
+        binding.__ref = _.bind binding.__ref, binding.owner
 
         props = element.props
-        for method in ['get', 'set']
-            if 'function' is typeof props[method + 'Value']
-                binding[method] = props[method + 'Value']
-            binding[method] = _.bind binding[method], binding.context
 
+        # make sure created native component will have the correct initial value
         if 'undefined' isnt typeof binding.value
             props.value = binding.value
+        else
+            delete props.value
 
         if 'function' is typeof props.onChange
             onChange = props.onChange

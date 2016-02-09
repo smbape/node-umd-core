@@ -171,6 +171,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                     callback(err, res) if 'function' is typeof callback
                     return
 
+                if _.isObject err
+                    console.error err, err.stack
+
                 handler = handlers[index++]
 
                 timeout = setTimeout ->
