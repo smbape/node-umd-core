@@ -100,7 +100,8 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                     if _.isPlainObject resources[lng]
                         for nsp of resources[lng]
                             i18n.addResourceBundle lng, nsp, resources[lng][nsp], true, true
-            return
+            
+            return i18nOptions
 
         getLocales: ->
             'en': 'en-GB'

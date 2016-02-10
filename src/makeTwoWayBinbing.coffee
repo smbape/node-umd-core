@@ -134,6 +134,9 @@ freact = ({_, $})->
 
         props = element.props
 
+        # to ease testing
+        props['data-bind-attr'] = property
+
         # make sure created native component will have the correct initial value
         if 'undefined' isnt typeof binding.value
             props.value = binding.value

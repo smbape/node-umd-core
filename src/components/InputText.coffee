@@ -56,7 +56,7 @@ freact = ({_, $})->
 
             id = props.id or @id
             css = props.css or 'default'
-            {children, className, spModel, input} = props
+            {children, className, spModel, input, disabled} = props
             delete props.children
             delete props.className
             delete props.spModel
@@ -65,6 +65,8 @@ freact = ({_, $})->
                 className = @classList.join(" ") + " " + className
             else
                 className = @classList.join(" ")
+
+            wrapperProps = {disabled, className}
 
             if not input
                 input = 'input'
@@ -78,7 +80,7 @@ freact = ({_, $})->
                 onBlur: @onBlur
             , props, inputProps), inputChildren
 
-            `<span className={className}>
+            `<span {...wrapperProps}>
                 { input }
                 <span className="input__bar" />
                 <label className={"input__label input__label--" + css} htmlFor={id}>
