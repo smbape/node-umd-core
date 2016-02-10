@@ -4,15 +4,14 @@ factory = ({_, i18n})->
 
     makeError = (error, opts, config)->
         if not _.isEmpty(config)
-            if 'function' is typeof config.t
-                return config.t error, opts
-            else if 'function' is typeof config.translate
-                return config.translate error, opts
-            else if _.isObject config.translator
-                if 'function' is typeof config.translator.t
-                    return config.translator.t error, opts
-                else if 'function' is typeof config.translator.translate
-                    return config.translator.translate error, opts
+            switch typeof config.msg
+                when 'string'
+                    return config.msg
+                when 'function'
+                    return config.msg error, opts
+
+            if _.isObject(config.translator) and 'function' is typeof config.translator.t
+                return config.translator.t error, opts
 
         return {error, opts}
 

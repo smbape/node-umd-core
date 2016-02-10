@@ -39,16 +39,16 @@ freact = ({_, $})->
 
             return
 
-        onFocus: (el)->
-            addClass 'input--focused', el.parentNode, @classList
+        onFocus: (evt)=>
+            addClass 'input--focused', evt.target.parentNode, @classList
             return
 
-        onBlur: (el)->
-            removeClass 'input--focused', el.parentNode, @classList
-            if /^\s*$/.test el.value
-                removeClass 'input--has-value', el.parentNode, @classList
+        onBlur: (evt)=>
+            removeClass 'input--focused', evt.target.parentNode, @classList
+            if /^\s*$/.test evt.target.value
+                removeClass 'input--has-value', evt.target.parentNode, @classList
             else
-                addClass 'input--has-value', el.parentNode, @classList
+                addClass 'input--has-value', evt.target.parentNode, @classList
             return
 
         render:->
@@ -56,17 +56,30 @@ freact = ({_, $})->
 
             id = props.id or @id
             css = props.css or 'default'
-            {children, className, spModel} = props
+            {children, className, spModel, input} = props
             delete props.children
             delete props.className
             delete props.spModel
+
             if className
                 className = @classList.join(" ") + " " + className
             else
                 className = @classList.join(" ")
 
-            `<span className={className + " input--" + css}>
-                <input className={"input__field input__field--" + css} type="text" id={id} spFocus={this.onFocus(event.target)} spBlur={this.onBlur(event.target)} {...props} />
+            if not input
+                input = 'input'
+            else if _.isArray(input)
+                [input, inputProps, inputChildren] = input
+
+            input = React.createElement input, _.extend(
+                id: id
+                className: "input__field"
+                onFocus: @onFocus
+                onBlur: @onBlur
+            , props, inputProps), inputChildren
+
+            `<span className={className}>
+                { input }
                 <span className="input__bar" />
                 <label className={"input__label input__label--" + css} htmlFor={id}>
                     <span className={"input__label-content input__label-content--" + css}>{props.label}</span>
@@ -81,11 +94,7 @@ freact = ({_, $})->
             $(binding.instance._getInput()).val()
 
         binding.set = (binding, value)->
-            state = {}
-            state[uid] = new Date()
-
-            # value is not directly setted because component should take it from model
-            # binding.instance?.setState state
+            $(binding.instance._getInput()).val value
             return
 
 
