@@ -3,23 +3,7 @@ deps = ['../common']
 freact = ({_, $})->
     uid = 'InputText' + ('' + Math.random()).replace(/\D/g, '')
 
-    addClass = (className, el, classList)->
-        if classList.indexOf(className) is -1
-            classList.push className
-        $(el).addClass(className)
-
-    removeClass = (className, el, classList)->
-        if ~(index = classList.indexOf(className))
-            classList.splice index, 1
-        $(el).removeClass(className)
-
     class InputText extends React.Component
-        _getId: ->
-            @props.id or @id
-
-        _getInput: ->
-            document.getElementById @_getId()
-
         componentWillMount: ->
             @props.binding?.instance = @
             @id = _.uniqueId uid
@@ -27,9 +11,11 @@ freact = ({_, $})->
             return
 
         componentDidMount: ->
-            el = @_getInput()
-            if not /^\s*$/.test(el.value)
-                addClass 'input--has-value', el.parentNode, @classList
+            @_updateClass @_getInput()
+            return
+
+        componentDidUpdate: ->
+            @_updateClass @_getInput()
             return
 
         componentWillUnmount: ->
@@ -40,15 +26,11 @@ freact = ({_, $})->
             return
 
         onFocus: (evt)=>
-            addClass 'input--focused', evt.target.parentNode, @classList
+            @_addClass 'input--focused', evt.target.parentNode, @classList
             return
 
         onBlur: (evt)=>
-            removeClass 'input--focused', evt.target.parentNode, @classList
-            if /^\s*$/.test evt.target.value
-                removeClass 'input--has-value', evt.target.parentNode, @classList
-            else
-                addClass 'input--has-value', evt.target.parentNode, @classList
+            @_removeClass 'input--focused', evt.target.parentNode, @classList
             return
 
         render:->
@@ -88,6 +70,29 @@ freact = ({_, $})->
                 </label>
                 {children}
             </span>`
+
+        _getId: ->
+            @props.id or @id
+
+        _getInput: ->
+            document.getElementById @_getId()
+
+        _updateClass: (el)->
+            if /^\s*$/.test el.value
+                @_removeClass 'input--has-value', el.parentNode, @classList
+            else
+                @_addClass 'input--has-value', el.parentNode, @classList
+            return
+
+        _addClass: (className, el, classList)->
+            if classList.indexOf(className) is -1
+                classList.push className
+            $(el).addClass(className)
+
+        _removeClass: (className, el, classList)->
+            if ~(index = classList.indexOf(className))
+                classList.splice index, 1
+            $(el).removeClass(className)
 
     # 2 way binbing is done on input, not on this component
     InputText.getBinding = (binding, config)->
