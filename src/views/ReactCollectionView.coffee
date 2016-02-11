@@ -67,28 +67,39 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             @props.model
 
         computeModel: (config = {}, options = {})->
-
             {order: comparator, filter, reverse: isReverse} = config
             original = @getOriginalModel()
-            model = @getModel() or original
+            model = @getModel()
+            if not model
+                model = original
+                isOriginal = true
             res = false
 
             switch typeof comparator
                 when 'function'
                     if isReverse
                         comparator = reverse comparator
-                    if model.comparator isnt comparator
+
+                    if not isOriginal and model.comparator isnt comparator
                         res = true
                 when 'string'
-                    if model.comparator?.property isnt comparator
+                    if isOriginal
+                        if comparator.length is 0
+                            comparator = null
+                        else
+                            comparator = byProperty(comparator)
+
+                    else if model.comparator?.property isnt comparator
                         if comparator.length is 0
                             comparator = null
                         else
                             comparator = byProperty(comparator)
                         res = true
+
                     else if isReverse and not model.comparator.reverse
                         comparator = reverse model.comparator
                         res = true
+
                     else
                         # comparator didn't change
                         comparator = model.comparator
@@ -99,15 +110,22 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             switch typeof filter
                 when 'function'
-                    if model.selector isnt filter
+                    if not isOriginal and model.selector isnt filter
                         res = true
                 when 'string'
+                    if isOriginal
+                        if filter.length is 0
+                            filter = null
+                        else
+                            filter = @getFilter filter, true
+
                     if model.selector?.value isnt filter
                         if filter.length is 0
                             filter = null
                         else
                             filter = @getFilter filter, true
                         res = true
+
                     else
                         # filter didn't change
                         filter = model.selector
@@ -121,7 +139,8 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                     model = original
                     res = true
                 else
-                    res = false
+                    res = isOriginal
+
             else if res
                 model = original.getSubSet {comparator: comparator, selector: filter}
 

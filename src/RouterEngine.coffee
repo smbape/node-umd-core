@@ -234,7 +234,6 @@ factory = (require, _, GenericUtil, qs)->
         # Generate url from params using url template
         # @param [Object] params
         # @return [String] generated url
-        # 
         getUrl: (params = {}, options)->
             self = @
 

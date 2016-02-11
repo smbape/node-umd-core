@@ -119,7 +119,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
 
             switch typeof value
                 when 'string'
-                    regexp = new RegExp value.replace(/[\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}]/g, '\\'), 'i'
+                    regexp = new RegExp value.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'
                     fn = (model)->
                         for own prop of model.attributes
                             if regexp.test(model.attributes[prop]) 

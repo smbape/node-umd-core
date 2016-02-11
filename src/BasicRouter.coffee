@@ -126,9 +126,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
             else
                 throw new Error "unmatched route for #{location.pathname}"
 
-            if app.$$rendable
-                app.$$rendable.destroy()
-                app.$$rendable = null
+            if prevRendable = $.data(container, 'rendable')
+                prevRendable.destroy()
+                $.removeData(container, 'rendable')
 
             $(container).empty()
 
@@ -140,6 +140,8 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                 queryParams
                 params: _.extend {}, pathParams, queryParams
                 engine
+                router: @
+                app
             }
 
             index = 0
@@ -150,20 +152,20 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                     app.current = router.current = handlerOptions
 
                     if _.isObject(res) and 'function' is typeof res.destroy
-                        app.$$rendable = res
-                    else
-                        app.$$rendable = null
+                        rendable = res
 
                     if err
-                        if app.$$rendable
-                            app.$$rendable.destroy()
-                            app.$$rendable = null
+                        if rendable
+                            rendable.destroy()
 
                         console.error err, err.stack
                         container.innerHTML = err
                         router.onRouteChangeFailure err, handlerOptions
                         app.emit 'routeChangeFailure', router, err, options
                     else
+                        if rendable
+                            $.data(container, 'rendable', rendable)
+
                         app.setLocationHash()
                         router.onRouteChangeSuccess res, handlerOptions
                         app.emit 'routeChangeSuccess', router, res, options
@@ -202,7 +204,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                 title = _.result(rendable, 'title')
 
                 if not title and 'function' is typeof rendable?.get
-                    title = _.result null, rendable.get('title')
+                    title = rendable.get('title')
 
                 if not title and rendable.props?.title
                     title = rendable.props.title
@@ -329,7 +331,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
                         return callback(new Error "invalid Controller at #{path}: not a function")
 
                     if 'function' isnt typeof Controller::getMethod
-                        return callback(new Error "invalid Controller at #{path}: prototype property 'getMethod' must be a function")
+                        return callback(new Error "Controller at #{path}: prototype property 'getMethod' is not a function")
 
                     method = Controller::getMethod options
 
