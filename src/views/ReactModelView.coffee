@@ -58,11 +58,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             @detachEvents()
             return
 
-        componentWillReceiveProps: (nextProps)->
-            if @props.model isnt nextProps.model
-                @detachEvents()
-            return
-
         componentWillUpdate: ->
             @attachEvents()
             return
