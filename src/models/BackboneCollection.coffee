@@ -269,7 +269,8 @@ factory = ({_, Backbone})->
 
                             else if hasOwn.call opts, 'remove'
                                 actions.push ['remove', existing, opts.remove]
-
+                        else
+                            res.push existing
                         continue
                     else
                         res.push existing

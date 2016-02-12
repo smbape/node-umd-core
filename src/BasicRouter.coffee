@@ -2,10 +2,9 @@ deps = [
 	'./common'
 	'./RouterEngine'
     './QueryString'
-    './StackArray'
 ]
 
-factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
+factory = ({_, $, Backbone}, RouterEngine, qs)->
     hasOwn = {}.hasOwnProperty
 
     class BasicRouter extends Backbone.Router
@@ -28,7 +27,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
             @current = {}
             @_initRoutes options
-            @_history = new StackArray()
             @container = options.container or document.body
 
         navigate: (fragment, options = {}, evt)->
@@ -85,7 +83,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
 
             if not container or container is mainContainer
                 container = mainContainer
-                @addHistory url
 
             @_dispatch {container, location, url, prevUrl, otherwise}, options, callback
             return
@@ -227,18 +224,12 @@ factory = ({_, $, Backbone}, RouterEngine, qs, StackArray)->
         title: (name)->
             @routeByName[name]?.title
 
-        getPrevUrl: ->
-            @_history.get -1
-
-        addHistory: (url)->
-            @_history.push url
-            return @
-
         back: ->
-            url = @_history.get -2
-            @navigate url,
-                trigger: true
-                replace: false
+            window.history.back()
+            return
+
+        forward: ->
+            window.history.forward()
             return
 
         _extractParameters: (route, fragment) ->
