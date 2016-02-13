@@ -1,47 +1,22 @@
 deps = [
     '../common'
+    './AbstractModelComponent'
     './InputText'
 ]
 
-freact = ({_}, InputText)->
-    class InputWithError extends React.Component
-        componentWillMount: ->
-            {spModel: [model, attr]} = @props
-            model.on 'vstate:' + attr, @_updateView, @
+freact = ({_}, AbstractModelComponent, InputText)->
 
+    class InputWithError extends AbstractModelComponent
+        uid: 'InputWithError' + ('' + Math.random()).replace(/\D/g, '')
+
+        attachEvents: (model, attr)->
+            events = "change:#{attr} vstate:#{attr}"
+            model.on events, @_updateOwner, @
             return
 
-        componentWillReceiveProps: (nextProps)->
-            {spModel: [model, attr]} = nextProps
-            {spModel: [oldModel, oldAttr]} = @props
-
-            if model isnt oldModel or attr isnt oldAttr
-                oldModel.off 'vstate:' + oldAttr, @_updateView, @
-                model.on 'vstate:' + attr, @_updateView, @
-
-            return
-
-        componentWillUnmount: ->
-            {spModel: [model, attr]} = @props
-            model.off 'vstate:' + attr, @_updateView, @
-
-            # remove every references
-            for own prop of @
-                delete @[prop]
-
-            return
-
-        _updateView: ->
-            {spModel: [model, attr]} = @props
-            if model.invalidAttrs[attr]
-                @className = 'input--invalid'
-                @isValid = false
-            else
-                @className = ''
-                @isValid = true
-
-            if @_reactInternalInstance
-                @setState {time: new Date().getTime()}
+        detachEvents: (model, attr)->
+            events = "change:#{attr} vstate:#{attr}"
+            model.off events, @_updateOwner, @
             return
 
         render: ->
@@ -56,8 +31,8 @@ freact = ({_}, InputText)->
                 props.className = className
 
             `<InputText {...props}>
+                {children}
                 <div className="error-messages">
-                    {children}
                     <div spRepeat="(message, index) in model.invalidAttrs[attr]" className="error-message" key={index}>{message}</div>
                 </div>
             </InputText>`

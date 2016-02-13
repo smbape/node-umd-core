@@ -5,6 +5,7 @@ deps = [
 
 freact = ({_, $, Backbone}, makeTwoWayBinbing)->
     hasOwn = {}.hasOwnProperty
+    uid = 'ReactModelView' + ('' + Math.random()).replace(/\D/g, '')
 
     emptyObject = (obj)->
         for own prop of obj
@@ -27,10 +28,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             return true
 
         shouldComponentUpdate: (nextProps, nextState)->
-            shouldUpdate = if typeof @shouldUpdate is 'undefined'
-                true
-            else
-                @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
+            shouldUpdate = @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
 
             if @getModel(@state, @props) isnt @getModel(nextState, nextProps)
                 @detachEvents()
@@ -69,7 +67,9 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             # make sure state updates view
             @shouldUpdate = true
             if @_reactInternalInstance
-                @setState {time: new Date().getTime()}
+                state = {}
+                state[uid] = new Date().getTime()
+                @setState state
             return
 
         onModelChange: ->

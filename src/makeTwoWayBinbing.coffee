@@ -17,17 +17,18 @@ freact = ({_, $})->
         if not config
             return
 
-        if 'function' is typeof type and type.getBinding is false
-            return
-
         {spModel: model, validate} = config
 
         if 'string' is typeof model
             property = model
             model = @inline
+            element.props.spModel = [model, property]
         else if _.isArray model
             [model, property] = model
         else
+            return
+
+        if 'function' is typeof type and type.getBinding is false
             return
 
         if not _.isObject(model) or not property or 'function' isnt typeof model.on or 'function' isnt typeof model.off

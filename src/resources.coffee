@@ -16,6 +16,7 @@ factory = ->
                 delete: "Delete"
                 login: "Sign in"
                 logout: "Sign out"
+                send: "Send"
         "fr-FR": translation:
             name: "Français"
             welcome: "Bienvenue"
@@ -30,3 +31,4 @@ factory = ->
                 delete: "Supprimer"
                 login: "Se connecter"
                 logout: "Se déconnecter"
+                send: "Envoyer"

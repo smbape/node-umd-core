@@ -1,13 +1,20 @@
-deps = ['../common']
+deps = [
+    '../common'
+    './AbstractModelComponent'
+]
 
-freact = ({_, $})->
-    uid = 'InputText' + ('' + Math.random()).replace(/\D/g, '')
+freact = ({_, $}, AbstractModelComponent)->
 
-    class InputText extends React.Component
+    class InputText extends AbstractModelComponent
+        uid: 'InputText' + ('' + Math.random()).replace(/\D/g, '')
+
         componentWillMount: ->
             @props.binding?.instance = @
-            @id = _.uniqueId uid
+            @id = _.uniqueId @uid
             @classList = ['input']
+
+            super()
+
             return
 
         componentDidMount: ->
@@ -16,13 +23,6 @@ freact = ({_, $})->
 
         componentDidUpdate: ->
             @_updateClass @_getInput()
-            return
-
-        componentWillUnmount: ->
-            # remove every references
-            for own prop of @
-                delete @[prop]
-
             return
 
         onFocus: (evt)=>
@@ -62,12 +62,17 @@ freact = ({_, $})->
                 onBlur: @onBlur
             , props, inputProps), inputChildren
 
+            if props.label
+                label = `<label className={"input__label input__label--" + css} htmlFor={id}>
+                    <span className={"input__label-content input__label-content--" + css}>{props.label}</span>
+                </label>`
+            else
+                label = ''
+
             `<span {...wrapperProps}>
                 { input }
                 <span className="input__bar" />
-                <label className={"input__label input__label--" + css} htmlFor={id}>
-                    <span className={"input__label-content input__label-content--" + css}>{props.label}</span>
-                </label>
+                {label}
                 {children}
             </span>`
 
