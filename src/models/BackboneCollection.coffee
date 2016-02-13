@@ -6,6 +6,23 @@ factory = ({_, Backbone})->
     hasOwn = {}.hasOwnProperty
     slice = [].slice
 
+    byProperty = (property)->
+        fn = (a, b)->
+            if a instanceof Backbone.Model
+                a = a.attributes
+            if b instanceof Backbone.Model
+                b = b.attributes
+
+            if a[property] > b[property]
+                1
+            else if a[property] < b[property]
+                -1
+            else
+                0
+
+        fn.property = property
+        fn
+
     binaryIndex = (value, array, compare, fromIndex = 0)->
         if fromIndex < 0
             high = array.length
@@ -39,6 +56,9 @@ factory = ({_, Backbone})->
     class BackboneCollection extends Backbone.Collection
         constructor: (models, options = {})->
 
+            options = _.clone options
+            if 'string' is typeof options.comparator
+                options.comparator = byProperty options.comparator
             proto = @constructor.prototype
 
             for own opt of options
@@ -75,7 +95,7 @@ factory = ({_, Backbone})->
                 return
 
             collection.on 'change', @_onChange
-            super
+            super(models, options)
 
         unsetAttribute: (name)->
             this._modelAttributes.unset name
@@ -363,3 +383,7 @@ factory = ({_, Backbone})->
                 bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
                 @trigger event, model, collection, options
             return
+
+    BackboneCollection.byProperty = byProperty
+
+    BackboneCollection

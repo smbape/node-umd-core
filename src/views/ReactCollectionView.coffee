@@ -6,22 +6,7 @@ deps = [
 
 factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
-    byProperty = (property)->
-        fn = (a, b)->
-            if a instanceof Backbone.Model
-                a = a.attributes
-            if b instanceof Backbone.Model
-                b = b.attributes
-
-            if a[property] > b[property]
-                1
-            else if a[property] < b[property]
-                -1
-            else
-                0
-
-        fn.property = property
-        fn
+    byProperty = BackboneCollection.byProperty
 
     reverse = (compare)->
         return compare.original if compare.reverse and compare.original
