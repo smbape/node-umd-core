@@ -34,6 +34,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
 
             if @getModel(@state, @props) isnt @getModel(nextState, nextProps)
                 @detachEvents()
+                shouldUpdate = true
 
             @shouldUpdate = false
             shouldUpdate
@@ -57,6 +58,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
 
             @detachEvents()
             return
+
+        componentWillReceiveProps: (nextProps)->
 
         componentWillUpdate: ->
             @attachEvents()

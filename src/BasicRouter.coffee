@@ -68,12 +68,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             location = options.location or app.getLocation url
             url = location.pathname + location.search
 
-            prevUrl = @getPrevUrl()
-
-            if not app.hasPushState and document.getElementById url
+            if not app.hasPushState and document.getElementById(url)
                 # Scroll into view has already been done
-                url = prevUrl + '!' + url
-                @navigate url, {trigger: false, replace: true}
+                # url = prevUrl + '!' + url
+                # @navigate url, {trigger: false, replace: true}
                 return
 
             if hasOwn.call options, 'container'
@@ -84,7 +82,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             if not container or container is mainContainer
                 container = mainContainer
 
-            @_dispatch {container, location, url, prevUrl, otherwise}, options, callback
+            @_dispatch {container, location, url, otherwise}, options, callback
             return
 
         getRouteInfo: (location, options)->
@@ -111,7 +109,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 , @), 200
                 return
 
-            {container, location, url, prevUrl, otherwise} = copts
+            {container, location, url, otherwise} = copts
             queryParams = qs.parse location.search
 
             if otherwise
