@@ -6,21 +6,54 @@ factory = ({_, Backbone})->
     hasOwn = {}.hasOwnProperty
     slice = [].slice
 
-    byProperty = (property)->
+    compareAttr = (a, b, attr, order)->
+        if a instanceof Backbone.Model
+            a = a.attributes
+        if b instanceof Backbone.Model
+            b = b.attributes
+
+        if a[attr] > b[attr]
+            order
+        else if a[attr] < b[attr]
+            -order
+        else
+            0
+
+    byAttribute = (attr, order)->
+        order = if order < 0 then -1 else 1
         fn = (a, b)->
-            if a instanceof Backbone.Model
-                a = a.attributes
-            if b instanceof Backbone.Model
-                b = b.attributes
+            compareAttr a, b, attr, order
 
-            if a[property] > b[property]
-                1
-            else if a[property] < b[property]
-                -1
-            else
-                0
+        fn.attribute = attr
+        fn
 
-        fn.property = property
+    byAttributes = (attributes, order)->
+        order = if order < 0 then -1 else 1
+        if _.isArray attributes
+            attributes = _.map attributes, (attr, index)->
+                {attr: order}
+        else if _.isObject attributes
+            attributes = _.map attributes, (attr, order)->
+                {attr: if order < 0 then -1 else 1}
+        else
+            return -> true
+
+        (a, b)->
+            for attr, order of attributes
+                if 0 isnt (res = compareAttr(a, b, attr, order))
+                    return res
+
+            0
+
+    reverse = (compare)->
+        return compare.original if compare.reverse and compare.original
+
+        fn = (a, b)-> -compare(a, b)
+
+        fn.reverse = true
+        fn.original = compare
+        fn.attribute = compare.attribute
+
         fn
 
     binaryIndex = (value, array, compare, fromIndex = 0)->
@@ -58,7 +91,7 @@ factory = ({_, Backbone})->
 
             options = _.clone options
             if 'string' is typeof options.comparator
-                options.comparator = byProperty options.comparator
+                options.comparator = byAttribute options.comparator
             proto = @constructor.prototype
 
             for own opt of options
@@ -249,7 +282,7 @@ factory = ({_, Backbone})->
 
             # maintain order
             if this.comparator
-                at  model, this.models, this.comparator
+                at = binaryIndex model, this.models, this.comparator
                 index = this.indexOf model
                 if at isnt index
                     at = this.length if at is -1
@@ -266,7 +299,7 @@ factory = ({_, Backbone})->
             singular = !_.isArray(models)
             models = if singular then [models] else models
             actions = []
-            {merge, silent} = options
+            {merge, reset, silent} = options
 
             for model in models
                 if existing = this.get model
@@ -384,6 +417,6 @@ factory = ({_, Backbone})->
                 @trigger event, model, collection, options
             return
 
-    BackboneCollection.byProperty = byProperty
+    _.extend BackboneCollection, {byAttribute, byAttributes, reverse}
 
     BackboneCollection

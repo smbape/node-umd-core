@@ -38,17 +38,19 @@ freact = ({_, $}, AbstractModelComponent)->
 
             id = props.id or @id
             css = props.css or 'default'
-            {children, className, spModel, input, disabled} = props
+            {children, className, spModel, input, style, disabled} = props
             delete props.children
             delete props.className
             delete props.spModel
+            delete props.input
+            delete props.style
 
             if className
                 className = @classList.join(" ") + " " + className
             else
                 className = @classList.join(" ")
 
-            wrapperProps = {disabled, className}
+            wrapperProps = {disabled, className, style}
 
             if not input
                 input = 'input'

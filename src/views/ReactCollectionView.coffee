@@ -6,18 +6,7 @@ deps = [
 
 factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
-    byProperty = BackboneCollection.byProperty
-
-    reverse = (compare)->
-        return compare.original if compare.reverse and compare.original
-
-        fn = (a, b)-> -compare(a, b)
-
-        fn.reverse = true
-        fn.original = compare
-        fn.property = compare.property
-
-        fn
+    {byAttribute, reverse} = BackboneCollection
 
     class ReactCollectionView extends ReactModelView
 
@@ -72,13 +61,13 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                         if comparator.length is 0
                             comparator = null
                         else
-                            comparator = byProperty(comparator)
+                            comparator = byAttribute(comparator)
 
-                    else if model.comparator?.property isnt comparator
+                    else if model.comparator?.attribute isnt comparator
                         if comparator.length is 0
                             comparator = null
                         else
-                            comparator = byProperty(comparator)
+                            comparator = byAttribute(comparator)
                         res = true
 
                     else if isReverse and not model.comparator.reverse
@@ -220,7 +209,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
         onModelChange: (model, collection, options)->
             options = collection if 'undefined' is typeof options
-            if options?.bubble > 0
+            if options?.bubble > 1
                 # ignore bubbled events
                 return
 

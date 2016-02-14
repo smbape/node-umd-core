@@ -24,11 +24,11 @@ freact = ({_}, AbstractModelComponent, InputText)->
             {spModel: [model, attr], children} = props
             delete props.children
 
-            className = @className
-            if props.className
-                props.className += ' ' + className
-            else
-                props.className = className
+            if className = @className
+                if props.className
+                    props.className += ' ' + className
+                else
+                    props.className = className
 
             `<InputText {...props}>
                 {children}
