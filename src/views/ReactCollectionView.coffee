@@ -13,18 +13,12 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
         constructor: (props)->
             super
             if model = @computeModel(props)
-                @_initialModel = model
+                this.state = {model}
 
         checkModel:->
             if @props.model and not (@props.model instanceof BackboneCollection)
                 throw new Error 'model must be an instance of BackboneCollection'
             return true
-
-        componentWillMount: ->
-            super()
-            # getInitialState is not allowed on plain javascript class
-            @setState model: @_initialModel
-            return
 
         componentWillReceiveProps: (nextProps)->
             super

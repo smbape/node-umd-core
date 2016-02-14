@@ -215,6 +215,9 @@ factory = ({$, Backbone}, eachSeries)->
                 # allowing open in new tab|window shortcut
                 return if which isnt 1 or evt.altKey or evt.ctrlKey or evt.shiftKey
 
+                # Ignore elements that have no-navigate class
+                return if /\bno-navigate\b/.test this.className
+
                 # Only cares about non anchor click
                 href = this.getAttribute 'href'
                 _char = href.charAt(0)
