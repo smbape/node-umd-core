@@ -12,35 +12,28 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
         constructor: (props)->
             super
-            if model = @computeModel(props)
+            if model = @getNewModel(props)
                 this.state = {model}
 
-        checkModel:->
-            if @props.model and not (@props.model instanceof BackboneCollection)
-                throw new Error 'model must be an instance of BackboneCollection'
-            return true
+        shouldComponentUpdate: (nextProps, nextState)->
+            shouldUpdate = super(nextProps, nextState)
 
-        componentWillReceiveProps: (nextProps)->
-            super
-            if model = @computeModel(nextProps)
-                @detachEvents()
+            if shouldUpdate
                 delete @_childNodeList
-                @setState model: model
-            return
+
+            shouldUpdate
 
         getModel: (props = @props, state = @state)->
             state?.model
 
-        getOriginalModel: ->
-            @props.model
-
-        computeModel: (config = {}, options = {})->
-            {order: comparator, filter, reverse: isReverse} = config
-            original = @getOriginalModel()
+        getNewModel: (props)->
+            {order: comparator, filter, reverse: isReverse} = props
+            original = @props.model
             model = @getModel()
             if not model
                 model = original
                 isOriginal = true
+
             res = false
 
             switch typeof comparator
@@ -103,42 +96,63 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                     res = true
 
             if comparator is null and filter is null
-                if model isnt original
-                    model = original
-                    res = true
-                else
-                    res = isOriginal
-
+                model = original
             else if res
                 model = original.getSubSet {comparator: comparator, selector: filter}
 
-            return res and model
+            model
+
+        getNewEventArgs: (props = @props, state = @state)->
+            [@getNewModel(props, state)]
+
+        attachEvents: (model)->
+            super
+            if model
+                model.on 'add', this.onAdd, this
+                model.on 'remove', this.onRemove, this
+                model.on 'move', this.onMove, this
+                model.on 'reset', this.onReset, this
+                model.on 'switch', this.onSwitch, this
+
+                if @state.model isnt model
+                    @setState model: model
+
+            return
+
+        detachEvents: (model)->
+            if model
+                model.off 'switch', this.onSwitch, this
+                model.off 'reset', this.onReset, this
+                model.off 'move', this.onMove, this
+                model.off 'remove', this.onRemove, this
+                model.off 'add', this.onAdd, this
+            super
+
+            return
+
+        onModelChange: (model, collection, options)->
+            options = collection if 'undefined' is typeof options
+            if options?.bubble > 1
+                # ignore bubbled events
+                return
+
+            collection = @getModel()
+            if model is collection
+                @_updateView()
+            else
+                index = collection.indexOf model
+                childNodeList = @childNodeList()
+                childNodeList[index] = @childNode model, index
+
+                @_updateView()
+
+            return
 
         childNodeList: ->
             if @_childNodeList
                 return @_childNodeList
 
             @_childNodeList = @getModel().models.map _.bind @childNode, @
-
-        attachEvents: ->
-            res = super()
-            if res and model = @getModel()
-                model.on 'add', this.onAdd, this
-                model.on 'remove', this.onRemove, this
-                model.on 'move', this.onMove, this
-                model.on 'reset', this.onReset, this
-                model.on 'switch', this.onSwitch, this
-            return res
-
-        detachEvents: ->
-            res = super()
-            if res and model = @getModel()
-                model.off 'switch', this.onSwitch, this
-                model.off 'reset', this.onReset, this
-                model.off 'move', this.onMove, this
-                model.off 'remove', this.onRemove, this
-                model.off 'add', this.onAdd, this
-            return res
 
         onAdd: (model, collection, options)->
             if options?.bubble > 1
@@ -199,24 +213,6 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 return
 
             @reRender()
-            return
-
-        onModelChange: (model, collection, options)->
-            options = collection if 'undefined' is typeof options
-            if options?.bubble > 1
-                # ignore bubbled events
-                return
-
-            collection = @getModel()
-            if model is collection
-                @_updateView()
-            else
-                index = collection.indexOf model
-                childNodeList = @childNodeList()
-                childNodeList[index] = @childNode model, index
-
-                @_updateView()
-
             return
 
         reRender: ->

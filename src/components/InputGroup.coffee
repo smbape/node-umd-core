@@ -1,20 +1,16 @@
 deps = [
     'umd-core/src/common'
     'umd-core/src/makeTwoWayBinbing'
+    './AbstractModelComponent'
 ]
 
-freact = ({_, $}, makeTwoWayBinbing)->
-    uid = ('InputGroup' + Math.random()).replace /\D/g, ''
-    created = 0
+freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
     map = [].map
 
     configs =
         radio:
             get: (binding)->
                 $(binding._node).find("input[type=radio]:checked").val()
-
-            set: (binding, value)->
-                $(binding._node).find("input[type=radio][value=#{value}]").prop('checked', true)
 
             setValue: (name)->
                 (value)->
@@ -35,12 +31,6 @@ freact = ({_, $}, makeTwoWayBinbing)->
                 map.call $(binding._node).find("input[type=checkbox]:checked"), (element)->
                     element.value
 
-            set: (binding, value)->
-                $(binding._node).find("input[type=checkbox][value=#{value}]").each (index, element)->
-                    element.checked = true
-                    return
-                return
-
             setValue: (name)->
                 (value)->
                     if Array.isArray @props.value
@@ -50,6 +40,8 @@ freact = ({_, $}, makeTwoWayBinbing)->
                             element.setAttribute 'name', name
                             if element.value in value
                                 element.checked = true
+                            else
+                                element.checked = false
                             return
 
                     else
@@ -61,14 +53,15 @@ freact = ({_, $}, makeTwoWayBinbing)->
 
                     return
 
-    class InputGroup extends React.Component
+    class InputGroup extends AbstractModelComponent
+        uid: 'InputGroup' + ('' + Math.random()).replace(/\D/g, '')
+
         constructor: (props)->
-            ++created
 
             # clone because we will modify props
             props = _.clone props
 
-            props.name = props.name or uid + created
+            props.name = props.name or _.uniqueId @uid
             if props.type is 'radio'
                 @type = props.type
             else
@@ -82,25 +75,19 @@ freact = ({_, $}, makeTwoWayBinbing)->
 
         componentDidMount: ->
             @setValue @props.value
+            super()
+            return
+
+        componentDidUpdate: ->
+            @setValue @props.value
+            super()
             return
 
         render: -> `(<div {...this.props}/>)`
 
-        componentWillUnmount: ->
-            @props.binding?.instance = @
-            return
-
-        componentWillUnmount: ->
-            # remove every references
-            for own prop of @
-                delete @[prop]
-
-            return
-
     # define 2 way binding behaviour
     InputGroup.getBinding = (binding, config)->
         bconf = configs[config.type]
-        binding.set = bconf.set
         binding.get = bconf.get
 
         return binding

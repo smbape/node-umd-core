@@ -365,11 +365,16 @@ factory = ({_, Backbone})->
             subSet = new this.constructor this.models, options
             proto = this.constructor.prototype
 
-            for method in ['add', 'remove', 'reset', 'move']
+            for method in ['remove', 'reset', 'move']
                 do (method)->
                     subSet[method] = -> throw new Error method + ' is not allowed on a subSet'
                     return
 
+            subSet.add = (models, options)->
+                if not options?.reset
+                    throw new Error 'add is not allowed on a subSet'
+
+                proto.add.call @, models, options
             subSet.parent = this
 
             this.on 'change', (model, options)->
@@ -388,7 +393,7 @@ factory = ({_, Backbone})->
 
             this.on 'reset', (collection, options)->
                 if collection is subSet.parent
-                    proto.reset.call subSet, collection.models, options
+                    proto.reset.call subSet, collection.models, _.defaults {reset: true}, options
                 return
 
             subSet

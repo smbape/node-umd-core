@@ -9,6 +9,20 @@ freact = ({_}, AbstractModelComponent, InputText)->
     class InputWithError extends AbstractModelComponent
         uid: 'InputWithError' + ('' + Math.random()).replace(/\D/g, '')
 
+        onModelChange: ->
+            model = @getModel()
+            attr = @getModelAttr()
+
+            if model.invalidAttrs[attr]
+                @className = 'input--invalid'
+                @isValid = false
+            else
+                @className = ''
+                @isValid = true
+
+            super
+            return
+
         attachEvents: (model, attr)->
             events = "change:#{attr} vstate:#{attr}"
             model.on events, @_updateOwner, @

@@ -6,6 +6,7 @@ freact = ({_, $})->
     hasOwn = {}.hasOwnProperty
     _expressionCache = {}
     uid = 'makeTwoWayBinbing' + ('' + Math.random()).replace(/\D/g, '')
+    AbstractModelComponent = null
 
     emptyObject = (obj)->
         for own prop of obj
@@ -14,7 +15,7 @@ freact = ({_, $})->
         return
 
     _makeTwoWayBinbing = (type, config, element)->
-        if not config
+        if not config or not (this instanceof AbstractModelComponent)
             return
 
         {spModel: model, validate} = config
@@ -28,7 +29,7 @@ freact = ({_, $})->
         else
             return
 
-        if 'function' is typeof type and type.getBinding is false
+        if 'function' is typeof type and not type.getBinding
             return
 
         if not _.isObject(model) or not property or 'function' isnt typeof model.on or 'function' isnt typeof model.off
@@ -61,15 +62,12 @@ freact = ({_, $})->
                 return
 
             _onModelChange: (model, value, options)->
-                if options.dom
-                    state = {}
-                    state[uid] = new Date()
+                state = {}
+                state[uid] = new Date()
 
-                    # https://facebook.github.io/react/docs/two-way-binding-helpers.html
-                    # set state on owner to trigger rerender
-                    binding.owner.setState state
-                    return
-                binding.set binding, value
+                # https://facebook.github.io/react/docs/two-way-binding-helpers.html
+                # set state on owner to trigger rerender
+                binding.owner.setState state
                 return
 
             __onChange: (evt)->
@@ -118,18 +116,11 @@ freact = ({_, $})->
             binding.get = (binding)->
                 $(binding._node).prop('checked')
 
-            binding.set = (binding, value)->
-                $(binding._node).prop('checked', value)
-                return
         else if 'function' is typeof type and 'function' is typeof type.getBinding
             binding = type.getBinding binding, config
         else
             binding.get = (binding)->
                 $(binding._node).val()
-
-            binding.set = (binding, value)->
-                $(binding._node).val value
-                return
 
         binding.__ref = _.bind binding.__ref, binding.owner
 
@@ -167,3 +158,8 @@ freact = ({_, $})->
     makeTwoWayBinbing = (element, type, config, toSetElement)->
         if element?._owner?._instance
             _makeTwoWayBinbing.call(element._owner._instance, type, config, toSetElement or element)
+
+    makeTwoWayBinbing.init = (Component)->
+        AbstractModelComponent = Component
+
+    makeTwoWayBinbing

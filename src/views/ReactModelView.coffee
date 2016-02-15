@@ -1,11 +1,10 @@
 deps = [
     '../common'
-    '../makeTwoWayBinbing'
+    '../components/AbstractModelComponent'
 ]
 
-freact = ({_, $, Backbone}, makeTwoWayBinbing)->
+freact = ({_, $, Backbone}, AbstractModelComponent)->
     hasOwn = {}.hasOwnProperty
-    uid = 'ReactModelView' + ('' + Math.random()).replace(/\D/g, '')
 
     emptyObject = (obj)->
         for own prop of obj
@@ -13,63 +12,37 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
 
         return
 
-    class ReactModelView extends React.Component
+    class ReactModelView extends AbstractModelComponent
+        uid: 'ReactModelView' + ('' + Math.random()).replace(/\D/g, '')
+
         constructor: (props = {})->
             @_options = _.clone props
             super
 
             @inline = new Backbone.Model()
-            @checkModel()
             @props.mediator?.trigger 'instance', @
 
-        checkModel: ->
-            if @props.model and not (@props.model instanceof Backbone.Model) and not (@props.model instanceof Backbone.Collection)
-                throw new Error 'model must be an instance of Backbone.Model or Backbone.Collection'
-            return true
-
-        shouldComponentUpdate: (nextProps, nextState)->
-            shouldUpdate = @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
-
-            if @getModel(@state, @props) isnt @getModel(nextState, nextProps)
-                @detachEvents()
-                shouldUpdate = true
-
-            @shouldUpdate = false
-            shouldUpdate
-
-        componentWillMount: ->
-            @props.binding?.instance = @
-            return
+        getModel: (props = @props, state = @state)->
+            props.model
 
         # make sure to call this method,
         # otherwise, route changes will hang up
         componentDidMount: ->
-            @attachEvents()
+            super
             @props.mediator?.trigger 'mount', @
             return
 
-        componentWillUnmount: ->
-            # @props.mediator?.trigger 'unmount', @
-            if @_bindings
-                for binding in @_bindings
-                    binding._detach binding
+        getEventArgs: (props = @props, state = @state)->
+            [@getModel(props, state)]
 
-            @detachEvents()
+        attachEvents: (model, attr)->
+            if model
+                model.on 'change', @onModelChange, @
             return
 
-        componentWillReceiveProps: (nextProps)->
-
-        componentWillUpdate: ->
-            @attachEvents()
-            return
-
-        _updateView: ->
-            # make sure state updates view
-            @shouldUpdate = true
-            if @_reactInternalInstance
-                state = {}
-                state[uid] = new Date().getTime()
-                @setState state
+        detachEvents: (model, attr)->
+            if model
+                model.off 'change', @onModelChange, @
             return
 
         onModelChange: ->
@@ -81,29 +54,26 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             @_updateView()
             return
 
-        getModel: (props = @props, state = @state)->
-            props.model
-
-        attachEvents: ->
-            return false if @_attached
-            @getModel()?.on 'change', @onModelChange, @
-            @_attached = true
-            return true
-
-        detachEvents: ->
-            return false if not @_attached
-            @getModel()?.off 'change', @onModelChange, @
-            @_attached = false
-            return true
+        _updateView: ->
+            # make sure state updates view
+            @shouldUpdate = true
+            if @_reactInternalInstance
+                state = {}
+                state[@uid] = new Date().getTime()
+                @setState state
+            return
 
         destroy: ->
             if @destroyed
                 return
 
-            if container = @_options.container
+            {container, mediator} = @_options
+
+            if container
                 ReactDOM.unmountComponentAtNode container
 
-            @props.mediator?.trigger 'destroy', @
+            if mediator
+                mediator.trigger 'destroy', @
 
             for own prop of @
                 delete @[prop]
@@ -191,18 +161,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing)->
             if @_component
                 @_component.destroy()
             return
-
-    createElement = React.createElement
-    React.createElement = (type, config)->
-        element = createElement.apply React, arguments
-        binding = makeTwoWayBinbing element, type, config
-        element.props.binding = binding
-
-        # # DEV ONLY
-        Object.freeze element.props
-        Object.freeze element
-
-        return element
 
     ReactModelView.createElement = (props)->
         return new Element this, props

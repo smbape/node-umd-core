@@ -19,10 +19,12 @@ freact = ({_, $}, AbstractModelComponent)->
 
         componentDidMount: ->
             @_updateClass @_getInput()
+            super()
             return
 
         componentDidUpdate: ->
             @_updateClass @_getInput()
+            super()
             return
 
         onFocus: (evt)=>
@@ -106,11 +108,6 @@ freact = ({_, $}, AbstractModelComponent)->
 
         binding.get = (binding)->
             $(binding.instance._getInput()).val()
-
-        binding.set = (binding, value)->
-            $(binding.instance._getInput()).val value
-            return
-
 
         return binding
 
