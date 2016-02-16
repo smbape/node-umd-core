@@ -4,7 +4,7 @@ deps = [
     '!componentHandler'
 ]
 
-freact = ({_, $}, makeTwoWayBinbing, componentHandler)->
+freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     slice = [].slice
 
     createElement = React.createElement
@@ -31,6 +31,10 @@ freact = ({_, $}, makeTwoWayBinbing, componentHandler)->
 
     class AbstractModelComponent extends React.Component
         uid: 'AbstractModelComponent' + ('' + Math.random()).replace(/\D/g, '')
+
+        constructor: ->
+            super
+            @inline = new Backbone.Model()
 
         getModel: (props = @props)->
             props.spModel?[0]

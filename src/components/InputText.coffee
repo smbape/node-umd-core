@@ -5,6 +5,9 @@ deps = [
 
 freact = ({_, $}, AbstractModelComponent)->
 
+    length = (value)->
+        if value then value.length else 0
+
     class InputText extends AbstractModelComponent
         uid: 'InputText' + ('' + Math.random()).replace(/\D/g, '')
 
@@ -39,7 +42,6 @@ freact = ({_, $}, AbstractModelComponent)->
             props = _.clone @props
 
             id = props.id or @id
-            css = props.css or 'default'
             {children, className, spModel, input, style, disabled} = props
             delete props.children
             delete props.className
@@ -67,14 +69,15 @@ freact = ({_, $}, AbstractModelComponent)->
             , props, inputProps), inputChildren
 
             if props.label
-                label = `<label className={"input__label input__label--" + css} htmlFor={id}>
-                    <span className={"input__label-content input__label-content--" + css}>{props.label}</span>
+                label = `<label className={"input__label"} htmlFor={id}>
+                    <span className={"input__label-content"}>{props.label}</span>
                 </label>`
             else
                 label = ''
 
             `<span {...wrapperProps}>
                 { input }
+                { props.charCount ? <div className="char-count">{length(spModel[0].get(spModel[1]))}/{props.charCount}</div> : ''}
                 <span className="input__bar" />
                 {label}
                 {children}

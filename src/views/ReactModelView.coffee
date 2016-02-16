@@ -18,8 +18,6 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
         constructor: (props = {})->
             @_options = _.clone props
             super
-
-            @inline = new Backbone.Model()
             @props.mediator?.trigger 'instance', @
 
         getModel: (props = @props, state = @state)->
