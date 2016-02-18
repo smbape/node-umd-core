@@ -44,12 +44,17 @@ freact = ({_}, AbstractModelComponent, InputText)->
                 else
                     props.className = className
 
-            `<InputText {...props}>
-                {children}
-                <div className="error-messages">
-                    <div spRepeat="(message, index) in model.invalidAttrs[attr]" className="error-message" key={index}>{message}</div>
-                </div>
-            </InputText>`
+            args = [InputText, props]
+            if _.isArray children
+                args.push.apply args, children
+            else
+                args.push children
+
+            args.push `<div className="error-messages">
+                <div spRepeat="(message, index) in model.invalidAttrs[attr]" className="error-message" key={index}>{message}</div>
+            </div>`
+
+            React.createElement.apply React, args
 
     # a proxy component
     InputWithError.getBinding = false

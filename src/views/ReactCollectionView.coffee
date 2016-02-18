@@ -4,7 +4,7 @@ deps = [
     './ReactModelView'
 ]
 
-factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
+freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
     {byAttribute, reverse} = BackboneCollection
 
@@ -12,10 +12,9 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
         constructor: (props)->
             super
-            if model = @getNewModel(props)
-                this.state = {model}
+            @state = model: @getNewModel(props)
 
-        shouldComponentUpdate: (nextProps, nextState)->
+        shouldUpdateEvent: (nextProps, nextState)->
             shouldUpdate = super(nextProps, nextState)
 
             if shouldUpdate
@@ -23,84 +22,92 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             shouldUpdate
 
+        componentDidUpdate: (prevProps, prevState)->
+            super
+
         getModel: (props = @props, state = @state)->
             state?.model
 
         getNewModel: (props)->
-            {order: comparator, filter, reverse: isReverse} = props
-            original = @props.model
-            model = @getModel()
-            if not model
-                model = original
-                isOriginal = true
+            {
+                order: nextComparator,
+                filter: nextFilter,
+                reverse: nextReverse,
+                model: nextModel
+            } = props
 
-            res = false
+            currentModel = @getModel()
 
-            switch typeof comparator
+            if not currentModel
+                currentModel = nextModel
+                isNextModel = true
+
+            if not currentModel
+                return
+
+            {comparator: currentComparator, selector: currentFilter} = currentModel
+            currentReverse = currentComparator.reverse
+
+            switch typeof nextComparator
                 when 'function'
-                    if isReverse
-                        comparator = reverse comparator
+                    if nextReverse
+                        nextComparator = reverse nextComparator
 
-                    if not isOriginal and model.comparator isnt comparator
-                        res = true
                 when 'string'
-                    if isOriginal
-                        if comparator.length is 0
-                            comparator = null
+                    if isNextModel
+                        if nextComparator.length is 0
+                            nextComparator = null
                         else
-                            comparator = byAttribute(comparator)
+                            nextComparator = byAttribute(nextComparator)
 
-                    else if model.comparator?.attribute isnt comparator
-                        if comparator.length is 0
-                            comparator = null
+                    else if currentComparator?.attribute isnt nextComparator
+                        if nextComparator.length is 0
+                            nextComparator = null
                         else
-                            comparator = byAttribute(comparator)
-                        res = true
+                            nextComparator = byAttribute(nextComparator)
 
-                    else if isReverse and not model.comparator.reverse
-                        comparator = reverse model.comparator
-                        res = true
+                    else if nextReverse and not currentReverse
+                        nextComparator = reverse currentComparator
 
                     else
                         # comparator didn't change
-                        comparator = model.comparator
+                        nextComparator = currentComparator
                 else
                     # unsupported comparator
-                    comparator = null
-                    res = true
+                    nextComparator = null
 
-            switch typeof filter
+            switch typeof nextFilter
                 when 'function'
-                    if not isOriginal and model.selector isnt filter
-                        res = true
+                    break
                 when 'string'
-                    if isOriginal
-                        if filter.length is 0
-                            filter = null
+                    if isNextModel
+                        if nextFilter.length is 0
+                            nextFilter = null
                         else
-                            filter = @getFilter filter, true
+                            nextFilter = @getFilter nextFilter, true
 
-                    if model.selector?.value isnt filter
-                        if filter.length is 0
-                            filter = null
+                    if currentFilter?.value isnt nextFilter
+                        if nextFilter.length is 0
+                            nextFilter = null
                         else
-                            filter = @getFilter filter, true
-                        res = true
+                            nextFilter = @getFilter nextFilter, true
 
                     else
                         # filter didn't change
-                        filter = model.selector
+                        nextFilter = currentFilter
                 else
                     # unsupported comparator
-                    filter = null
-                    res = true
+                    nextFilter = null
 
-            if comparator is null and filter is null
-                model = original
-            else if res
-                model = original.getSubSet {comparator: comparator, selector: filter}
+            if nextComparator is null and nextFilter is null
+                currentModel = nextModel
+            else if currentComparator isnt nextComparator or currentFilter isnt nextFilter
+                currentModel = nextModel.getSubSet {comparator: nextComparator, selector: nextFilter}
 
-            model
+            currentModel
+
+        getEventArgs: (props = @props, state = @state)->
+            [@getModel(props, state)]
 
         getNewEventArgs: (props = @props, state = @state)->
             [@getNewModel(props, state)]
@@ -115,7 +122,8 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 model.on 'switch', this.onSwitch, this
 
                 if @state.model isnt model
-                    @setState model: model
+                    @state.model = model
+                    # @setState model: model
 
             return
 
@@ -142,7 +150,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             else
                 index = collection.indexOf model
                 childNodeList = @childNodeList()
-                childNodeList[index] = @childNode model, index
+                childNodeList[index] = @props.childNode model, index
 
                 @_updateView()
 
@@ -152,7 +160,8 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             if @_childNodeList
                 return @_childNodeList
 
-            @_childNodeList = @getModel().models.map _.bind @childNode, @
+            if collection = @getModel()
+                @_childNodeList = collection.models.map _.bind @props.childNode, @
 
         onAdd: (model, collection, options)->
             if options?.bubble > 1
@@ -164,7 +173,7 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 index = @model.models.length
 
             childNodeList = @childNodeList()
-            childNode = @childNode model, index
+            childNode = @props.childNode model, index
             childNodeList.splice index, 0, childNode
 
             @_updateView()
@@ -179,8 +188,6 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
             childNodeList = @childNodeList()
 
             childNode = childNodeList[index]
-            # if not childNode or childNode.key isnt model.cid
-            #     debugger
             childNodeList.splice(index, 1)
 
             @_updateView()
@@ -214,6 +221,9 @@ factory = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             @reRender()
             return
+
+        render:->
+            React.createElement @props.tagName or 'div', @props, @childNodeList()
 
         reRender: ->
             delete @_childNodeList

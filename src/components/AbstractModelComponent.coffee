@@ -23,7 +23,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         binding = makeTwoWayBinbing element, type, config
         element.props.binding = binding
 
-        # # # DEV ONLY
+        # DEV ONLY
         # Object.freeze element.props
         # Object.freeze element
 
@@ -72,9 +72,9 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             @attachEvents.apply @, args
             return true
 
-        componentWillUpdate: ->
+        componentWillUpdate: (nextProps, nextState)->
 
-        componentDidUpdate: ->
+        componentDidUpdate: (prevProps, prevState)->
 
         componentWillUnmount: ->
             if @_bindings
@@ -115,10 +115,12 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             @shouldUpdate = true
 
             if @_reactInternalInstance
-                owner = @_reactInternalInstance._currentElement._owner._instance
                 state = {}
                 state[@uid] = new Date().getTime()
-                owner.setState state
+                if owner = @_reactInternalInstance._currentElement._owner?._instance
+                    owner.setState state
+                else
+                    @setState state
             return
 
     class MdlComponent extends AbstractModelComponent
@@ -136,7 +138,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         render:->
-            React.createElement @props.tagName or 'span', @props, @props.children
+            React.createElement @props.tagName or 'span', @props
 
     AbstractModelComponent.MdlComponent = MdlComponent
 

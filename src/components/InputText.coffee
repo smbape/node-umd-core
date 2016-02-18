@@ -25,9 +25,9 @@ freact = ({_, $}, AbstractModelComponent)->
             super()
             return
 
-        componentDidUpdate: ->
+        componentDidUpdate: (prevProps, prevState)->
             @_updateClass @_getInput()
-            super()
+            super(prevProps, prevState)
             return
 
         onFocus: (evt)=>
@@ -72,16 +72,23 @@ freact = ({_, $}, AbstractModelComponent)->
                 label = `<label className={"input__label"} htmlFor={id}>
                     <span className={"input__label-content"}>{props.label}</span>
                 </label>`
-            else
-                label = ''
 
-            `<span {...wrapperProps}>
-                { input }
-                { props.charCount ? <div className="char-count">{length(spModel[0].get(spModel[1]))}/{props.charCount}</div> : ''}
-                <span className="input__bar" />
-                {label}
-                {children}
-            </span>`
+            args = ['span', wrapperProps, input]
+
+            if props.charCount
+                args.push `<div className="char-count">{length(spModel[0].get(spModel[1]))}/{props.charCount}</div>`
+
+            args.push `<span className="input__bar" />`
+
+            if label
+                args.push label
+
+            if _.isArray children
+                args.push.apply args, children
+            else
+                args.push children
+
+            React.createElement.apply React, args
 
         _getId: ->
             @props.id or @id

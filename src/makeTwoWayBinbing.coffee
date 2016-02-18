@@ -25,14 +25,25 @@ freact = ({_, $})->
             model = @inline
             element.props.spModel = [model, property]
         else if _.isArray model
-            [model, property] = model
+            [model, property, events] = model
         else
             return
 
         if 'function' is typeof type and not type.getBinding
             return
 
-        if not _.isObject(model) or not property or 'function' isnt typeof model.on or 'function' isnt typeof model.off
+        if not _.isObject(model) or 'function' isnt typeof model.on or 'function' isnt typeof model.off
+            return
+
+        if 'string' is typeof property
+            if 'string' is typeof events and events.length > 0
+                events = "change:#{property}" + events
+            else
+                events = "change:#{property}"
+        else
+            property = null
+
+        if 'string' isnt typeof events
             return
 
         # until creation, instance is not known
@@ -45,7 +56,7 @@ freact = ({_, $})->
 
         binding =
             id: _.uniqueId 'bd'
-            event: "change:#{property}"
+            events: events
             owner: this
             model: model
             property: property
@@ -53,11 +64,11 @@ freact = ({_, $})->
             validate: validate
 
             _attach: (binding)->
-                binding.model.on binding.event, binding._onModelChange, binding.owner
+                binding.model.on binding.events, binding._onModelChange, binding.owner
                 return
 
             _detach: (binding)->
-                binding.model.off binding.event, binding._onModelChange, binding.owner
+                binding.model.off binding.events, binding._onModelChange, binding.owner
                 emptyObject binding
                 return
 
@@ -67,11 +78,11 @@ freact = ({_, $})->
 
                 # https://facebook.github.io/react/docs/two-way-binding-helpers.html
                 # set state on owner to trigger rerender
-                binding.owner.setState state
-                return
-
-            __onChange: (evt)->
-                binding.model.set property, binding.get(binding), {dom: true, validate: binding.validate}
+                if binding.owner
+                    binding.owner.setState state
+                else
+                    # TODO : found in which circumstances this case occurs
+                    debugger
                 return
 
             __ref: (ref)->
@@ -93,6 +104,7 @@ freact = ({_, $})->
 
                     else
                         @_bindings.splice index, 1
+                        binding._detach binding
                         emptyObject binding
 
                         # onChange is always a new function, make sure it uses the correct binding object
@@ -113,36 +125,40 @@ freact = ({_, $})->
         @_bindings.push binding
 
         if type is 'input' and config.type is 'checkbox'
-            binding.get = (binding)->
-                $(binding._node).prop('checked')
+            binding.get = (binding, evt)->
+                $(evt.target).prop('checked')
 
         else if 'function' is typeof type and 'function' is typeof type.getBinding
             binding = type.getBinding binding, config
         else
-            binding.get = (binding)->
-                $(binding._node).val()
+            binding.get = (binding, evt)->
+                $(evt.target).val()
 
         binding.__ref = _.bind binding.__ref, binding.owner
 
         props = element.props
 
-        # to ease testing
-        props['data-bind-attr'] = property
+        if property
+            # to ease testing
+            props['data-bind-attr'] = property
 
-        # make sure created native component will have the correct initial value
-        if 'undefined' isnt typeof binding.value
-            props.value = binding.value
-        else
-            delete props.value
+            __onChange = (evt)->
+                binding.model.set property, binding.get(binding, evt), {dom: true, validate: binding.validate}
+                return
 
-        if 'function' is typeof props.onChange
-            onChange = props.onChange
-            __onChange = binding.__onChange
-            props.onChange = (evt)->
-                __onChange.call undefined, evt
-                onChange.call undefined, evt
-        else
-            props.onChange = binding.__onChange
+            # make sure created native component will have the correct initial value
+            if not _.isObject(binding.value) and 'undefined' isnt typeof binding.value
+                props.value = binding.value
+            else
+                delete props.value
+
+            if 'function' is typeof props.onChange
+                onChange = props.onChange
+                props.onChange = (evt)->
+                    __onChange.call undefined, evt
+                    onChange.call undefined, evt
+            else
+                props.onChange = __onChange
 
         if 'function' is typeof element.ref
             ref = element.ref

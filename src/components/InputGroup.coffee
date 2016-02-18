@@ -78,9 +78,9 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
             super()
             return
 
-        componentDidUpdate: ->
+        componentDidUpdate: (prevProps, prevState)->
             @setValue @props.value
-            super()
+            super(prevProps, prevState)
             return
 
         render: -> `(<div {...this.props}/>)`

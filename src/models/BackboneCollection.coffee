@@ -31,15 +31,15 @@ factory = ({_, Backbone})->
         order = if order < 0 then -1 else 1
         if _.isArray attributes
             attributes = _.map attributes, (attr, index)->
-                {attr: order}
+                [attr, order]
         else if _.isObject attributes
             attributes = _.map attributes, (attr, order)->
-                {attr: if order < 0 then -1 else 1}
+                [attr, if order < 0 then -1 else 1]
         else
             return -> true
 
         (a, b)->
-            for attr, order of attributes
+            for [attr, order] in attributes
                 if 0 isnt (res = compareAttr(a, b, attr, order))
                     return res
 
@@ -56,7 +56,7 @@ factory = ({_, Backbone})->
 
         fn
 
-    binaryIndex = (value, array, compare, fromIndex = 0)->
+    binaryIndex = (value, array, compare, fromIndex = 0, indexOf)->
         if fromIndex < 0
             high = array.length
             low = high - fromIndex
@@ -71,7 +71,10 @@ factory = ({_, Backbone})->
             else
                 high = mid
 
-        low
+        if indexOf
+            if array[low] is value then low else -1
+        else
+            low
 
     _lookup = (attr, model)->
         attr = attr.split '.'
@@ -85,6 +88,8 @@ factory = ({_, Backbone})->
                 value = undefined
                 break
         value
+
+    uid = 'BackboneCollection' + ('' + Math.random()).replace(/\D/g, '') + '_'
 
     class BackboneCollection extends Backbone.Collection
         constructor: (models, options = {})->
@@ -128,6 +133,7 @@ factory = ({_, Backbone})->
                 return
 
             collection.on 'change', @_onChange
+            @_uid = _.uniqueId uid
             super(models, options)
 
         unsetAttribute: (name)->
@@ -291,6 +297,12 @@ factory = ({_, Backbone})->
                     return {remove: index, add: at}
 
             return
+
+        indexOf: (model, options)->
+            if this.comparator
+                return binaryIndex model, this.models, this.comparator, 0, true
+            else
+                super
 
         add: (models, options = {})->
             return if not models
