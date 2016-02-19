@@ -377,9 +377,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                     return callback(null, View) if options.checkOnly
 
-                    props =
-                        container: options.container
-                        title: titleEngine?.getUrl(pathParams)
+                    props = _.defaults {
+                        title:  if titleEngine then titleEngine.getUrl(pathParams)
+                        router: router
+                    }, options
 
                     if 'function' is typeof View.createElement
                         view = View.createElement props

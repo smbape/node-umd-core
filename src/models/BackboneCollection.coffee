@@ -113,8 +113,6 @@ factory = ({_, Backbone})->
             if 'function' is typeof options.selector
                 collection.selector = options.selector
 
-            collection._options = _.clone options
-
             collection._keymap = {}
             collection._keys = {}
 
@@ -369,12 +367,21 @@ factory = ({_, Backbone})->
 
             return if singular then res[0] else res
 
+        clone: ->
+            new this.constructor this.models,
+                model: @model
+                comparator: @comparator
+                selector: @selector
+
         getSubSet: (options = {})->
             if not options.comparator and not options.selector
                 return @
 
-            options = _.extend {}, this._options, options
-            subSet = new this.constructor this.models, options
+            subSet = new this.constructor this.models, _.extend {
+                model: @model
+                comparator: @comparator
+                selector: @selector
+            }, options
             proto = this.constructor.prototype
 
             for method in ['remove', 'reset', 'move']

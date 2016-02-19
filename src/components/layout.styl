@@ -3,6 +3,7 @@
     position: relative
     overflow: hidden
     width: 100%
+    background-color: #fff
     
     &:before,
     &:after
@@ -17,10 +18,11 @@
     .layout__right
         position: relative
         float: left
+        min-height: 512px
+        background: inherit
+        overflow: auto
         transition: all cubic-bezier(.25,.8,.25,1) .25s
         transform-origin: left top
-        // height: 512px
-        background: inherit
 
     &[data-width=small]
         .layout__content
