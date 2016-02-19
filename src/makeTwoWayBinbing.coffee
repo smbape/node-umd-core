@@ -80,9 +80,6 @@ freact = ({_, $})->
                 # set state on owner to trigger rerender
                 if binding.owner
                     binding.owner.setState state
-                else
-                    # TODO : found in which circumstances this case occurs
-                    debugger
                 return
 
             __ref: (ref)->
@@ -138,7 +135,7 @@ freact = ({_, $})->
 
         props = element.props
 
-        if property
+        if property and ('string' isnt typeof type or type in ['input', 'select', 'textarea'])
             # to ease testing
             props['data-bind-attr'] = property
 

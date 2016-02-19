@@ -46,7 +46,13 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 return
 
             {comparator: currentComparator, selector: currentFilter} = currentModel
-            currentReverse = currentComparator.reverse
+            currentReverse = currentComparator?.reverse
+
+            if not currentComparator
+                currentComparator = null
+
+            if not currentFilter
+                currentFilter = null
 
             switch typeof nextComparator
                 when 'function'
@@ -103,6 +109,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 currentModel = nextModel
             else if currentComparator isnt nextComparator or currentFilter isnt nextFilter
                 currentModel = nextModel.getSubSet {comparator: nextComparator, selector: nextFilter}
+                currentModel.stateSubSet = true
 
             currentModel
 
@@ -112,28 +119,31 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
         getNewEventArgs: (props = @props, state = @state)->
             [@getNewModel(props, state)]
 
-        attachEvents: (model)->
+        attachEvents: (collection)->
             super
-            if model
-                model.on 'add', this.onAdd, this
-                model.on 'remove', this.onRemove, this
-                model.on 'move', this.onMove, this
-                model.on 'reset', this.onReset, this
-                model.on 'switch', this.onSwitch, this
+            if collection
+                collection.on 'add', this.onAdd, this
+                collection.on 'remove', this.onRemove, this
+                collection.on 'move', this.onMove, this
+                collection.on 'reset', this.onReset, this
+                collection.on 'switch', this.onSwitch, this
 
-                if @state.model isnt model
-                    @state.model = model
+                if @state.model isnt collection
+                    @state.model = collection
                     # @setState model: model
 
             return
 
-        detachEvents: (model)->
-            if model
-                model.off 'switch', this.onSwitch, this
-                model.off 'reset', this.onReset, this
-                model.off 'move', this.onMove, this
-                model.off 'remove', this.onRemove, this
-                model.off 'add', this.onAdd, this
+        detachEvents: (collection)->
+            if collection
+                collection.off 'switch', this.onSwitch, this
+                collection.off 'reset', this.onReset, this
+                collection.off 'move', this.onMove, this
+                collection.off 'remove', this.onRemove, this
+                collection.off 'add', this.onAdd, this
+                if collection.stateSubSet
+                    collection.destroy()
+                    @state.model = undefined
             super
 
             return

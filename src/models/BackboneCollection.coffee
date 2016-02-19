@@ -302,6 +302,9 @@ factory = ({_, Backbone})->
             else
                 super
 
+        contains: (model, options)->
+            -1 isnt @indexOf model, options
+
         add: (models, options = {})->
             return if not models
 
@@ -396,23 +399,45 @@ factory = ({_, Backbone})->
                 proto.add.call @, models, options
             subSet.parent = this
 
-            this.on 'change', (model, options)->
-                if model is subSet.parent
+            this.on 'change', subSet._onChange = (model, options)->
+                if model is @parent and not @destroyed
                     attributes = model.changed
-                    subSet.set attributes, options
+                    @set attributes, options
                 return
+            , subSet
 
-            this.on 'add', (model, options)->
-                proto.add.call subSet, model
+            this.on 'add', subSet._onAdd = (model, collection, options)->
+                if collection is @parent and not @destroyed
+                    proto.add.call @, model
                 return
+            , subSet
 
-            this.on 'remove', (model, options)->
-                proto.remove.call subSet, model
+            this.on 'remove', subSet._onRemove = (model, collection, options)->
+                if collection is @parent and not @destroyed
+                    proto.remove.call @, model
                 return
+            , subSet
 
-            this.on 'reset', (collection, options)->
-                if collection is subSet.parent
-                    proto.reset.call subSet, collection.models, _.defaults {reset: true}, options
+            this.on 'reset', subSet._onReset = (collection, options)->
+                if collection is @parent and not @destroyed
+                    proto.reset.call @, collection.models, _.defaults {reset: true}, options
+                return
+            , subSet
+
+            subSet.destroy = ->
+                parent = @parent
+                parent.off 'change', @_onChange, @
+                parent.off 'add', @_onAdd, @
+                parent.off 'remove', @_onRemove, @
+                parent.off 'reset', @_onReset, @
+
+                for own prop of @
+                    delete @[prop]
+
+                # may be destroyed was executed during an event handling
+                # therefore, callbacks will still be processed
+                # this.destroyed helps skipping callback if needed
+                @destroyed = true
                 return
 
             subSet
