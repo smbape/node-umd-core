@@ -7,7 +7,22 @@ deps = [
 factory = ({_, $, Backbone}, RouterEngine, qs)->
     hasOwn = {}.hasOwnProperty
 
+    CACHE_STRATEGIES =
+        LOCATION: ({location})->
+            JSON.stringify location
+
+        PATHNAME: ({location})->
+            location.pathname
+
+        URL: ({url})->
+            url
+
+        VARIABLES: ({pathParams, engine})->
+            JSON.stringify _.pick pathParams, engine.getVariables()
+
     class BasicRouter extends Backbone.Router
+        getCacheId: CACHE_STRATEGIES.VARIABLES
+
         constructor: (options)->
             options = _.clone options
 
@@ -135,62 +150,81 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 queryParams
                 params: _.extend {}, pathParams, queryParams
                 engine
-                router: @
+                router
                 app
             }
+
+            done = callback
+            callback = (err, res)->
+                app.give()
+                app.current = router.current = handlerOptions
+
+                if _.isObject(res) and 'function' is typeof res.destroy
+                    rendable = res
+
+                if err
+                    if rendable
+                        rendable.destroy()
+
+                    console.error err, err.stack
+                    container.innerHTML = err
+                    router.onRouteChangeFailure err, handlerOptions
+                    app.emit 'routeChangeFailure', router, err, options
+                else
+                    if rendable
+                        $.data(container, 'rendable', rendable)
+
+                    app.setLocationHash()
+                    router.onRouteChangeSuccess res, handlerOptions
+                    app.emit 'routeChangeSuccess', router, res, options
+
+                router.afterDispatch(err, res, handlerOptions)
+                done(err, res) if 'function' is typeof done
+                return
+
+            if 'function' is typeof @getCacheId
+                cacheId = @getCacheId handlerOptions
+                if hasOwn.call router.routeCache, cacheId
+                    router.executeHandler router.routeCache[cacheId], handlerOptions, callback
+                    return
 
             index = 0
             length = handlers.length
             iterate = (err, res)->
                 if not err or index is length
-                    app.give()
-                    app.current = router.current = handlerOptions
+                    if not err and cacheId
+                        router.routeCache[cacheId] = handlers[index - 1]
 
-                    if _.isObject(res) and 'function' is typeof res.destroy
-                        rendable = res
-
-                    if err
-                        if rendable
-                            rendable.destroy()
-
-                        console.error err, err.stack
-                        container.innerHTML = err
-                        router.onRouteChangeFailure err, handlerOptions
-                        app.emit 'routeChangeFailure', router, err, options
-                    else
-                        if rendable
-                            $.data(container, 'rendable', rendable)
-
-                        app.setLocationHash()
-                        router.onRouteChangeSuccess res, handlerOptions
-                        app.emit 'routeChangeSuccess', router, res, options
-
-                    callback(err, res) if 'function' is typeof callback
+                    callback err, res
                     return
 
                 if _.isObject err
                     console.error err, err.stack
 
-                handler = handlers[index++]
-
-                timeout = setTimeout ->
-                    console.log 'taking too long to handle. Make sure you called done function', handler
-                    return
-                , 1000
-
-                try
-                    handler.call router, handlerOptions, (err, res)->
-                        clearTimeout timeout
-                        iterate err, res
-                        return
-                catch err
-                    clearTimeout timeout
-                    iterate err, res
-                
+                router.executeHandler handlers[index++], handlerOptions, iterate
                 return
+
+            @beforeDispatch(handlerOptions)
 
             app.take()
             iterate(1)
+
+            return
+
+        executeHandler: (handler, handlerOptions, done)->
+            timeout = setTimeout ->
+                console.log 'taking too long to handle. Make sure you called done function', handler
+                return
+            , 1000
+
+            try
+                handler.call @, handlerOptions, (err, res)->
+                    clearTimeout timeout
+                    done err, res
+                    return
+            catch err
+                clearTimeout timeout
+                done err
 
             return
 
@@ -229,6 +263,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
         forward: ->
             window.history.forward()
             return
+
+        beforeDispatch: (options)->
+
+        afterDispatch: (err, rendable, options)->
 
         _extractParameters: (route, fragment) ->
             # return fragment as is
@@ -377,15 +415,15 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                     return callback(null, View) if options.checkOnly
 
-                    props = _.defaults {
+                    options = _.defaults {
                         title:  if titleEngine then titleEngine.getUrl(pathParams)
                         router: router
                     }, options
 
                     if 'function' is typeof View.createElement
-                        view = View.createElement props
+                        view = View.createElement options
                     else
-                        view = new View props
+                        view = new View options
 
                     if 'function' isnt typeof view.doRender or view.doRender.length > 1
                         return callback(new Error "view at #{path}: invalid render method. It should be a function expectingat most ine argument")
@@ -441,3 +479,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 , callback
 
                 return
+
+    BasicRouter.CACHE_STRATEGIES = CACHE_STRATEGIES
+    BasicRouter

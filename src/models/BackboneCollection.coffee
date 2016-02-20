@@ -31,7 +31,10 @@ factory = ({_, Backbone})->
         order = if order < 0 then -1 else 1
         if _.isArray attributes
             attributes = _.map attributes, (attr, index)->
-                [attr, order]
+                if _.isArray attr
+                    attr
+                else
+                    [attr, order]
         else if _.isObject attributes
             attributes = _.map attributes, (attr, order)->
                 [attr, if order < 0 then -1 else 1]
