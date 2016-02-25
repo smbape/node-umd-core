@@ -18,7 +18,8 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             url
 
         VARIABLES: ({pathParams, engine})->
-            JSON.stringify _.pick pathParams, engine.getVariables()
+            if pathParams and engine 
+                JSON.stringify _.pick pathParams, engine.getVariables()
 
     class BasicRouter extends Backbone.Router
         getCacheId: CACHE_STRATEGIES.VARIABLES
@@ -184,7 +185,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
             if 'function' is typeof @getCacheId
                 cacheId = @getCacheId handlerOptions
-                if hasOwn.call router.routeCache, cacheId
+                if cacheId and hasOwn.call router.routeCache, cacheId
                     router.executeHandler router.routeCache[cacheId], handlerOptions, callback
                     return
 
@@ -465,7 +466,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 require [path], (template)->
                     switch typeof template
                         when 'function'
-                            html = template()
+                            html = template(options)
                         when 'string'
                             html = template
                         else
