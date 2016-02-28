@@ -25,7 +25,15 @@ freact = ({_, $})->
             model = @inline
             element.props.spModel = [model, property]
         else if _.isArray model
-            [model, property, events] = model
+            if _.isArray model[0]
+                models = []
+                events = []
+                for args in model
+                    models.push args[0]
+                    events.push args[1]
+                model = models
+            else
+                [model, property, events] = model
         else
             return
 
@@ -59,26 +67,42 @@ freact = ({_, $})->
             events: events
             owner: this
             model: model
-            property: property
-            value: model.attributes[property]
             validate: validate
 
             _attach: (binding)->
-                binding.model.on binding.events, binding._onModelChange, binding.owner
+                if _.isArray binding.model
+                    for i in [0...binding.model.length] by 1
+                        _model = binding.model[i]
+                        _events = binding.events[i]
+                    _model.on _events, binding._onModelChange, binding.owner
+                else
+                    binding.model.on binding.events, binding._onModelChange, binding.owner
                 return
 
             _detach: (binding)->
-                binding.model.off binding.events, binding._onModelChange, binding.owner
+                if _.isArray binding.model
+                    for i in [0...binding.model.length] by 1
+                        _model = binding.model[i]
+                        _events = binding.events[i]
+                    _model.off _events, binding._onModelChange, binding.owner
+                else
+                    binding.model.off binding.events, binding._onModelChange, binding.owner
+
                 emptyObject binding
                 return
 
             _onModelChange: (model, value, options)->
+                if binding.instance instanceof AbstractModelComponent
+                    binding.instance.shouldUpdate = true
+
                 state = {}
                 state[uid] = new Date()
 
                 # https://facebook.github.io/react/docs/two-way-binding-helpers.html
                 # set state on owner to trigger rerender
                 if binding.owner
+                    if binding.owner instanceof AbstractModelComponent
+                        binding.owner.shouldUpdate = true
                     binding.owner.setState state
                 return
 
@@ -144,8 +168,9 @@ freact = ({_, $})->
                 return
 
             # make sure created native component will have the correct initial value
-            if not _.isObject(binding.value) and 'undefined' isnt typeof binding.value
-                props.value = binding.value
+            value = model.attributes[property]
+            if typeof value in ['boolean', 'number', 'string']
+                props.value = value
             else
                 delete props.value
 

@@ -23,9 +23,9 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         binding = makeTwoWayBinbing element, type, config
         element.props.binding = binding
 
-        # DEV ONLY
-        # Object.freeze element.props
-        # Object.freeze element
+        if not appConfig.isProduction
+            Object.freeze element.props
+            Object.freeze element
 
         return element
 
@@ -45,7 +45,10 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         componentWillMount: ->
 
         componentDidMount: ->
-            @props.binding?.instance = @
+            if @_bindings
+                for binding in @_bindings
+                    binding.instance = @
+
             @attachEvents.apply @, @getEventArgs()
 
             return

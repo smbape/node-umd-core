@@ -18,28 +18,67 @@ freact = ({_, $}, AbstractModelComponent)->
 
     
     closeRightPanel = (evt)->
-        if evt.type.substring(0, 5) is 'swipe'
-            data = evt.originalEvent or evt
-            return if data.swipeHandled
-            data.swipeHandled = true
+        data = evt.originalEvent or evt
+        return if data.closeRightPanelHandled
+        data.closeRightPanelHandled = true
 
         $(evt.currentTarget).closest('.layout').removeClass 'layout-open-right'
         return
 
     closeLeftPanel = (evt)->
-        if evt.type.substring(0, 5) is 'swipe'
-            data = evt.originalEvent or evt
-            return if data.swipeHandled
-            data.swipeHandled = true
+        data = evt.originalEvent or evt
+        return if data.closeLeftPanelHandled
+        data.closeLeftPanelHandled = true
 
         $(evt.currentTarget).closest('.layout').removeClass 'layout-open-left'
         return
 
-    $document.on 'click swipeRight', '.layout__overlay', closeRightPanel
-    $document.on 'swipeRight', '.layout__right', closeRightPanel
+    openRightPanel = (evt)->
+        data = evt.originalEvent or evt
+        return if data.openHandled
+        data.openHandled = true
 
-    $document.on 'click swipeLeft', '.layout__overlay', closeLeftPanel
-    $document.on 'swipeLeft', '.layout__left', closeLeftPanel
+        $(evt.currentTarget).closest('.layout').addClass 'layout-open-right'
+        return
+
+    openLeftPanel = (evt)->
+        data = evt.originalEvent or evt
+        return if data.openHandled
+        data.openHandled = true
+
+        $(evt.currentTarget).closest('.layout').addClass 'layout-open-left'
+        return
+
+    toggleRightPanel = (evt)->
+        data = evt.originalEvent or evt
+        return if data.toggleHandled
+        data.toggleHandled = true
+
+        $(evt.currentTarget).closest('.layout').toggleClass 'layout-open-right'
+        return
+
+    toggleLeftPanel = (evt)->
+        data = evt.originalEvent or evt
+        return if data.toggleHandled
+        data.toggleHandled = true
+
+        $(evt.currentTarget).closest('.layout').toggleClass 'layout-open-left'
+        return
+
+    $document.on 'click', '.layout > .layout__overlay', closeRightPanel
+    $document.on 'swipeRight', '.layout > .layout__overlay, .layout > .layout__right', closeRightPanel
+
+    $document.on 'click', '.layout > .layout__overlay', closeLeftPanel
+    $document.on 'swipeLeft', '.layout > .layout__overlay, .layout > .layout__left', closeLeftPanel
+
+    $document.on 'click', '.layout .layout-action-close-right', closeRightPanel
+    $document.on 'click', '.layout .layout-action-close-left', closeLeftPanel
+
+    $document.on 'click', '.layout .layout-action-open-right', openRightPanel
+    $document.on 'click', '.layout .layout-action-open-left', openLeftPanel
+
+    $document.on 'click', '.layout .layout-action-toggle-right', toggleRightPanel
+    $document.on 'click', '.layout .layout-action-toggle-left', toggleLeftPanel
 
     class Layout extends AbstractModelComponent
         uid: 'Layout' + ('' + Math.random()).replace(/\D/g, '')
@@ -71,8 +110,15 @@ freact = ({_, $}, AbstractModelComponent)->
 
             return
 
-        getChildren: ->
+        getProps: ->
+            props = _.clone @props
             children = @props.children
+
+            if props.className
+                _className = [props.className, 'layout']
+            else
+                _className = ['layout']
+
             _children = []
 
             if children
@@ -99,19 +145,17 @@ freact = ({_, $}, AbstractModelComponent)->
                 _children.push `<div className="layout__overlay layout__overlay-center" />`
 
                 if item.left
+                    _className.push 'layout-has-left'
                     _children.push item.left
                     _children.push `<div className="layout__overlay layout__overlay-left" />`
 
                 if item.right
+                    _className.push 'layout-has-right'
                     _children.push item.right
             
-            return _children
+            props.className = _className.join(' ')
+            props.children = _children
+            props
 
         render: ->
-            props = _.clone @props
-            if props.className
-                props.className += ' layout'
-            else
-                props.className = 'layout'
-            props.children = @getChildren()
-            React.createElement 'div', props
+            React.createElement 'div', @getProps()

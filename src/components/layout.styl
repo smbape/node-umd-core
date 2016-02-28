@@ -72,7 +72,7 @@
                 transform: translate3d(-100%, 0, 0)
 
     &[data-width=large]
-        .layout__content
+        &.layout-has-left .layout__content
             width: 76.5625%
             left: 23.4375%
 
@@ -96,13 +96,26 @@
             transform: translate3d(-100%, 0, 0)
 
     &[data-width=extra-large]
-        .layout__content
-            width: 60%
-            left: 20%
-
         .layout__left,
         .layout__right
             width: 20%
 
-        .layout__left
-            right: 60%
+        &.layout-has-left
+            .layout__content
+                width: 80%
+                left: 20%
+
+            .layout__left
+                right: 80%
+
+        &.layout-has-right
+            .layout__content
+                width: 80%
+
+        &.layout-has-left.layout-has-right
+            .layout__content
+                width: 60%
+                left: 20%
+
+            .layout__left
+                right: 60%

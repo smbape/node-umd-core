@@ -177,7 +177,8 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                     app.setLocationHash()
                     router.onRouteChangeSuccess res, handlerOptions
-                    app.emit 'routeChangeSuccess', router, res, options
+                    router.emit 'routeChangeSuccess', res, handlerOptions, options
+                    app.emit 'routeChangeSuccess', router, res, handlerOptions, options
 
                 router.afterDispatch(err, res, handlerOptions)
                 done(err, res) if 'function' is typeof done
@@ -481,5 +482,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                 return
 
+    BasicRouter::emit = BasicRouter::trigger
     BasicRouter.CACHE_STRATEGIES = CACHE_STRATEGIES
     BasicRouter
