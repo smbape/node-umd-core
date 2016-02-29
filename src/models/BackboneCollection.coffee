@@ -155,8 +155,10 @@ factory = ({_, Backbone})->
             if Array.isArray attrs
                 this._keymap[name] = attrs.slice()
                 this._keys[name] = {}
-                for model in this.models
-                    this._indexModel model, name
+
+                if this.models
+                    for model in this.models
+                        this._indexModel model, name
 
                 return true
 
@@ -403,26 +405,33 @@ factory = ({_, Backbone})->
             subSet.parent = this
 
             this.on 'change', subSet._onChange = (model, options)->
-                if model is @parent and not @destroyed
-                    attributes = model.changed
-                    @set attributes, options
+                if not @destroyed
+                    if model is @parent
+                        attributes = model.changed
+                        @set attributes, options
+                    else if options.bubble is 1
+                        # maintain filter and order
+                        if @selector and not @selector model
+                            proto.remove.call @, model
+                        else
+                            proto.add.call @, model
                 return
             , subSet
 
             this.on 'add', subSet._onAdd = (model, collection, options)->
-                if collection is @parent and not @destroyed
+                if not @destroyed and collection is @parent
                     proto.add.call @, model
                 return
             , subSet
 
             this.on 'remove', subSet._onRemove = (model, collection, options)->
-                if collection is @parent and not @destroyed
+                if not @destroyed and collection is @parent
                     proto.remove.call @, model
                 return
             , subSet
 
             this.on 'reset', subSet._onReset = (collection, options)->
-                if collection is @parent and not @destroyed
+                if not @destroyed and collection is @parent
                     proto.reset.call @, collection.models, _.defaults {reset: true}, options
                 return
             , subSet
