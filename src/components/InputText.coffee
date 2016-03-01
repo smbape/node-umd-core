@@ -117,7 +117,13 @@ freact = ({_, $}, AbstractModelComponent)->
     InputText.getBinding = (binding, config)->
 
         binding.get = (binding)->
-            $(binding.instance._getInput()).val()
+            if binding.instance instanceof InputText
+                instance = binding.instance
+            else if binding._ref instanceof InputText
+                instance = binding._ref
+            
+            if instance
+                $(instance._getInput()).val()
 
         return binding
 

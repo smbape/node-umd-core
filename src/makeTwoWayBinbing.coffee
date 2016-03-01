@@ -170,7 +170,10 @@ freact = ({_, $})->
             # make sure created native component will have the correct initial value
             value = model.attributes[property]
             if typeof value in ['boolean', 'number', 'string']
-                props.value = value
+                if type is 'input' and config.type is 'checkbox'
+                    props.checked = value
+                else
+                    props.value = value
             else
                 delete props.value
 

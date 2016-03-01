@@ -224,7 +224,7 @@ factory = ({_, Backbone})->
                 for value, index in chain
                     if index is length - 1
                         break
-                    if hasOwn key, value
+                    if hasOwn.call key, value
                         key = key[value]
                     else
                         key = key[value] = {}
