@@ -160,7 +160,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             else
                 index = collection.indexOf model
                 childNodeList = @childNodeList()
-                childNodeList[index] = @props.childNode model, index
+                childNodeList[index] = @props.childNode model, index, collection
 
                 @_updateView()
 
@@ -171,7 +171,8 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 return @_childNodeList
 
             if collection = @getModel()
-                @_childNodeList = collection.models.map _.bind @props.childNode, @
+                @_childNodeList = collection.models.map (model, index)=>
+                    @props.childNode model, index, collection
 
         onAdd: (model, collection, options)->
             if options?.bubble > 1
@@ -183,7 +184,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 index = @model.models.length
 
             childNodeList = @childNodeList()
-            childNode = @props.childNode model, index
+            childNode = @props.childNode model, index, collection
             childNodeList.splice index, 0, childNode
 
             @_updateView()

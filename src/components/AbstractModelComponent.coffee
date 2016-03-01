@@ -35,6 +35,9 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         constructor: ->
             super
             @inline = new Backbone.Model()
+            @initialize()
+
+        initialize: ->
 
         getModel: (props = @props)->
             props.spModel?[0]

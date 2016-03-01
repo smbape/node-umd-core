@@ -2,7 +2,7 @@ deps = ['../common']
 
 factory = ({_, i18n})->
 
-    makeError = (error, opts, config)->
+    makeError = (error, opts = {}, config)->
         if not _.isEmpty(config)
             switch typeof config.msg
                 when 'string'
