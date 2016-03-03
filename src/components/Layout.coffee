@@ -105,9 +105,13 @@ freact = ({_, $}, AbstractModelComponent)->
             return
 
         _updateWidth: =>
-            el = ReactDOM.findDOMNode @
+            if @el
+                {el, $el} = this
+            else
+                el = ReactDOM.findDOMNode @
+                $el = $ el
 
-            width = $(el).width()
+            width = $el.width()
             if width < 1024
                 el.setAttribute 'data-width', 'small'
             else if width < 1200

@@ -77,16 +77,17 @@ freact = ({_, $}, AbstractModelComponent)->
 
             if props.charCount
                 args.push `<div className="char-count">{length(spModel[0].get(spModel[1]))}/{props.charCount}</div>`
+            else
+                args.push undefined
 
             args.push `<span className="input__bar" />`
 
             if label
                 args.push label
-
-            if _.isArray children
-                args.push.apply args, children
             else
-                args.push children
+                args.push undefined
+
+            args.push children
 
             React.createElement.apply React, args
 
