@@ -48,6 +48,9 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         componentWillMount: ->
 
         componentDidMount: ->
+            @el = ReactDOM.findDOMNode @
+            @$el = $ @el
+
             if @_bindings
                 for binding in @_bindings
                     binding.instance = @
@@ -91,8 +94,10 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
             # remove every references
             for own prop of @
-                delete @[prop]
+                if prop isnt 'refs'
+                    delete @[prop]
 
+            @destroyed = true
             return
 
         getEventArgs: (props = @props, state = @state)->
@@ -117,6 +122,14 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             @_updateOwner()
             return
 
+        _updateView: ->
+            @shouldUpdate = true
+            if @_reactInternalInstance
+                state = {}
+                state[@uid] = new Date().getTime()
+                @setState state
+            return
+
         _updateOwner: ->
             @shouldUpdate = true
 
@@ -132,14 +145,12 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     class MdlComponent extends AbstractModelComponent
         componentDidMount:->
             super
-            el = ReactDOM.findDOMNode @
-            componentHandler.upgradeElement el
+            componentHandler.upgradeElement @el
 
             return
 
         componentWillUnmount: ->
-            el = ReactDOM.findDOMNode @
-            componentHandler.downgradeElements [el]
+            componentHandler.downgradeElements [@el]
             super
             return
 

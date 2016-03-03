@@ -52,15 +52,6 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
             @_updateView()
             return
 
-        _updateView: ->
-            # make sure state updates view
-            @shouldUpdate = true
-            if @_reactInternalInstance
-                state = {}
-                state[@uid] = new Date().getTime()
-                @setState state
-            return
-
         destroy: ->
             if @destroyed
                 return
@@ -151,13 +142,15 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
             ReactDOM.render element._internal, container
             return
 
-        reRender: ->
-            @_component._updateView()
+        reRender: (done)->
+            @destroy()
+            @doRender done
             return
 
         destroy: ->
             if @_component
                 @_component.destroy()
+                @_component = null
             return
 
     ReactModelView.createElement = (props)->

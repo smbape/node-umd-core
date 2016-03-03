@@ -17,7 +17,7 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
                     selected = false
 
                     # for correct html behaviour, every radio name must have the same name
-                    $(ReactDOM.findDOMNode(this)).find('input[type=radio]').each (index, element)->
+                    @$el.find('input[type=radio]').each (index, element)->
                         element.setAttribute 'name', name
                         if not selected and element.value is value
                             selected = true
@@ -36,7 +36,7 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
                     if Array.isArray @props.value
                         value = @props.value.map (element)->
                             '' + element
-                        $(ReactDOM.findDOMNode(this)).find('input[type="checkbox"]').each (index, element)->
+                        @$el.find('input[type="checkbox"]').each (index, element)->
                             element.setAttribute 'name', name
                             if element.value in value
                                 element.checked = true
@@ -45,7 +45,7 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
                             return
 
                     else
-                        $(ReactDOM.findDOMNode(this)).find('input[type="checkbox"]').each (index, element)->
+                        @$el.find('input[type="checkbox"]').each (index, element)->
                             element.setAttribute 'name', name
                             if element.value is value
                                 element.checked = true

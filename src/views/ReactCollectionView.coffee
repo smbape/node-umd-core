@@ -152,7 +152,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             options = collection if 'undefined' is typeof options
             if options?.bubble > 1
                 # ignore bubbled events
-                return
+                return false
 
             collection = @getModel()
             if model is collection
@@ -177,7 +177,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
         onAdd: (model, collection, options)->
             if options?.bubble > 1
                 # ignore bubbled events
-                return
+                return false
 
             index = options.index or @getModel().indexOf model
             if index is -1
@@ -193,7 +193,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
         onRemove: (model, collection, options)->
             if options?.bubble > 1
                 # ignore bubbled events
-                return
+                return false
 
             index = options.index
             childNodeList = @childNodeList()
@@ -207,7 +207,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
         onMove: (model, collection, options)->
             if options?.bubble > 1
                 # ignore bubbled events
-                return
+                return false
 
             {index, from} = options
             childNodeList = @childNodeList()
@@ -220,7 +220,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
         onReset: (collection, options)->
             if options?.bubble > 1
                 # ignore bubbled events
-                return
+                return false
 
             @reRender()
             return
@@ -228,7 +228,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
         onSwitch: (collection, options)->
             if options?.bubble > 1
                 # ignore bubbled events
-                return
+                return false
 
             @reRender()
             return

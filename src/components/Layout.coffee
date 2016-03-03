@@ -7,16 +7,6 @@ freact = ({_, $}, AbstractModelComponent)->
 
     $document = $(document)
 
-    $document.swipe
-        swipeRight: (evt, distance, duration, fingerCount, fingerData, currentDirection)->
-            $(evt.target).trigger 'swipeRight'
-            return
-        swipeLeft: (evt, distance, duration, fingerCount, fingerData, currentDirection)->
-            $(evt.target).trigger 'swipeLeft'
-            return
-        fingers: $.fn.swipe.fingers.ALL
-
-    
     closeRightPanel = (evt)->
         data = evt.originalEvent or evt
         return if data.closeRightPanelHandled
@@ -65,11 +55,28 @@ freact = ({_, $}, AbstractModelComponent)->
         $(evt.currentTarget).closest('.layout').toggleClass 'layout-open-left'
         return
 
+    # from jquery touch swipe
+    SUPPORTS_TOUCH = 'ontouchstart' in window
+    SUPPORTS_POINTER_IE10 = !SUPPORTS_TOUCH and window.navigator.msPointerEnabled and !window.navigator.pointerEnabled
+    SUPPORTS_POINTER = !SUPPORTS_TOUCH and (window.navigator.pointerEnabled or window.navigator.msPointerEnabled)
+
+    if SUPPORTS_TOUCH or SUPPORTS_POINTER_IE10 or SUPPORTS_POINTER
+        $document.swipe
+            swipeRight: (evt, distance, duration, fingerCount, fingerData, currentDirection)->
+                $(evt.target).trigger 'swipeRight'
+                return
+            swipeLeft: (evt, distance, duration, fingerCount, fingerData, currentDirection)->
+                $(evt.target).trigger 'swipeLeft'
+                return
+            fingers: $.fn.swipe.fingers.ALL
+            preventDefaultEvents: false
+
+        $document.on 'swipeRight', '.layout > .layout__overlay, .layout > .layout__right', closeRightPanel
+        $document.on 'swipeLeft', '.layout > .layout__overlay, .layout > .layout__left', closeLeftPanel
+
     $document.on 'click', '.layout > .layout__overlay', closeRightPanel
-    $document.on 'swipeRight', '.layout > .layout__overlay, .layout > .layout__right', closeRightPanel
 
     $document.on 'click', '.layout > .layout__overlay', closeLeftPanel
-    $document.on 'swipeLeft', '.layout > .layout__overlay, .layout > .layout__left', closeLeftPanel
 
     $document.on 'click', '.layout .layout-action-close-right', closeRightPanel
     $document.on 'click', '.layout .layout-action-close-left', closeLeftPanel
@@ -120,6 +127,7 @@ freact = ({_, $}, AbstractModelComponent)->
                 _className = ['layout']
 
             _children = []
+            _remaining = []
 
             if children
                 item = {}
@@ -135,7 +143,7 @@ freact = ({_, $}, AbstractModelComponent)->
                     else if /(?:^|\s)layout__right(?:\s|$)/.test className
                         item.right = child
                     else
-                        throw new Error "invalid children at index #{idx}"
+                        _remaining.push child
 
 
                 if not item.content
@@ -148,13 +156,18 @@ freact = ({_, $}, AbstractModelComponent)->
                     _className.push 'layout-has-left'
                     _children.push item.left
                     _children.push `<div className="layout__overlay layout__overlay-left" />`
+                else
+                    _children.push undefined
+                    _children.push undefined
 
                 if item.right
                     _className.push 'layout-has-right'
                     _children.push item.right
+                else
+                    _children.push undefined
             
             props.className = _className.join(' ')
-            props.children = _children
+            props.children = _children.concat _remaining
             props
 
         render: ->

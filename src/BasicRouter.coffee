@@ -98,6 +98,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             if not container or container is mainContainer
                 container = mainContainer
 
+            if not container
+                callback() if 'function' is typeof callback
+                return
+
             @_dispatch {container, location, url, otherwise}, options, callback
             return
 
@@ -111,7 +115,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             if pathParams
                 return [engine, pathParams, handlers]
 
-        _dispatch: (copts, options, callback)->
+        _dispatch: (copts, options, done)->
             app = @app
             router = @
 
@@ -120,7 +124,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 # wait 200 ms and retry
                 clearTimeout @_waiting
                 @_waiting = setTimeout _.bind(->
-                    @_dispatch copts, options, callback
+                    @_dispatch copts, options, done
                     return
                 , @), 200
                 return
@@ -155,7 +159,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 app
             }
 
-            done = callback
             callback = (err, res)->
                 app.give()
                 app.current = router.current = handlerOptions

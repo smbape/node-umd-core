@@ -469,11 +469,11 @@ factory = ({_, Backbone})->
                         @_byId[id] = model
 
             if 'undefined' is typeof options
-                options = _.clone collection
+                options = _.extend {}, collection
                 bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
                 @trigger event, model, options
             else
-                options = _.clone options
+                options = _.extend {}, options
                 bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
                 @trigger event, model, collection, options
             return

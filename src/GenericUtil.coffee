@@ -1,10 +1,10 @@
-deps = [
-    {amb: 'backbone', common: '!Backbone', node: 'backbone'}
-]
+deps = []
 
-factory = (require, Backbone)->
-    toString = ({}).toString;
-    hasOwn = Object::hasOwnProperty
+factory = ->
+    toString = {}.toString
+    hasOwn = {}.hasOwnProperty
+    slice = [].slice
+
     GenericUtil =
 
         # Based on jQuery 1.11
@@ -24,6 +24,25 @@ factory = (require, Backbone)->
 
         notEmptyString: (str)->
             typeof str is 'string' and str.length > 0
+
+        throttle: (delay, fn) ->
+            last = undefined
+            deferTimer = undefined
+            ->
+                context = this
+                args = slice.call arguments
+                now = +new Date
+                if last and now < last + delay
+                    clearTimeout deferTimer
+                    deferTimer = setTimeout((->
+                        last = now
+                        fn.apply context, args
+                        return
+                    ), delay)
+                else
+                    last = now
+                    fn.apply context, args
+                return
 
     class GenericUtil.Timer
         constructor: ->
@@ -211,62 +230,5 @@ factory = (require, Backbone)->
 
         return
     )(GenericUtil.sql = {})
-
-    ((comparators)->
-        comparators.compareProperty = compareProperty = (a, b, property)->
-                if a instanceof Backbone.Model
-                    a = a.attributes
-                if b instanceof Backbone.Model
-                    b = b.attributes
-
-                if a[property] > b[property]
-                    1
-                else if a[property] < b[property]
-                    -1
-                else
-                    0
-
-        comparators.PropertyComarator = (property)->
-            (a, b)->
-                compareProperty a, b, property
-
-        comparators.PropertiesComparator = (properties)->
-            (a, b)->
-                for property in properties
-                    if 0 isnt (res = compareProperty a, b, property)
-                        return res
-
-                0
-
-        comparators.reverse = (compare)->
-            return compare.original if compare.reverse and compare.original
-
-            fn = (a, b)->
-                -compare(a, b)
-
-            fn.reverse = true
-            fn.original = compare
-
-            fn
-
-        comparators.binaryIndex = (value, array, compare, fromIndex = 0)->
-            if fromIndex < 0
-                high = array.length
-                low = high - fromIndex
-            else
-                high = array.length
-                low = fromIndex
-
-            while low < high
-                mid = (low + high) >> 1
-                if 0 > compare array[mid], value
-                    low = mid + 1
-                else
-                    high = mid
-
-            if array[low] is value then low else -1
-
-        return
-    )(GenericUtil.comparators = {})
 
     return GenericUtil
