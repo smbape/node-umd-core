@@ -317,6 +317,13 @@ factory = ({_, Backbone})->
 
         indexOf: (model, options)->
             if this.comparator
+                if options?.loose
+                    if _model = @get model
+                        model = _model
+
+                    if not model = this._prepareModel model, options
+                        return -1
+
                 return binaryIndex model, this.models, this.comparator, 0, true
             else
                 super
