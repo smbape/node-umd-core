@@ -4,13 +4,13 @@ deps = [
 
 factory = ($)->
 
-    # https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Objets_globaux/Function/bind#Prothèse_d'émulation_(polyfill)
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind#Polyfill
     unless Function::bind
         Function::bind = (oThis) ->
-            if typeof this != 'function'
-                # au plus proche de la fonction interne 
-                # ECMAScript 5 IsCallable
-                throw new TypeError('Function.prototype.bind - ce qui est à lier ne peut être appelé')
+            if typeof this isnt 'function'
+                # closest thing possible to the ECMAScript 5
+                # internal IsCallable function
+                throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable')
             aArgs = Array::slice.call(arguments, 1)
             fToBind = this
 
@@ -20,17 +20,17 @@ factory = ($)->
                 fToBind.apply (if this instanceof fNOP then this else oThis), aArgs.concat(Array::slice.call(arguments))
 
             if @prototype
-                # Les fonctions natives n'ont pas de prototype
+                # Function.prototype doesn't have a prototype property
                 fNOP.prototype = @prototype
             fBound.prototype = new fNOP()
             fBound
 
-    # https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Objets_globaux/Array/isArray#Prothèse_d'émulation_(polyfill)
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray#Polyfill
     unless Array.isArray
         Array.isArray = (arg) ->
             Object::toString.call(arg) is '[object Array]'
 
-    # https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Objets_globaux/Object/keys#Prothèse_d'émulation_(polyfill)
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys#Polyfill
     unless Object.keys
         do ->
             hasOwnProperty = Object::hasOwnProperty
@@ -46,7 +46,7 @@ factory = ($)->
             ]
             dontEnumsLength = dontEnums.length
             Object.keys = (obj) ->
-                if typeof obj != 'object' and (typeof obj != 'function' or obj == null)
+                if typeof obj isnt 'object' and (typeof obj isnt 'function' or obj == null)
                     throw new TypeError('Object.keys called on non-object')
                 result = []
 
@@ -60,7 +60,7 @@ factory = ($)->
                 result
             return
 
-    # https://developer.mozilla.org/fr/docs/Web/JavaScript/Reference/Objets_globaux/String/trim#Polyfill
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/Trim#Polyfill
     unless String::trim
         do ->
             rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g

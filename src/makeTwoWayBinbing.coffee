@@ -155,7 +155,7 @@ freact = ({_, $})->
             binding.get = (binding, evt)->
                 $(evt.target).val()
 
-        binding.__ref = _.bind binding.__ref, binding.owner
+        binding.__ref = binding.__ref.bind binding.owner
 
         props = element.props
 

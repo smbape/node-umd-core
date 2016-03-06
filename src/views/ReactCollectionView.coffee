@@ -6,6 +6,8 @@ deps = [
 
 freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
+    hasOwn = {}.hasOwnProperty
+
     {byAttribute, reverse} = BackboneCollection
 
     class ReactCollectionView extends ReactModelView
@@ -87,16 +89,10 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                     break
                 when 'string'
                     if isNextModel
-                        if nextFilter.length is 0
-                            nextFilter = null
-                        else
-                            nextFilter = @getFilter nextFilter, true
+                        nextFilter = @getFilter nextFilter, true
 
                     if currentFilter?.value isnt nextFilter
-                        if nextFilter.length is 0
-                            nextFilter = null
-                        else
-                            nextFilter = @getFilter nextFilter, true
+                        nextFilter = @getFilter nextFilter, true
 
                     else
                         # filter didn't change
@@ -160,7 +156,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             else
                 index = collection.indexOf model
                 childNodeList = @childNodeList()
-                childNodeList[index] = @props.childNode model, index, collection
+                childNodeList[index] = @props.childNode model, index, collection, options
 
                 @_updateView()
 
@@ -172,26 +168,26 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             if collection = @getModel()
                 @_childNodeList = collection.models.map (model, index)=>
-                    @props.childNode model, index, collection
+                    @props.childNode model, index, collection, {}
 
         onAdd: (model, collection, options)->
-            if options?.bubble > 1
+            if @destroyed or options?.bubble > 1
                 # ignore bubbled events
                 return false
 
-            index = options.index or @getModel().indexOf model
+            index = options.index or collection.indexOf model
             if index is -1
-                index = @model.models.length
+                index = collection.length
 
             childNodeList = @childNodeList()
-            childNode = @props.childNode model, index, collection
+            childNode = @props.childNode model, index, collection, options
             childNodeList.splice index, 0, childNode
 
             @_updateView()
             return
 
         onRemove: (model, collection, options)->
-            if options?.bubble > 1
+            if @destroyed or options?.bubble > 1
                 # ignore bubbled events
                 return false
 
@@ -205,7 +201,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             return
 
         onMove: (model, collection, options)->
-            if options?.bubble > 1
+            if @destroyed or options?.bubble > 1
                 # ignore bubbled events
                 return false
 
@@ -218,7 +214,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             return
 
         onReset: (collection, options)->
-            if options?.bubble > 1
+            if @destroyed or options?.bubble > 1
                 # ignore bubbled events
                 return false
 
@@ -226,7 +222,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             return
 
         onSwitch: (collection, options)->
-            if options?.bubble > 1
+            if @destroyed or options?.bubble > 1
                 # ignore bubbled events
                 return false
 
@@ -234,9 +230,56 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             return
 
         render:->
-            React.createElement @props.tagName or 'div', @props, @childNodeList()
+            props = _.clone @props
+
+            children  = props.children
+            delete props.children
+
+            childNodeList = @childNodeList()
+
+            tagName = props.tagName or 'div'
+            delete props.tagName
+
+            if childNodeList and childNodeList.length > 0
+                React.createElement tagName, props, childNodeList
+            else
+                args = [tagName, props, undefined]
+                if _.isArray children
+                    args.push.apply args, children
+                else
+                    args.push children
+
+                React.createElement.apply React, args
 
         reRender: ->
             delete @_childNodeList
             @_updateView()
             return
+
+        getFilter: (query, isValue)->
+            if not isValue
+                query = @inline.get query
+
+            switch typeof query
+                when 'string'
+                    query = query.trim()
+                    if query.length is 0
+                        return null
+
+                    @filterCache = {} if not @filterCache
+                    if hasOwn.call @filterCache, query
+                        return @filterCache[query]
+
+                    regexp = new RegExp query.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'
+                    fn = (model)->
+                        for own prop of model.attributes
+                            if regexp.test(model.attributes[prop]) 
+                                return true
+
+                        return false
+
+                    @filterCache[query] = fn
+                when 'function'
+                    query
+                else
+                    null

@@ -70,26 +70,6 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
             @destroyed = true
             return
 
-        getFilter: (value, isValue)->
-            if not isValue
-                value = @inline.get value
-
-            switch typeof value
-                when 'string'
-                    regexp = new RegExp value.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'
-                    fn = (model)->
-                        for own prop of model.attributes
-                            if regexp.test(model.attributes[prop]) 
-                                return true
-
-                        return false
-                    fn.value = value
-                    fn
-                when 'function'
-                    value
-                else
-                    -> true
-
     _doRender = (element, {mediator, container})->
         (done)->
             if 'function' is typeof done

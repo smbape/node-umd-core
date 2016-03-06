@@ -94,8 +94,11 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
             # remove every references
             for own prop of @
-                if prop isnt 'refs'
-                    delete @[prop]
+                switch prop
+                    when 'props', 'state', 'refs', 'context', 'updater', '_reactInternalInstance'
+                        continue
+                
+                delete @[prop]
 
             @destroyed = true
             return

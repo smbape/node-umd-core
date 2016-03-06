@@ -111,6 +111,10 @@ factory = ({_, Backbone})->
                     if currProto
                         @[opt] = options[opt]
 
+            if options.subset
+                @isSubset = true
+                @matches = {}
+
             collection = this
 
             if 'function' is typeof options.selector
@@ -133,7 +137,9 @@ factory = ({_, Backbone})->
                 collection.trigger 'change', collection, options
                 return
 
-            collection.on 'change', @_onChange
+            if not options.subset
+                collection.on 'change', @_onChange
+
             @_uid = _.uniqueId uid
             super(models, options)
 
@@ -284,7 +290,9 @@ factory = ({_, Backbone})->
 
         _ensureEntegrity: (model, options)->
             # maintain filter
-            if this.selector and not this.selector model
+            if this.selector and not (match = this.selector model)
+                if @isSubset
+                    delete @matches[model.cid]
                 index = this.indexOf model
                 this.remove model, _.defaults {bubble: 0, sort: false}, options
                 return {remove: index}
@@ -295,9 +303,15 @@ factory = ({_, Backbone})->
                 index = this.indexOf model
                 if at isnt index
                     at = this.length if at is -1
+
+                    if @isSubset
+                        delete @matches[model.cid]
                     this.remove model, _.defaults {bubble: 0, sort: false}, options
-                    this.add model, _.defaults {bubble: 0, sort: false}, options
-                    return {remove: index, add: at}
+
+                    if @isSubset
+                        @matches[model.cid] = match
+                    this.add model, _.defaults {bubble: 0, sort: false, match}, options
+                    return {remove: index, add: at, match}
 
             return
 
@@ -335,7 +349,7 @@ factory = ({_, Backbone})->
 
                         if opts
                             if hasOwn.call opts, 'add'
-                                actions.push ['move', existing, opts.add, opts.remove]
+                                actions.push ['move', existing, opts.add, opts.remove, opts.match]
                                 res.push existing
 
                             else if hasOwn.call opts, 'remove'
@@ -353,7 +367,7 @@ factory = ({_, Backbone})->
                     continue
 
                 # maintain filter
-                if this.selector and not this.selector model
+                if this.selector and not (match = this.selector model)
                     continue
 
                 # maintain order
@@ -365,11 +379,13 @@ factory = ({_, Backbone})->
 
                 model = super model, opts
                 res.push model
-                actions.push ['add', model, opts.at]
+                actions.push ['add', model, opts.at, null, match]
+                if @isSubset
+                    @matches[model.cid] = match
 
             if not silent and actions.length
-                for [name, model, index, from] in actions
-                    model.trigger name, model, this, _.defaults {index, from}, options
+                for [name, model, index, from, match] in actions
+                    model.trigger name, model, this, _.defaults {index, from, match}, options
 
                 this.trigger 'update', this, options
 
@@ -389,6 +405,7 @@ factory = ({_, Backbone})->
                 model: @model
                 comparator: @comparator
                 selector: @selector
+                subset: true
             }, options
             proto = this.constructor.prototype
 
@@ -411,7 +428,10 @@ factory = ({_, Backbone})->
                         @set attributes, options
                     else if options.bubble is 1
                         # maintain filter and order
-                        if @selector and not @selector model
+                        if not @parent.contains(model)
+                            if @contains(model)
+                                proto.remove.call @, model
+                        else if @selector and not @selector model
                             proto.remove.call @, model
                         else
                             proto.add.call @, model
@@ -470,11 +490,17 @@ factory = ({_, Backbone})->
 
             if 'undefined' is typeof options
                 options = _.extend {}, collection
-                bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
+                if options.bubble
+                    ++options.bubble
+                else
+                    (options.bubble = 1)
                 @trigger event, model, options
             else
                 options = _.extend {}, options
-                bubble = if options.bubble then ++options.bubble else (options.bubble = 1)
+                if options.bubble
+                    ++options.bubble
+                else
+                    (options.bubble = 1)
                 @trigger event, model, collection, options
             return
 

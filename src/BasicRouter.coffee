@@ -123,10 +123,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 # changing is too fast
                 # wait 200 ms and retry
                 clearTimeout @_waiting
-                @_waiting = setTimeout _.bind(->
+                @_waiting = setTimeout =>
                     @_dispatch copts, options, done
                     return
-                , @), 200
+                , 200
                 return
 
             {container, location, url, otherwise} = copts
