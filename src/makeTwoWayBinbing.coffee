@@ -18,7 +18,7 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
-        {spModel: model, validate} = config
+        {spModel: model, validate, forceUpdate} = config
 
         if 'string' is typeof model
             property = model
@@ -54,6 +54,8 @@ freact = ({_, $})->
         if 'string' isnt typeof events
             return
 
+        # TODO : Find a way to avoid creation and destruction in __ref
+
         # until creation, instance is not known
         # no other choice than add first, then remove it
         if not @_bindings
@@ -68,6 +70,7 @@ freact = ({_, $})->
             owner: this
             model: model
             validate: validate
+            forceUpdate: forceUpdate
 
             _attach: (binding)->
                 if _.isArray binding.model
@@ -92,8 +95,10 @@ freact = ({_, $})->
                 return
 
             _onModelChange: (model, value, options)->
-                if binding.instance instanceof AbstractModelComponent
-                    binding.instance.shouldUpdate = true
+                if binding._ref instanceof AbstractModelComponent
+                    binding._ref.shouldUpdate = true
+                    if binding.forceUpdate
+                        binding._ref._updateView()
 
                 state = {}
                 state[uid] = new Date()
@@ -110,13 +115,15 @@ freact = ({_, $})->
                 return if not ref
                 node = ReactDOM.findDOMNode(ref)
 
-                if not node.reactex
-                    node.reactex = binding.id
+                if ref instanceof AbstractModelComponent
+                    existing = ref.props.binding.id
+                else if not (existing = ref.binding)
+                    existing = ref.binding = binding.id
 
-                if (existing = @_bindexists[node.reactex]) and existing isnt binding
+                if (existing = @_bindexists[existing]) and existing isnt binding
                     index = binding.index
 
-                    if existing.model isnt binding.model
+                    if existing.model isnt binding.model or existing.events isnt binding.events
                         # model changed
                         index = existing.index
                         @_bindings.splice index, 1
@@ -163,6 +170,7 @@ freact = ({_, $})->
             # to ease testing
             props['data-bind-attr'] = property
 
+            # TODO : Find a way to avoid new on change function
             __onChange = (evt)->
                 binding.model.set property, binding.get(binding, evt), {dom: true, validate: binding.validate}
                 return
@@ -179,20 +187,30 @@ freact = ({_, $})->
 
             if 'function' is typeof props.onChange
                 onChange = props.onChange
-                props.onChange = (evt)->
-                    __onChange.call undefined, evt
-                    onChange.call undefined, evt
+                props.onChange = ->
+                    __onChange.apply undefined, arguments
+                    onChange.apply undefined, arguments
+                    return
             else
                 props.onChange = __onChange
 
-        if 'function' is typeof element.ref
-            ref = element.ref
-            __ref = binding.__ref
-            element.ref = (evt)->
-                __ref.call undefined, evt
-                ref.call undefined, evt
-        else
-            element.ref = binding.__ref
+        switch typeof element.ref
+            when 'function'
+                ref = element.ref
+                __ref = binding.__ref
+                element.ref = ->
+                    __ref.apply undefined, arguments
+                    ref.apply undefined, arguments
+                    return
+            when 'string'
+                ref = this.setRef element.ref
+                __ref = binding.__ref
+                element.ref = ->
+                    __ref.apply undefined, arguments
+                    ref.apply undefined, arguments
+                    return
+            when 'undefined'
+                element.ref = binding.__ref
 
         return binding
 

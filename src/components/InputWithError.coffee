@@ -9,9 +9,8 @@ freact = ({_}, AbstractModelComponent, InputText)->
     class InputWithError extends AbstractModelComponent
         uid: 'InputWithError' + ('' + Math.random()).replace(/\D/g, '')
 
-        onModelChange: ->
-            model = @getModel()
-            attr = @getModelAttr()
+        _onVStateChange: ->
+            [model, attr] = @getEventArgs()
 
             if model.invalidAttrs[attr]
                 @className = 'input--invalid'
@@ -20,17 +19,20 @@ freact = ({_}, AbstractModelComponent, InputText)->
                 @className = ''
                 @isValid = true
 
-            super
+            @_updateView()
             return
 
+        getEventArgs: (props = @props, state = @state)->
+            props.spModel
+
         attachEvents: (model, attr)->
-            events = "change:#{attr} vstate:#{attr}"
-            model.on events, @_updateOwner, @
+            events = "vstate:#{attr}"
+            model.on events, @_onVStateChange, @
             return
 
         detachEvents: (model, attr)->
-            events = "change:#{attr} vstate:#{attr}"
-            model.off events, @_updateOwner, @
+            events = "vstate:#{attr}"
+            model.off events, @_onVStateChange, @
             return
 
         render: ->

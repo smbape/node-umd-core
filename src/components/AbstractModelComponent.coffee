@@ -6,6 +6,7 @@ deps = [
 
 freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     slice = [].slice
+    hasOwn = {}.hasOwnProperty
 
     createElement = React.createElement
     React.createElement = (type, config)->
@@ -35,25 +36,35 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         constructor: ->
             super
             @inline = new Backbone.Model()
+            @_refs = {}
+            @_reffn = {}
             @initialize()
 
+        setRef: (name)->
+            if 'string' isnt typeof name or name.length is 0
+                return
+
+            if hasOwn.call @_reffn, name
+                return @_reffn[name]
+
+            @_reffn[name] = (ref)=>
+                if @_refs
+                    @_refs[name] = ref
+                return
+
+        getRef: (name)->
+            if hasOwn.call @_refs, name
+                return @_refs[name]
+
+            @refs[name]
+
         initialize: ->
-
-        getModel: (props = @props)->
-            props.spModel?[0]
-
-        getModelAttr: (props = @props)->
-            props.spModel?[1]
 
         componentWillMount: ->
 
         componentDidMount: ->
             @el = ReactDOM.findDOMNode @
             @$el = $ @el
-
-            if @_bindings
-                for binding in @_bindings
-                    binding.instance = @
 
             @attachEvents.apply @, @getEventArgs()
 
@@ -103,18 +114,11 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             @destroyed = true
             return
 
-        getEventArgs: (props = @props, state = @state)->
-            [@getModel(props, state), @getModelAttr(props, state)]
+        getEventArgs: ->
 
-        attachEvents: (model, attr)->
-            if model
-                model.on "change:#{attr}", @onModelChange, @
-            return
+        attachEvents: ->
 
-        detachEvents: (model, attr)->
-            if model
-                model.off "change:#{attr}", @onModelChange, @
-            return
+        detachEvents: ->
 
         onModelChange: ->
             options = arguments[arguments.length - 1]
