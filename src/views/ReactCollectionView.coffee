@@ -255,31 +255,3 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             delete @_childNodeList
             @_updateView()
             return
-
-        getFilter: (query, isValue)->
-            if not isValue
-                query = @inline.get query
-
-            switch typeof query
-                when 'string'
-                    query = query.trim()
-                    if query.length is 0
-                        return null
-
-                    @filterCache = {} if not @filterCache
-                    if hasOwn.call @filterCache, query
-                        return @filterCache[query]
-
-                    regexp = new RegExp query.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'
-                    fn = (model)->
-                        for own prop of model.attributes
-                            if regexp.test(model.attributes[prop]) 
-                                return true
-
-                        return false
-
-                    @filterCache[query] = fn
-                when 'function'
-                    query
-                else
-                    null
