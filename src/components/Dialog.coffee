@@ -82,5 +82,6 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
             else
                 return React.createElement.apply React, args
 
-    Dialog.getBinding = true
+    Dialog.getBinding = (binding)-> binding
+
     Dialog

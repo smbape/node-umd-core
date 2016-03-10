@@ -17,6 +17,7 @@ factory = ->
                 login: "Sign in"
                 logout: "Sign out"
                 send: "Send"
+                close: "Fermer"
         "fr-FR": translation:
             name: "Français"
             welcome: "Bienvenue"
@@ -32,3 +33,4 @@ factory = ->
                 login: "Se connecter"
                 logout: "Se déconnecter"
                 send: "Envoyer"
+                close: "Fermer"

@@ -92,8 +92,6 @@ factory = ({_, Backbone})->
                 break
         value
 
-    uid = 'BackboneCollection' + ('' + Math.random()).replace(/\D/g, '') + '_'
-
     class BackboneCollection extends Backbone.Collection
         constructor: (models, options = {})->
 
@@ -140,7 +138,7 @@ factory = ({_, Backbone})->
             if not options.subset
                 collection.on 'change', @_onChange
 
-            @_uid = _.uniqueId uid
+            @_uid = _.uniqueId 'BackboneCollection_'
             super(models, options)
 
         unsetAttribute: (name)->
@@ -306,7 +304,9 @@ factory = ({_, Backbone})->
 
                     if @isSubset
                         delete @matches[model.cid]
-                    this.remove model, _.defaults {bubble: 0, sort: false}, options
+
+                    if index isnt -1
+                        this.remove model, _.defaults {bubble: 0, sort: false}, options
 
                     if @isSubset
                         @matches[model.cid] = match
@@ -428,8 +428,11 @@ factory = ({_, Backbone})->
                 proto.add.call @, models, options
             subSet.parent = this
 
-            this.on 'change', subSet._onChange = (model, options)->
+            this.on 'change', subSet._onChange = (model, collection, options)->
                 if not @destroyed
+                    if not options
+                        options = collection
+
                     if model is @parent
                         attributes = model.changed
                         @set attributes, options
@@ -440,7 +443,9 @@ factory = ({_, Backbone})->
                                 proto.remove.call @, model
                         else if @selector and not @selector model
                             proto.remove.call @, model
-                        else
+
+                        # avoid circular event add => some thing triggers change => which triggers add again
+                        else if not @contains(model)
                             proto.add.call @, model
                 return
             , subSet
@@ -471,7 +476,8 @@ factory = ({_, Backbone})->
                 parent.off 'reset', @_onReset, @
 
                 for own prop of @
-                    delete @[prop]
+                    if prop isnt '_uid'
+                        delete @[prop]
 
                 # may be destroyed was executed during an event handling
                 # therefore, callbacks will still be processed
@@ -496,19 +502,12 @@ factory = ({_, Backbone})->
                         @_byId[id] = model
 
             if 'undefined' is typeof options
-                options = _.extend {}, collection
-                if options.bubble
-                    ++options.bubble
-                else
-                    (options.bubble = 1)
-                @trigger event, model, options
+                options = _.extend {bubble: 1}, collection
             else
-                options = _.extend {}, options
-                if options.bubble
-                    ++options.bubble
-                else
-                    (options.bubble = 1)
-                @trigger event, model, collection, options
+                options = _.extend {bubble: 0}, options
+                ++options.bubble
+
+            @trigger event, model, this, options
             return
 
     _.extend BackboneCollection, {byAttribute, byAttributes, reverse}

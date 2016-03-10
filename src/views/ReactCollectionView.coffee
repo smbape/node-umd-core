@@ -16,7 +16,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             super
             @state = model: @getNewModel(props)
 
-        shouldUpdateEvent: (nextProps, nextState)->
+        shouldComponentUpdateEvent: (nextProps, nextState)->
             shouldUpdate = super(nextProps, nextState)
 
             if shouldUpdate

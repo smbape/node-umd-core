@@ -18,7 +18,7 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
-        {spModel: model, validate, forceUpdate} = config
+        {spModel: model, validate, forceUpdate, onlyThis} = config
 
         if 'string' is typeof model
             property = model
@@ -71,6 +71,7 @@ freact = ({_, $})->
             model: model
             validate: validate
             forceUpdate: forceUpdate
+            onlyThis: onlyThis
 
             _attach: (binding)->
                 if _.isArray binding.model
@@ -97,7 +98,7 @@ freact = ({_, $})->
             _onModelChange: (model, value, options)->
                 if binding._ref instanceof AbstractModelComponent
                     binding._ref.shouldUpdate = true
-                    if binding.forceUpdate
+                    if binding.forceUpdate or binding.onlyThis
                         binding._ref._updateView()
 
                 state = {}
@@ -105,7 +106,7 @@ freact = ({_, $})->
 
                 # https://facebook.github.io/react/docs/two-way-binding-helpers.html
                 # set state on owner to trigger rerender
-                if binding.owner
+                if binding.owner and not binding.onlyThis
                     if binding.owner instanceof AbstractModelComponent
                         binding.owner.shouldUpdate = true
                     binding.owner.setState state
@@ -166,7 +167,7 @@ freact = ({_, $})->
 
         props = element.props
 
-        if property and ('string' isnt typeof type or type in ['input', 'select', 'textarea'])
+        if property and 'function' is typeof binding.get and ('string' isnt typeof type or type in ['input', 'select', 'textarea'])
             # to ease testing
             props['data-bind-attr'] = property
 
@@ -203,14 +204,19 @@ freact = ({_, $})->
                     ref.apply undefined, arguments
                     return
             when 'string'
-                ref = this.setRef element.ref
-                __ref = binding.__ref
-                element.ref = ->
-                    __ref.apply undefined, arguments
-                    ref.apply undefined, arguments
-                    return
+                # TODO : find a way to deal with string ref
+                console.error 'string ref is not yet supported with 2 way binding'
+                # ref = this.setRef element.ref
+                # __ref = binding.__ref
+                # element.ref = ->
+                #     __ref.apply undefined, arguments
+                #     ref.apply undefined, arguments
+                #     return
             when 'undefined'
                 element.ref = binding.__ref
+            when 'object'
+                if element.ref is null
+                    element.ref = binding.__ref
 
         return binding
 

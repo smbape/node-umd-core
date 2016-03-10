@@ -65,34 +65,43 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         componentDidMount: ->
             @el = ReactDOM.findDOMNode @
             @$el = $ @el
-
             @attachEvents.apply @, @getEventArgs()
-
             return
 
         componentWillReceiveProps: (nextProps)->
 
         shouldComponentUpdate: (nextProps, nextState)->
-            shouldUpdate = @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
-            @shouldUpdate = false
+            @shouldUpdate = @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
 
-            shouldUpdateEvent = @shouldUpdateEvent nextProps, nextState
-            shouldUpdate or shouldUpdateEvent
+            @shouldUpdateEvent = @shouldUpdateEvent or @shouldComponentUpdateEvent nextProps, nextState
+            @shouldUpdate or @shouldUpdateEvent
 
-        shouldUpdateEvent: (nextProps, nextState)->
+        shouldComponentUpdateEvent: (nextProps, nextState)->
             if 'function' is typeof @getNewEventArgs
                 args = @getNewEventArgs nextProps, nextState
             else
                 args = @getEventArgs nextProps, nextState
+
             oldArgs = @getEventArgs()
+
             if _.isEqual(args, oldArgs)
                 return false
 
-            @detachEvents.apply @, oldArgs
-            @attachEvents.apply @, args
             return true
 
         componentWillUpdate: (nextProps, nextState)->
+            if @shouldUpdateEvent
+                oldArgs = @getEventArgs()
+                @detachEvents.apply @, oldArgs
+
+                if 'function' is typeof @getNewEventArgs
+                    args = @getNewEventArgs nextProps, nextState
+                else
+                    args = @getEventArgs nextProps, nextState
+                @attachEvents.apply @, args
+
+            @shouldUpdate = @shouldUpdateEvent = false
+            return
 
         componentDidUpdate: (prevProps, prevState)->
 
@@ -163,6 +172,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
         render:->
             React.createElement @props.tagName or 'span', @props
+
+    MdlComponent.getBinding = true
 
     AbstractModelComponent.MdlComponent = MdlComponent
 
