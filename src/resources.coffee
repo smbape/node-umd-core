@@ -18,6 +18,7 @@ factory = ->
                 logout: "Sign out"
                 send: "Send"
                 close: "Fermer"
+            saved: "Saved"
         "fr-FR": translation:
             name: "Français"
             welcome: "Bienvenue"
@@ -34,3 +35,4 @@ factory = ->
                 logout: "Se déconnecter"
                 send: "Envoyer"
                 close: "Fermer"
+            saved: "Enregistré"
