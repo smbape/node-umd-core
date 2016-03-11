@@ -59,25 +59,28 @@ factory = ({_, Backbone})->
 
         fn
 
-    binaryIndex = (value, array, compare, fromIndex = 0, indexOf)->
-        if fromIndex < 0
-            high = array.length
-            low = high - fromIndex
-        else
-            high = array.length
-            low = fromIndex
+    binaryIndex = (value, array, compare)->
+        high = array.length
+        low = 0
 
         while low < high
             mid = (low + high) >> 1
-            if 0 > compare array[mid], value
-                low = mid + 1
-            else
-                high = mid
+            cmp = compare array[mid], value
 
-        if indexOf
-            if array[low] is value then low else -1
-        else
-            low
+            switch cmp
+                when 0
+                    return mid
+                when -1
+                    low = mid + 1
+                when 1
+                    high = mid
+                else
+                    if cmp < 0
+                        low = mid + 1
+                    else
+                        high = mid
+
+        return low
 
     _lookup = (attr, model)->
         attr = attr.split '.'
@@ -91,6 +94,8 @@ factory = ({_, Backbone})->
                 value = undefined
                 break
         value
+
+    setOptions = {add: true, merge: true, remove: true}
 
     class BackboneCollection extends Backbone.Collection
         constructor: (models, options = {})->
@@ -316,29 +321,53 @@ factory = ({_, Backbone})->
             return
 
         indexOf: (model, options)->
-            if this.comparator
+            if compare = @comparator
                 if options?.loose
                     if _model = @get model
                         model = _model
 
-                    if not model = this._prepareModel model, options
+                    if not model = @_prepareModel model, options
                         return -1
 
-                return binaryIndex model, this.models, this.comparator, 0, true
+                mid = index = binaryIndex model, @models, compare
+                return index if index is -1 or model is @models[index]
+
+                size = @length
+
+                if (index + 1) isnt size
+                    while index < size and model isnt @models[index] and compare(model, @models[++index]) is 0
+                        true
+                    return index if @models[index]
+
+                if mid isnt 0
+                    index = mid - 1
+                    while index isnt 0 and @models[index] isnt model and compare(model, @models[--index]) is 0
+                        true
+                    return index if @models[index] is model
+
+                return -1
             else
                 super
 
         contains: (model, options)->
             -1 isnt @indexOf model, options
 
-        add: (models, options = {})->
+        set: (models, options)->
             return if not models
+
+            if not @selector and not @comparator
+                return super
+
+            options = _.defaults({}, options, setOptions);
+            {merge, reset, silent, add, remove} = options
 
             res = []
             singular = !_.isArray(models)
             models = if singular then [models] else models
             actions = []
-            {merge, reset, silent} = options
+
+            if remove
+                toRemove = @clone()
 
             for model in models
                 if existing = this.get model
@@ -368,7 +397,7 @@ factory = ({_, Backbone})->
                         res.push existing
                         continue
 
-                opts = _.defaults {sort: false, silent: true}, options
+                continue if not add
 
                 if not model = this._prepareModel model, opts
                     continue
@@ -380,15 +409,22 @@ factory = ({_, Backbone})->
                 # maintain order
                 if this.comparator
                     at = binaryIndex model, this.models, this.comparator
-                    opts.at = if at is -1 then this.length else at
+                    at = if at is -1 then this.length else at
                 else
-                    opts.at = this.length
+                    at = this.length
 
-                model = super model, opts
+                @_addReference model, options
+                @models.splice at, 0, model
+                @length++
+
                 res.push model
-                actions.push ['add', model, opts.at, null, match]
+                actions.push ['add', model, at, null, match]
                 if @isSubset
                     @matches[model.cid] = match
+
+            if toRemove
+                toRemove.remove res
+                @_removeModels toRemove.models, options
 
             if not silent and actions.length
                 for [name, model, index, from, match] in actions
