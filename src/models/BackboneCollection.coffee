@@ -59,23 +59,38 @@ factory = ({_, Backbone})->
 
         fn
 
+    # where value should be inserted in ordered array using compare
     binaryIndex = (value, array, compare)->
         high = array.length
         low = 0
 
         while low < high
             mid = (low + high) >> 1
-            cmp = compare array[mid], value
 
+            if 0 > compare array[mid], value
+                low = mid + 1
+            else
+                high = mid
+
+        return low
+
+    # where value should be inserted in ordered array using compare
+    binaryIndexOf = (value, array, compare)->
+        high = array.length
+        low = 0
+
+        while low < high
+            mid = (low + high) >> 1
+            cmp = compare array[mid], value
             switch cmp
-                when 0
-                    return mid
                 when -1
                     low = mid + 1
                 when 1
                     high = mid
+                when 0
+                    return mid
                 else
-                    if cmp < 0
+                    if 0 > cmp
                         low = mid + 1
                     else
                         high = mid
@@ -118,7 +133,7 @@ factory = ({_, Backbone})->
                 @isSubset = true
                 @matches = {}
 
-            collection = this
+            collection = @
 
             if 'function' is typeof options.selector
                 collection.selector = options.selector
@@ -147,34 +162,34 @@ factory = ({_, Backbone})->
             super(models, options)
 
         unsetAttribute: (name)->
-            this._modelAttributes.unset name
+            @_modelAttributes.unset name
             return
         getAttribute: (name)->
-            this._modelAttributes.get name
+            @_modelAttributes.get name
         setAttribute: ->
-            this._modelAttributes.set.call this._modelAttributes, arguments
+            @_modelAttributes.set.call @_modelAttributes, arguments
             return
         attrToJSON: ->
-            this._modelAttributes.toJSON()
+            @_modelAttributes.toJSON()
 
         addIndex: (name, attrs)->
             if 'string' is typeof attrs
                 attrs = [attrs]
 
             if Array.isArray attrs
-                this._keymap[name] = attrs.slice()
-                this._keys[name] = {}
+                @_keymap[name] = attrs.slice()
+                @_keys[name] = {}
 
-                if this.models
-                    for model in this.models
-                        this._indexModel model, name
+                if @models
+                    for model in @models
+                        @_indexModel model, name
 
                 return true
 
             return false
 
         get: (obj)->
-            this.byIndex obj
+            @byIndex obj
 
         byIndex: (model, indexName)->
             if null is model or 'object' isnt typeof model
@@ -185,20 +200,20 @@ factory = ({_, Backbone})->
                 return found if found
                 model = model.toJSON()
 
-            id = model[this.model::idAttribute]
+            id = model[@model::idAttribute]
             found = BackboneCollection.__super__.get.call @, id
             return found if found
 
             if not indexName
-                for indexName of this._keymap
-                    found = this.byIndex model, indexName
+                for indexName of @_keymap
+                    found = @byIndex model, indexName
                     break if found
                 return found
 
-            return if not hasOwn.call this._keymap, indexName
+            return if not hasOwn.call @_keymap, indexName
 
-            ref = this._keymap[indexName]
-            key = this._keys[indexName]
+            ref = @_keymap[indexName]
+            key = @_keys[indexName]
             for attr, index in ref
                 value = _lookup attr, model
                 key = key[value]
@@ -209,17 +224,17 @@ factory = ({_, Backbone})->
 
         _addReference: (model, options)->
             super
-            this._indexModel model
+            @_indexModel model
             return
 
         _indexModel: (model, name)->
             if model instanceof Backbone.Model
                 if not name
-                    for name of this._keymap
-                        this._indexModel model, name
+                    for name of @_keymap
+                        @_indexModel model, name
                     return
 
-                attrs = this._keymap[name]
+                attrs = @_keymap[name]
                 chain = []
                 for attr in attrs
                     value = _lookup attr, model
@@ -227,7 +242,7 @@ factory = ({_, Backbone})->
                         return
                     chain.push value
 
-                key = this._keys[name]
+                key = @_keys[name]
 
                 length = chain.length
                 for value, index in chain
@@ -244,18 +259,18 @@ factory = ({_, Backbone})->
 
         _removeReference: (model, options)->
             super
-            this._removeIndex model
+            @_removeIndex model
             return
 
         _removeIndex: (model, name)->
             if model instanceof Backbone.Model
                 if not name
-                    for name of this._keymap
-                        this._removeIndex model, name
+                    for name of @_keymap
+                        @_removeIndex model, name
                     return
 
-                # this._keys[name][prop1][prop2] = model
-                attrs = this._keymap[name]
+                # @_keys[name][prop1][prop2] = model
+                attrs = @_keymap[name]
                 chain = []
                 for attr in attrs
                     # value = model.get attr
@@ -264,7 +279,7 @@ factory = ({_, Backbone})->
                         return
                     chain.push value
 
-                key = this._keys[name]
+                key = @_keys[name]
 
                 length = chain.length
                 for value, index in chain
@@ -277,7 +292,7 @@ factory = ({_, Backbone})->
             return
 
         _getClone: (model)->
-            _model = this.get model
+            _model = @get model
             if _model
                 _model = new _model.constructor _model.attributes
                 if model instanceof Backbone.Model
@@ -287,35 +302,35 @@ factory = ({_, Backbone})->
             _model
 
         _onChange: (model, options)->
-            if model isnt this
+            if model isnt @
                 @_ensureEntegrity model, options
             return
 
         _ensureEntegrity: (model, options)->
             # maintain filter
-            if this.selector and not (match = this.selector model)
+            if @selector and not (match = @selector model)
                 if @isSubset
                     delete @matches[model.cid]
-                index = this.indexOf model
-                this.remove model, _.defaults {bubble: 0, sort: false}, options
+                index = @indexOf model
+                @remove model, _.defaults {bubble: 0, sort: false}, options
                 return {remove: index}
 
             # maintain order
-            if this.comparator
-                at = binaryIndex model, this.models, this.comparator
-                index = this.indexOf model
+            if @comparator
+                at = binaryIndex model, @models, @comparator
+                index = @indexOf model
                 if at isnt index
-                    at = this.length if at is -1
+                    at = @length if at is -1
 
                     if @isSubset
                         delete @matches[model.cid]
 
                     if index isnt -1
-                        this.remove model, _.defaults {bubble: 0, sort: false}, options
+                        @remove model, _.defaults {bubble: 0, sort: false}, options
 
                     if @isSubset
                         @matches[model.cid] = match
-                    this.add model, _.defaults {bubble: 0, sort: false, match}, options
+                    @add model, _.defaults {bubble: 0, sort: false, match}, options
                     return {remove: index, add: at, match}
 
             return
@@ -329,7 +344,7 @@ factory = ({_, Backbone})->
                     if not model = @_prepareModel model, options
                         return -1
 
-                mid = index = binaryIndex model, @models, compare
+                mid = index = binaryIndexOf model, @models, compare
                 return index if index is -1 or model is @models[index]
 
                 size = @length
@@ -370,7 +385,7 @@ factory = ({_, Backbone})->
                 toRemove = @clone()
 
             for model in models
-                if existing = this.get model
+                if existing = @get model
                     hasChanged = false
 
                     if merge and model isnt existing
@@ -399,19 +414,19 @@ factory = ({_, Backbone})->
 
                 continue if not add
 
-                if not model = this._prepareModel model, opts
+                if not model = @_prepareModel model, opts
                     continue
 
                 # maintain filter
-                if this.selector and not (match = this.selector model)
+                if @selector and not (match = @selector model)
                     continue
 
                 # maintain order
-                if this.comparator
-                    at = binaryIndex model, this.models, this.comparator
-                    at = if at is -1 then this.length else at
+                if @comparator
+                    at = binaryIndex model, @models, @comparator
+                    at = if at is -1 then @length else at
                 else
-                    at = this.length
+                    at = @length
 
                 @_addReference model, options
                 @models.splice at, 0, model
@@ -428,14 +443,14 @@ factory = ({_, Backbone})->
 
             if not silent and actions.length
                 for [name, model, index, from, match] in actions
-                    model.trigger name, model, this, _.defaults {index, from, match}, options
+                    model.trigger name, model, @, _.defaults {index, from, match}, options
 
-                this.trigger 'update', this, options
+                @trigger 'update', @, options
 
             return if singular then res[0] else res
 
         clone: ->
-            new this.constructor this.models,
+            new @constructor @models,
                 model: @model
                 comparator: @comparator
                 selector: @selector
@@ -444,13 +459,13 @@ factory = ({_, Backbone})->
             if not options.comparator and not options.selector
                 return @
 
-            subSet = new this.constructor this.models, _.extend {
+            subSet = new @constructor @models, _.extend {
                 model: @model
                 comparator: @comparator
                 selector: @selector
                 subset: true
             }, options
-            proto = this.constructor.prototype
+            proto = @constructor.prototype
 
             for method in ['remove', 'reset', 'move']
                 do (method)->
@@ -462,9 +477,9 @@ factory = ({_, Backbone})->
                     throw new Error 'add is not allowed on a subSet'
 
                 proto.add.call @, models, options
-            subSet.parent = this
+            subSet.parent = @
 
-            this.on 'change', subSet._onChange = (model, collection, options)->
+            @on 'change', subSet._onChange = (model, collection, options)->
                 if not @destroyed
                     if not options
                         options = collection
@@ -486,19 +501,19 @@ factory = ({_, Backbone})->
                 return
             , subSet
 
-            this.on 'add', subSet._onAdd = (model, collection, options)->
+            @on 'add', subSet._onAdd = (model, collection, options)->
                 if not @destroyed and collection is @parent
                     proto.add.call @, model
                 return
             , subSet
 
-            this.on 'remove', subSet._onRemove = (model, collection, options)->
+            @on 'remove', subSet._onRemove = (model, collection, options)->
                 if not @destroyed and collection is @parent
                     proto.remove.call @, model
                 return
             , subSet
 
-            this.on 'reset', subSet._onReset = (collection, options)->
+            @on 'reset', subSet._onReset = (collection, options)->
                 if not @destroyed and collection is @parent
                     proto.reset.call @, collection.models, _.defaults {reset: true}, options
                 return
@@ -517,14 +532,14 @@ factory = ({_, Backbone})->
 
                 # may be destroyed was executed during an event handling
                 # therefore, callbacks will still be processed
-                # this.destroyed helps skipping callback if needed
+                # @destroyed helps skipping callback if needed
                 @destroyed = true
                 return
 
             subSet
 
         _onModelEvent: (event, model, collection, options) ->
-            if (event is 'add' or event is 'remove') and collection isnt this
+            if (event is 'add' or event is 'remove') and collection isnt @
                 return
             if event is 'destroy'
                 @remove model, options
@@ -543,7 +558,7 @@ factory = ({_, Backbone})->
                 options = _.extend {bubble: 0}, options
                 ++options.bubble
 
-            @trigger event, model, this, options
+            @trigger event, model, @, options
             return
 
     _.extend BackboneCollection, {byAttribute, byAttributes, reverse}

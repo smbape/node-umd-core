@@ -54,8 +54,6 @@ freact = ({_, $})->
         if 'string' isnt typeof events
             return
 
-        # TODO : Find a way to avoid creation and destruction in __ref
-
         # until creation, instance is not known
         # no other choice than add first, then remove it
         if not @_bindings
@@ -78,9 +76,11 @@ freact = ({_, $})->
                     for i in [0...binding.model.length] by 1
                         _model = binding.model[i]
                         _events = binding.events[i]
-                    _model.on _events, binding._onModelChange, binding.owner
+                    _model.on _events, binding._onModelChange, binding
                 else
-                    binding.model.on binding.events, binding._onModelChange, binding.owner
+                    binding.model.on binding.events, binding._onModelChange, binding
+
+                binding.owner._bindexists[binding.id] = binding
                 return
 
             _detach: (binding)->
@@ -88,62 +88,66 @@ freact = ({_, $})->
                     for i in [0...binding.model.length] by 1
                         _model = binding.model[i]
                         _events = binding.events[i]
-                    _model.off _events, binding._onModelChange, binding.owner
+                    _model.off _events, binding._onModelChange, binding
                 else
-                    binding.model.off binding.events, binding._onModelChange, binding.owner
+                    binding.model.off binding.events, binding._onModelChange, binding
 
+                delete binding.owner._bindexists[binding.id]
                 emptyObject binding
                 return
 
             _onModelChange: (model, value, options)->
-                if binding._ref instanceof AbstractModelComponent
-                    binding._ref.shouldUpdate = true
-                    if binding.forceUpdate or binding.onlyThis
-                        binding._ref._updateView()
+                {_ref, forceUpdate, onlyThis, owner} = @
+
+                if _ref instanceof AbstractModelComponent
+                    _ref.shouldUpdate = true
+                    if forceUpdate or onlyThis
+                        _ref._updateView()
 
                 state = {}
                 state[uid] = new Date()
 
                 # https://facebook.github.io/react/docs/two-way-binding-helpers.html
                 # set state on owner to trigger rerender
-                if binding.owner and not binding.onlyThis
-                    if binding.owner instanceof AbstractModelComponent
-                        binding.owner.shouldUpdate = true
-                    binding.owner.setState state
+                if owner and not onlyThis
+                    if owner instanceof AbstractModelComponent
+                        owner.shouldUpdate = true
+                    owner.setState state
                 return
 
             __ref: (ref)->
                 return if not ref
+
+                # TODO: Find a way to make it part of componentDidMount/componentDidUpdate
+
                 node = ReactDOM.findDOMNode(ref)
+                binding = @
+                owner = binding.owner
 
                 if ref instanceof AbstractModelComponent
                     existing = ref.props.binding.id
                 else if not (existing = ref.binding)
                     existing = ref.binding = binding.id
 
-                if (existing = @_bindexists[existing]) and existing isnt binding
+                if (prevBinding = owner._bindexists[existing]) and prevBinding isnt binding
                     index = binding.index
 
-                    if existing.model isnt binding.model or existing.events isnt binding.events
+                    if prevBinding.model isnt binding.model or prevBinding.events isnt binding.events
                         # model changed
-                        index = existing.index
-                        @_bindings.splice index, 1
-                        existing._detach existing
-                        emptyObject existing
+                        index = prevBinding.index
+                        owner._bindings.splice index, 1
+                        prevBinding._detach prevBinding
 
                     else
-                        @_bindings.splice index, 1
-                        binding._detach binding
+                        owner._bindings.splice index, 1
                         emptyObject binding
 
                         # onChange is always a new function, make sure it uses the correct binding object
-                        binding = existing
+                        binding = prevBinding
 
-                    for i in [index...@_bindings.length] by 1
-                        @_bindings[i].index--
+                    for i in [index...owner._bindings.length] by 1
+                        owner._bindings[i].index--
                     return
-
-                @_bindexists[binding.id] = binding
 
                 binding._ref = ref
                 binding._node = node
@@ -163,7 +167,7 @@ freact = ({_, $})->
             binding.get = (binding, evt)->
                 $(evt.target).val()
 
-        binding.__ref = binding.__ref.bind binding.owner
+        binding.__ref = binding.__ref.bind binding
 
         props = element.props
 
@@ -171,7 +175,6 @@ freact = ({_, $})->
             # to ease testing
             props['data-bind-attr'] = property
 
-            # TODO : Find a way to avoid new on change function
             __onChange = (evt)->
                 binding.model.set property, binding.get(binding, evt), {dom: true, validate: binding.validate}
                 return
@@ -186,6 +189,8 @@ freact = ({_, $})->
             else
                 delete props.value
 
+            # TODO : Find a way to avoid new props.onChange function
+            # if model+events didn't change
             if 'function' is typeof props.onChange
                 onChange = props.onChange
                 props.onChange = ->
@@ -195,6 +200,8 @@ freact = ({_, $})->
             else
                 props.onChange = __onChange
 
+        # TODO : Find a way to avoid new element.ref function
+        # if model+events didn't change
         switch typeof element.ref
             when 'function'
                 ref = element.ref
