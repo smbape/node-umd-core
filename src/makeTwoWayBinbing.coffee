@@ -97,7 +97,8 @@ freact = ({_, $})->
                 return
 
             _onModelChange: (model, value, options)->
-                {_ref, forceUpdate, onlyThis, owner} = @
+                binding = @
+                {_ref, forceUpdate, onlyThis, owner} = binding
 
                 if _ref instanceof AbstractModelComponent
                     _ref.shouldUpdate = true
@@ -124,9 +125,7 @@ freact = ({_, $})->
                 binding = @
                 owner = binding.owner
 
-                if ref instanceof AbstractModelComponent
-                    existing = ref.props.binding.id
-                else if not (existing = ref.binding)
+                if not (existing = ref.binding)
                     existing = ref.binding = binding.id
 
                 if (prevBinding = owner._bindexists[existing]) and prevBinding isnt binding

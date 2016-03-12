@@ -29,7 +29,7 @@ factory = ->
         notEmptyString: (str)->
             typeof str is 'string' and str.length > 0
 
-        throttle: (delay, fn) ->
+        throttle: (delay, fn, alwaysDefer) ->
             last = undefined
             deferTimer = undefined
             ->
@@ -38,14 +38,20 @@ factory = ->
                 now = +new Date
                 if last and now < last + delay
                     clearTimeout deferTimer
-                    deferTimer = setTimeout((->
+                    deferTimer = setTimeout ->
                         last = now
                         fn.apply context, args
                         return
-                    ), delay)
+                    , delay
                 else
-                    last = now
-                    fn.apply context, args
+                    if alwaysDefer
+                        setTimeout ->
+                            last = now
+                            fn.apply context, args
+                        , delay
+                    else
+                        last = now
+                        fn.apply context, args
                 return
 
     class GenericUtil.Timer

@@ -1,33 +1,37 @@
 deps = [
     '../common'
+    '../GenericUtil'
     './AbstractModelComponent'
 ]
 
-freact = ({_, $}, AbstractModelComponent)->
+freact = ({_, $}, {throttle}, AbstractModelComponent)->
 
     length = (value)->
         if value then value.length else 0
 
     class InputText extends AbstractModelComponent
-        uid: 'InputText' + ('' + Math.random()).replace(/\D/g, '')
+        uid: 'InputText_'
+
+        constructor: ->
+            super
+            # @_updateClass = throttle(100, @_updateClass, true).bind @
 
         componentWillMount: ->
             @props.binding?.instance = @
             @id = _.uniqueId @uid
             @classList = ['input']
-
-            super()
+            super
 
             return
 
         componentDidMount: ->
-            @_updateClass @_getInput()
             super()
+            @_updateClass()
             return
 
         componentDidUpdate: (prevProps, prevState)->
-            @_updateClass @_getInput()
             super(prevProps, prevState)
+            @_updateClass()
             return
 
         onFocus: (evt)=>
@@ -66,7 +70,7 @@ freact = ({_, $}, AbstractModelComponent)->
                 className: "input__field"
                 onFocus: @onFocus
                 onBlur: @onBlur
-            , props, inputProps), inputChildren
+            , props, inputProps, {ref: 'input'}), inputChildren
 
             if props.label
                 label = `<label className={"input__label"} htmlFor={id}>
@@ -91,13 +95,12 @@ freact = ({_, $}, AbstractModelComponent)->
 
             React.createElement.apply React, args
 
-        _getId: ->
-            @props.id or @id
-
         _getInput: ->
-            document.getElementById @_getId()
+            @refs.input
 
-        _updateClass: (el)->
+        _updateClass: ->
+            el = @_getInput()
+
             if /^\s*$/.test el.value
                 @_removeClass 'input--has-value', el.parentNode, @classList
             else
