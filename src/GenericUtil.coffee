@@ -5,6 +5,10 @@ factory = ->
     hasOwn = {}.hasOwnProperty
     slice = [].slice
 
+    extend = (target, obj)->
+        for own prop of obj
+            target[prop] = obj[prop]
+
     GenericUtil =
 
         # Based on jQuery 1.11
@@ -91,38 +95,42 @@ factory = ->
                 @clear s
             return
 
-    GenericUtil.StringUtil =
-        capitalize: (str) ->
-            str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-
-        firstUpper: (str) ->
-            str.charAt(0).toUpperCase() + str.slice 1
-
-        toCamelDash: (str) ->
-            str.replace /\-(\w)/g, (match) ->
-                match[1].toUpperCase()
-
-        toCapitalCamelDash: (str) ->
-            GenericUtil.StringUtil.toCamelDash GenericUtil.StringUtil.capitalize str
-
-        toCamelSpaceDash: (str) ->
-            str.replace /\-([a-z])/g, (match) ->
-                ' ' + match[1].toUpperCase()
-
-        toCapitalCamelSpaceDash: (str) ->
-            GenericUtil.StringUtil.toCamelSpaceDash GenericUtil.StringUtil.capitalize str
-
-        firstSubstring: (str, n) ->
-            return str if typeof str isnt "string"
-            return '' if n >= str.length
-            str.substring 0, str.length - n
-
-        lastSubstring: (str, n) ->
-            return str if typeof str isnt "string"
-            return str if n >= str.length
-            str.substring str.length - n, str.length
-
     ((StringUtil)->
+        extend StringUtil,
+            escapeRegExp: (str)->
+                str.replace /([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'
+
+            capitalize: (str) ->
+                str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+
+            firstUpper: (str) ->
+                str.charAt(0).toUpperCase() + str.slice 1
+
+            toCamel: (str, mark = '-')->
+                reg = new RegExp StringUtil.escapeRegExp(mark) + '\\w', 'g'
+                str.replace reg, (match) ->
+                    match[1].toUpperCase()
+
+            toCapitalCamel: (str, mark) ->
+                StringUtil.toCamel StringUtil.capitalize(str), mark
+
+            toCamelDash: (str) ->
+                str.replace /-(\w)/g, (match) ->
+                    match[1].toUpperCase()
+
+            toCapitalCamelDash: (str) ->
+                StringUtil.toCamelDash StringUtil.capitalize str
+
+            firstSubstring: (str, n) ->
+                return str if typeof str isnt "string"
+                return '' if n >= str.length
+                str.substring 0, str.length - n
+
+            lastSubstring: (str, n) ->
+                return str if typeof str isnt "string"
+                return str if n >= str.length
+                str.substring str.length - n, str.length
+
         _entityMap =
             '&': '&amp;'
             '<': '&lt;'
@@ -138,7 +146,7 @@ factory = ->
             else
                 html
         return
-    )(GenericUtil.StringUtil)
+    )(GenericUtil.StringUtil = {})
 
     GenericUtil.ArrayUtil =
         clone: (arr) ->

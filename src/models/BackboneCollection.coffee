@@ -365,7 +365,7 @@ factory = ({_, Backbone})->
                 super
 
         contains: (model, options)->
-            -1 isnt @indexOf model, options
+            -1 isnt @indexOf model, _.extend {loose: true}, options
 
         set: (models, options)->
             return if not models
