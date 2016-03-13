@@ -168,7 +168,7 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
         modelChangeTasks: ->
             this.unmountTasks(this.container).concat this.mountTasks(this.container)
 
-        doRender: (done)->
+        render: (done)->
             view = @
             view.take()
             eachSeries view, this.mountTasks(), (err)->

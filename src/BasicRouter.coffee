@@ -171,8 +171,8 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                         rendable.destroy()
 
                     console.error err, err.stack
-                    container.innerHTML = err
                     router.onRouteChangeFailure err, handlerOptions
+                    router.emit 'routeChangeFailure', err, options
                     app.emit 'routeChangeFailure', router, err, options
                 else
                     if rendable
@@ -249,11 +249,13 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             if title = @getRendableTitle rendable
                 document.title = title
 
-            # publicly notify render
-            appConfig.render() if 'function' is typeof appConfig.render
+            if 'function' is typeof appConfig.onRouteChangeSuccess
+                appConfig.onRouteChangeSuccess()
             return
 
-        onRouteChangeFailure: (err, options)->
+        onRouteChangeFailure: (err, {container})->
+            container.innerHTML = err
+            return
 
         engine: (name)->
             @routeByName[name]?.engine
@@ -430,16 +432,16 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     else
                         view = new View options
 
-                    if 'function' isnt typeof view.doRender or view.doRender.length > 1
+                    if 'function' isnt typeof view.render or view.render.length > 1
                         return callback(new Error "view at #{path}: invalid render method. It should be a function expectingat most ine argument")
 
-                    if view.doRender.length is 1
+                    if view.render.length is 1
                         timeout = setTimeout ->
                             console.log 'taking too long to render. Make sure you called done function'
                             return
                         , 1000
                         try
-                            view.doRender (err)->
+                            view.render (err)->
                                 clearTimeout timeout
                                 callback err, view
                                 return
@@ -449,7 +451,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                     else
                         try
-                            view.doRender()
+                            view.render()
                         catch err
                         callback err, view
 

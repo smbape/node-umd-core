@@ -20,16 +20,16 @@ factory = ({_, Backbone}, Util)->
         render: (done)->
             view = @view
 
-            if 'function' isnt typeof view.doRender or view.doRender.length > 1
+            if 'function' isnt typeof view.render or view.render.length > 1
                 return done(new Error "invalid render method. It should be a function expectingat most ine argument")
 
-            if view.doRender.length is 1
+            if view.render.length is 1
                 timeout = setTimeout ->
                     console.log 'taking too long to render. Make sure you called done function'
                     return
                 , 1000
                 try
-                    view.doRender (err)->
+                    view.render (err)->
                         clearTimeout timeout
                         done err, view
                         return
@@ -39,7 +39,7 @@ factory = ({_, Backbone}, Util)->
 
             else
                 try
-                    view.doRender()
+                    view.render()
                 catch err
                 done err, view
 

@@ -135,13 +135,12 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
         _.extend app, i18nMixin
         _.extend i18nOptions, options?.i18n
 
-        if false isnt options?.i18n?.router
-            app.router.on 'routeChangeSuccess', (router, rendable, current)->
+        if options?.i18n?.router is true
+            app.router.onRouteChangeSuccess = (rendable, current)->
                 if title = @getRendableTitle rendable
                     document.title = i18n.t title
 
-                # publicly notify render
-                appConfig.render() if 'function' is typeof appConfig.render
+                appConfig.onRouteChangeSuccess() if 'function' is typeof appConfig.onRouteChangeSuccess
                 return
 
         if app.router instanceof BasicRouter

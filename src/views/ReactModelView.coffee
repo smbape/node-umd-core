@@ -70,7 +70,7 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
             @destroyed = true
             return
 
-    _doRender = (element, {mediator, container})->
+    _render = (element, {mediator, container})->
         (done)->
             if 'function' is typeof done
                 mediator.once 'mount', ->
@@ -101,7 +101,7 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
 
             @_internal = React.createElement Component, props
 
-        doRender: (done)->
+        render: (done)->
             element = @
             {container, mediator} = @props
             if 'function' is typeof done
@@ -120,11 +120,6 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
                 return
 
             ReactDOM.render element._internal, container
-            return
-
-        reRender: (done)->
-            @destroy()
-            @doRender done
             return
 
         destroy: ->
