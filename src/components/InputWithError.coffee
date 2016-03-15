@@ -12,7 +12,7 @@ freact = ({_}, AbstractModelComponent, InputText)->
         _onVStateChange: ->
             [model, attr] = @getEventArgs()
 
-            if model.invalidAttrs[attr]
+            if model.invalidAttrs?[attr]
                 @className = 'input--invalid'
                 @isValid = false
             else
@@ -52,8 +52,11 @@ freact = ({_}, AbstractModelComponent, InputText)->
             else
                 args.push children
 
+            if model.invalidAttrs?[attr]
+                errors = `<div spRepeat="(message, index) in model.invalidAttrs[attr]" className="error-message" key={index}>{message}</div>`
+
             args.push `<div className="error-messages">
-                <div spRepeat="(message, index) in model.invalidAttrs[attr]" className="error-message" key={index}>{message}</div>
+                {errors}
             </div>`
 
             React.createElement.apply React, args
