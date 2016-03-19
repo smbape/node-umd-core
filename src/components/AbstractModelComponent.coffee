@@ -35,6 +35,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
         constructor: ->
             super
+            @id = _.uniqueId 'AbstractModelComponent_'
             @inline = new Backbone.Model()
             @_refs = {}
             @_reffn = {}
@@ -201,7 +202,16 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         render:->
             React.createElement @props.tagName or 'span', @props
 
-    MdlComponent.getBinding = true
+    MdlComponent.getBinding = (binding, config)->
+        if config.tagName is 'input' and config.type is 'checkbox'
+            binding.get = (binding, evt)->
+                $(evt.target).prop('checked')
+        else
+            binding.get = (binding, evt)->
+                $(evt.target).val()
+
+        binding
+
 
     AbstractModelComponent.MdlComponent = MdlComponent
 
