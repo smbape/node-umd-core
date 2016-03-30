@@ -11,7 +11,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
 
     # Add choice handler
     ###
-    // !!!!!!!!!!!!! be in english before 
+    // !!!!!!!!!!!!! be in english before
     (function(app, i18n) {
         'use strict';
 
@@ -67,7 +67,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
     # ================================
     i18nOptions =
         lng: 'en-GB'
-        interpolation: 
+        interpolation:
             prefix: '{{'
             suffix: '}}'
             escapeValue: false
@@ -100,7 +100,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                     if _.isPlainObject resources[lng]
                         for nsp of resources[lng]
                             i18n.addResourceBundle lng, nsp, resources[lng][nsp], true, true
-            
+
             return i18nOptions
 
         getLocales: ->

@@ -17,7 +17,7 @@ factory = ({_, Backbone, i18n}, resources)->
             memo[key] = undefined
             memo
         ), {}
-    
+
     # Returns an array with attributes passed through options
     getOptionsAttrs = (options, view) ->
         attrs = options?.attributes

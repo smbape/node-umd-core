@@ -117,13 +117,12 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
             @id = @id or _.uniqueId 'view_'
             componentCache[@id] = @
 
-            proto = @constructor.prototype
-            stopPrototype = Backbone.View.prototype
+            # proto = @constructor.prototype
+            # stopPrototype = Backbone.View.prototype
 
             for own opt of options
-                if opt.charAt(0) isnt '_'
-                    if isDeclaredProperty proto, opt, stopPrototype
-                        @[opt] = options[opt]
+                if opt.charAt(0) isnt '_' and opt of @
+                    @[opt] = options[opt]
 
             super options
 
@@ -197,7 +196,7 @@ factory = (_, $, Backbone, eachSeries, ExpressionParser)->
             return if view.destroyed
 
             delete componentCache[@id]
-            
+
             view.take()
 
             destroyTasks = this.unmountTasks().concat ['undelegateEvents']

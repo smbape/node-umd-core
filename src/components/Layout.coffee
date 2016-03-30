@@ -56,9 +56,9 @@ freact = ({_, $}, AbstractModelComponent)->
         return
 
     # from jquery touch swipe
-    SUPPORTS_TOUCH = 'ontouchstart' in window
-    SUPPORTS_POINTER_IE10 = !SUPPORTS_TOUCH and window.navigator.msPointerEnabled and !window.navigator.pointerEnabled
-    SUPPORTS_POINTER = !SUPPORTS_TOUCH and (window.navigator.pointerEnabled or window.navigator.msPointerEnabled)
+    SUPPORTS_TOUCH = 'ontouchstart' of window
+    SUPPORTS_POINTER_IE10 = window.navigator.msPointerEnabled and !window.navigator.pointerEnabled and !SUPPORTS_TOUCH
+    SUPPORTS_POINTER = (window.navigator.pointerEnabled or window.navigator.msPointerEnabled) and !SUPPORTS_TOUCH
 
     if SUPPORTS_TOUCH or SUPPORTS_POINTER_IE10 or SUPPORTS_POINTER
         $document.swipe
@@ -169,7 +169,7 @@ freact = ({_, $}, AbstractModelComponent)->
                     _children.push item.right
                 else
                     _children.push undefined
-            
+
             props.className = _className.join(' ')
             props.children = _children.concat _remaining
             props

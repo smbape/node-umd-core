@@ -34,8 +34,8 @@ factory = (require, _, GenericUtil, qs)->
     _substringMatch = (pattern, target)->
         length = pattern.length
         pattern is target or (
-            length < target.length and 
-            pattern is target.substring(0, length) and 
+            length < target.length and
+            pattern is target.substring(0, length) and
             (pattern is '' or target.charAt(length) is '/')
         )
 
@@ -100,7 +100,7 @@ factory = (require, _, GenericUtil, qs)->
 
         # Set url template
         # @param [String] pattern url pattern template
-        # 
+        #
         setRoute: (pattern)->
             @pattern = pattern
             @wildcard = false
@@ -111,7 +111,7 @@ factory = (require, _, GenericUtil, qs)->
             inVariable = false
             _variable = null
 
-            map = 
+            map =
                 '*': '[^/]*'
                 '/*': '(?:\\/[^/]*|)'
                 '**': '.*?'

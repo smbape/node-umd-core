@@ -118,7 +118,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                 switch prop
                     when 'props', 'state', 'refs', 'context', 'updater', '_reactInternalInstance'
                         continue
-                
+
                 delete @[prop]
 
             @destroyed = true
@@ -176,7 +176,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                     regexp = new RegExp query.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'
                     fn = (model)->
                         for own prop of model.attributes
-                            if regexp.test(model.attributes[prop]) 
+                            if regexp.test(model.attributes[prop])
                                 return true
 
                         return false

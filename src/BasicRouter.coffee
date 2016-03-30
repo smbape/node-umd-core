@@ -18,23 +18,24 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             url
 
         VARIABLES: ({pathParams, engine})->
-            if pathParams and engine 
+            if pathParams and engine
                 JSON.stringify _.pick pathParams, engine.getVariables()
 
     class BasicRouter extends Backbone.Router
+        app: null
+        routes: null
+        otherwise: null
+
         getCacheId: CACHE_STRATEGIES.VARIABLES
 
         constructor: (options)->
             options = _.clone options
 
-            proto = @constructor.prototype
+            for own opt of options
+                if opt.charAt(0) isnt '_' and opt of @
+                    @[opt] = options[opt]
 
-            currProto = proto
-            while currProto
-                for own opt of currProto
-                    if opt.charAt(0) isnt '_' and not hasOwn.call(options, opt) and 'undefined' isnt typeof @[opt]
-                        options[opt] = @[opt]
-                currProto = currProto.constructor?.__super__
+            options = _.pick @, ['app', 'routes', 'otherwise']
 
             super routes: '*url': 'dispatch'
 
@@ -311,7 +312,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                 options.baseUrl = baseUrl
                 options.route = route
-                
+
                 routeConfig = engines[route] =
                     engine: new RouterEngine options
 
@@ -347,7 +348,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     if 'string' is typeof handler.name
                         if hasOwn.call handlerByName, handler.name
                             throw new Error "Error in route '#{route}', handler #{index}: duplicate handler name '#{handler.name}'"
-                        
+
                         handlerByName[handler.name] = fn
             return
 
@@ -478,7 +479,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                         else
                             callback new Error "invalid template at #{path}"
                             return
-                    
+
                     $(options.container).html html
                     callback null, title: if titleEngine then titleEngine.getUrl(pathParams)
 

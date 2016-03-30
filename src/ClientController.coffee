@@ -48,7 +48,7 @@ factory = ({_, Backbone}, Util)->
         navigate: (url, options)->
             if _.isObject(url)
                 url = @getUrl url, options
-            
+
             @get('router').navigate url, _.extend {trigger: true}, options
             return
 

@@ -25,7 +25,7 @@ factory = ({_, i18n})->
             when 'object'
                 return true if value is null
                 return value.length is 0 if _.isArray(value)
-        
+
         return false
 
     defaultOptions = {}

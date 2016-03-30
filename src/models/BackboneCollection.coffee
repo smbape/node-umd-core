@@ -121,13 +121,8 @@ factory = ({_, Backbone})->
             proto = @constructor.prototype
 
             for own opt of options
-                if opt.charAt(0) isnt '_'
-                    currProto = proto
-                    while currProto and not hasOwn.call(currProto, opt)
-                        currProto = currProto.constructor?.__super__
-
-                    if currProto
-                        @[opt] = options[opt]
+                if opt.charAt(0) isnt '_' and opt of @
+                    @[opt] = options[opt]
 
             if options.subset
                 @isSubset = true

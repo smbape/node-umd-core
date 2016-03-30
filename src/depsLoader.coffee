@@ -144,7 +144,7 @@
         callback = (require)->
             for index in [1...arguments.length] by 1
                 availables[map[index]] = arguments[index]
-            
+
             localRequire = (deps, callback, errback, options)->
                 amdRequire require, deps, callback, errback, options, global
             availables[0] = localRequire
@@ -281,7 +281,7 @@
                                 toRemove.unshift ngmap[i]
                             else
                                 ngdeps[ngmap[i]] = dusable.$name
-                
+
                         dusable.apply null, arguments
 
                 # remove non injectable dependencies
@@ -349,8 +349,8 @@
             # in IE8, node.attachEvent does not have toString()
             # Note the test for '[native code' with no closing brace, see:
             # https://github.com/jrburke/requirejs/issues/273
-            if node.attachEvent and 
-            not (node.attachEvent.toString and node.attachEvent.toString().indexOf('[native code') < 0) and 
+            if node.attachEvent and
+            not (node.attachEvent.toString and node.attachEvent.toString().indexOf('[native code') < 0) and
             not isOpera
 
                 # Probably IE. IE (at least 6-8) do not fire

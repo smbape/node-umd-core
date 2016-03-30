@@ -38,74 +38,54 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 model: nextModel
             } = props
 
+            if not nextModel
+                return nextModel
+
             currentModel = @getModel()
 
-            if not currentModel
-                currentModel = nextModel
-                isNextModel = true
-
-            if not currentModel
-                return
-
-            {comparator: currentComparator, selector: currentFilter} = currentModel
-            currentReverse = currentComparator?.reverse
-
-            if not currentComparator
-                currentComparator = null
-
-            if not currentFilter
-                currentFilter = null
+            if currentModel
+                {comparator: currentComparator, selector: currentFilter} = currentModel
+                currentReverse = currentComparator?.reverse
 
             switch typeof nextComparator
-                when 'function'
-                    if nextReverse
-                        nextComparator = reverse nextComparator
-
                 when 'string'
-                    if isNextModel
-                        if nextComparator.length is 0
-                            nextComparator = null
-                        else
-                            nextComparator = byAttribute(nextComparator)
-
-                    else if currentComparator?.attribute isnt nextComparator
-                        if nextComparator.length is 0
-                            nextComparator = null
-                        else
-                            nextComparator = byAttribute(nextComparator)
-
-                    else if nextReverse and not currentReverse
-                        nextComparator = reverse currentComparator
-
-                    else
-                        # comparator didn't change
-                        nextComparator = currentComparator
-                else
-                    # unsupported comparator
-                    nextComparator = null
+                    if nextComparator.length is 0
+                        nextComparator = null
+                    else if currentComparator
+                        if currentComparator.attribute is nextComparator and nextReverse is currentReverse
+                            # comparator didn't change
+                            nextComparator = currentComparator
+                when 'undefined'
+                    # comparator didn't change
+                    nextComparator = currentComparator
 
             switch typeof nextFilter
-                when 'function'
-                    break
                 when 'string'
-                    if isNextModel
-                        nextFilter = @getFilter nextFilter, true
+                    if nextFilter.length is 0
+                        nextFilter = null
+                    else if currentFilter
+                        if currentFilter.value is nextFilter
+                            # filter didn't change
+                            nextFilter = currentFilter
+                when 'undefined'
+                    # filter didn't change
+                    nextFilter = currentFilter
 
-                    if currentFilter?.value isnt nextFilter
-                        nextFilter = @getFilter nextFilter, true
+            if not currentModel or nextModel isnt @props.model or nextComparator isnt currentComparator or nextReverse isnt currentReverse or nextFilter isnt currentFilter
+                if 'string' is typeof nextComparator
+                    nextComparator = @byAttribute nextComparator
 
-                    else
-                        # filter didn't change
-                        nextFilter = currentFilter
+                if nextReverse
+                    nextComparator = reverse nextComparator
+
+                if 'string' is typeof nextFilter
+                    nextFilter = @getFilter nextFilter, true
+
+                if nextComparator or nextFilter
+                    currentModel = nextModel.getSubSet {comparator: nextComparator, selector: nextFilter}
+                    currentModel.stateSubSet = true
                 else
-                    # unsupported comparator
-                    nextFilter = null
-
-            if nextComparator is null and nextFilter is null
-                currentModel = nextModel
-            else if currentComparator isnt nextComparator or currentFilter isnt nextFilter
-                currentModel = nextModel.getSubSet {comparator: nextComparator, selector: nextFilter}
-                currentModel.stateSubSet = true
+                    currentModel = nextModel
 
             currentModel
 

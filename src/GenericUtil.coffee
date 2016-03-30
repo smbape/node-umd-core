@@ -20,7 +20,7 @@ factory = ->
             !GenericUtil.isArray( obj ) and (obj - parseFloat( obj ) + 1) >= 0
 
         isWindow: (obj) ->
-            # jshint eqnull: true, eqeqeq: false 
+            # jshint eqnull: true, eqeqeq: false
             obj? and obj is obj.window
 
         isObject: (obj) ->
