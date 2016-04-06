@@ -71,13 +71,14 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
                     @dialog = document.createElement 'span'
                     document.body.appendChild @dialog
 
-                # 2 render in the same render process is not allowed
+                # 2nd render call in the same render process is not allowed
                 setTimeout =>
                     @dialogEl = ReactDOM.render element, @dialog
                     return
                 , 0
 
-                # dummy element, the real one is hold by @dialogEl
+                # dummy element because render method must return an element
+                # the real one is hold by @dialogEl
                 return `<span />`
             else
                 return React.createElement.apply React, args

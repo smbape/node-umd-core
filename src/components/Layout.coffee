@@ -1,9 +1,10 @@
 deps = [
     '../common'
+    'umd-core/src/GenericUtil'
     './AbstractModelComponent'
 ]
 
-freact = ({_, $}, AbstractModelComponent)->
+freact = ({_, $}, {throttle}, AbstractModelComponent)->
 
     $document = $(document)
 
@@ -90,9 +91,6 @@ freact = ({_, $}, AbstractModelComponent)->
     class Layout extends AbstractModelComponent
         uid: 'Layout' + ('' + Math.random()).replace(/\D/g, '')
 
-        constructor: ->
-            super
-
         componentDidMount: ->
             @_updateWidth()
             super
@@ -111,6 +109,20 @@ freact = ({_, $}, AbstractModelComponent)->
                 el = ReactDOM.findDOMNode @
                 $el = $ el
 
+            parents = $el.parents('.layout').length
+
+            if parents is 0
+                @_doUpdateWitdh el, $el
+            else
+                # Wait until parents css animation is done
+                # TODO: find a way to avoid transition on resize
+                setTimeout =>
+                    @_doUpdateWitdh el, $el
+                    return
+                , parents * 250
+            return
+
+        _doUpdateWitdh: (el, $el)->
             width = $el.width()
             if width < 1024
                 el.setAttribute 'data-width', 'small'

@@ -47,29 +47,41 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 {comparator: currentComparator, selector: currentFilter} = currentModel
                 currentReverse = currentComparator?.reverse
 
-            switch typeof nextComparator
-                when 'string'
-                    if nextComparator.length is 0
-                        nextComparator = null
-                    else if currentComparator
-                        if currentComparator.attribute is nextComparator and nextReverse is currentReverse
-                            # comparator didn't change
-                            nextComparator = currentComparator
-                when 'undefined'
-                    # comparator didn't change
-                    nextComparator = currentComparator
+            if typeof nextComparator is 'undefined'
+                # use default comparator
+                nextComparator = nextModel.comparator or null
 
-            switch typeof nextFilter
-                when 'string'
-                    if nextFilter.length is 0
-                        nextFilter = null
-                    else if currentFilter
-                        if currentFilter.value is nextFilter
-                            # filter didn't change
-                            nextFilter = currentFilter
-                when 'undefined'
-                    # filter didn't change
-                    nextFilter = currentFilter
+            if typeof nextComparator is 'string'
+                if nextComparator.length is 0
+                    nextComparator = null
+                else if currentComparator
+                    if currentComparator.attribute is nextComparator and nextReverse is currentReverse
+                        # comparator didn't change
+                        nextComparator = currentComparator or null
+
+            if typeof nextFilter is 'undefined'
+                # use default filter
+                nextFilter = nextModel.selector
+
+            if typeof nextFilter is 'string'
+                if nextFilter.length is 0
+                    nextFilter = null
+                else if currentFilter
+                    if currentFilter.value is nextFilter
+                        # filter didn't change
+                        nextFilter = currentFilter
+
+            if not currentComparator
+               currentComparator = null
+
+            if not currentFilter
+               currentFilter = null
+
+            if not nextComparator
+                nextComparator = null
+
+            if not nextFilter
+                nextFilter = null
 
             if not currentModel or nextModel isnt @props.model or nextComparator isnt currentComparator or nextReverse isnt currentReverse or nextFilter isnt currentFilter
                 if 'string' is typeof nextComparator
