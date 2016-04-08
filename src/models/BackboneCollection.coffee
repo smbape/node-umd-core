@@ -347,7 +347,7 @@ factory = ({_, Backbone})->
                 if (index + 1) isnt size
                     while index < size and model isnt @models[index] and compare(model, @models[++index]) is 0
                         true
-                    return index if @models[index]
+                    return index if @models[index] is model
 
                 if mid isnt 0
                     index = mid - 1
