@@ -8,6 +8,7 @@ factory = ->
             default: home: index: title: "Home"
             brand: "Brand"
             "change-language": "Change language"
+            saved: "Saved"
             button:
                 create: "Create"
                 edit: "Edit"
@@ -17,8 +18,13 @@ factory = ->
                 login: "Sign in"
                 logout: "Sign out"
                 send: "Send"
-                close: "Fermer"
-            saved: "Saved"
+                close: "Close"
+                confirm: "Confirm"
+                yes: "Yes"
+                no: "No"
+            confirm:
+                title: 'Confirm'
+                content: "Are you sure about this action?"
         "fr-FR": translation:
             name: "Français"
             welcome: "Bienvenue"
@@ -35,4 +41,10 @@ factory = ->
                 logout: "Se déconnecter"
                 send: "Envoyer"
                 close: "Fermer"
+                confirm: "Confirmer"
+                yes: "Oui"
+                no: "Non"
+            confirm:
+                title: 'Confirmation'
+                content: "Souhaitez-vous réaliser cette action?"
             saved: "Enregistré"

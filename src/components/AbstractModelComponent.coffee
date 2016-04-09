@@ -35,7 +35,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
         constructor: ->
             super
-            @id = _.uniqueId 'AbstractModelComponent_'
+            @id = _.uniqueId (@constructor.name or 'AbstractModelComponent') + '_'
             @inline = new Backbone.Model()
             @_refs = {}
             @_reffn = {}
