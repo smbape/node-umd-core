@@ -1,6 +1,6 @@
 {
   "name": "umd-core",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "authors": [
     "Stéphane MBAPE"
   ],
@@ -31,7 +31,10 @@
       }
     },
     "react": {
-      "main": ["react.min.js", "react-dom.min.js"]
+      "main": [
+        "react.min.js",
+        "react-dom.min.js"
+      ]
     }
   }
 }
