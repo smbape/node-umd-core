@@ -65,12 +65,13 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
             else if _.isArray(input)
                 [input, inputProps, inputChildren] = input
 
-            input = React.createElement input, _.extend(
-                id: id
+            input = React.createElement input, _.extend({
+                id
                 className: "input__field"
-                onFocus: @onFocus
-                onBlur: @onBlur
-            , props, inputProps, {ref: 'input'}), inputChildren
+                @onFocus
+                @onBlur
+                onInput: @_updateClass
+            }, props, inputProps, {ref: 'input'}), inputChildren
 
             if props.label
                 label = `<label className={"input__label"} htmlFor={id}>
@@ -98,10 +99,10 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
         _getInput: ->
             @refs.input
 
-        _updateClass: ->
+        _updateClass: =>
             el = @_getInput()
 
-            if /^\s*$/.test el.value
+            if /^\s*$/.test (el.value or el.innerHTML)
                 @_removeClass 'input--has-value', el.parentNode, @classList
             else
                 @_addClass 'input--has-value', el.parentNode, @classList
@@ -123,7 +124,8 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
         binding.get = (binding)->
             if binding._ref instanceof InputText
                 instance = binding._ref
-                $(instance._getInput()).val()
+                input = instance._getInput()
+                input.innerHTML or input.value
 
         return binding
 

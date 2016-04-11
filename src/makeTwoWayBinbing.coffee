@@ -164,13 +164,14 @@ freact = ({_, $})->
             binding = type.getBinding binding, config
         else
             binding.get = (binding, evt)->
-                $(evt.target).val()
+                input = evt.target
+                input.innerHTML or input.value
 
         binding.__ref = binding.__ref.bind binding
 
         props = element.props
 
-        if property and 'function' is typeof binding.get and ('string' isnt typeof type or type in ['input', 'select', 'textarea'])
+        if property and 'function' is typeof binding.get and ('string' isnt typeof type or onInput = (type in ['input', 'select', 'textarea'] or config.contentEditable in ["true", true]))
             # to ease testing
             props['data-bind-attr'] = property
 
@@ -190,14 +191,19 @@ freact = ({_, $})->
 
             # TODO : Find a way to avoid new props.onChange function
             # if model+events didn't change
-            if 'function' is typeof props.onChange
-                onChange = props.onChange
-                props.onChange = ->
+            if onInput or config.contentEditable in ["true", true]
+                onInput = 'onInput'
+            else
+                onInput = 'onChange'
+
+            if 'function' is typeof props[onInput]
+                onChange = props[onInput]
+                props[onInput] = ->
                     __onChange.apply undefined, arguments
                     onChange.apply undefined, arguments
                     return
             else
-                props.onChange = __onChange
+                props[onInput] = __onChange
 
         # TODO : Find a way to avoid new element.ref function
         # if model+events didn't change
