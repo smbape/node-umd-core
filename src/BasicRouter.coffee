@@ -180,7 +180,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                         $.data(container, 'rendable', rendable)
 
                     app.setLocationHash()
-                    router.onRouteChangeSuccess res, handlerOptions
+                    router.onRouteChangeSuccess res, handlerOptions, options
                     router.emit 'routeChangeSuccess', res, handlerOptions, options
                     app.emit 'routeChangeSuccess', router, res, handlerOptions, options
 
