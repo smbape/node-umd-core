@@ -4,7 +4,8 @@
   "authors": [
     "Stéphane MBAPE"
   ],
-  "description": "umd core files",
+  "description": "umd-core files",
+  "homepage": "https://github.com/smbape/node-umd-core",
   "main": "src/**",
   "umd": true,
   "license": "MIT",
