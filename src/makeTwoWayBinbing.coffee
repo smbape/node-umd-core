@@ -171,7 +171,7 @@ freact = ({_, $})->
 
         props = element.props
 
-        if property and 'function' is typeof binding.get and ('string' isnt typeof type or onInput = (type in ['input', 'select', 'textarea'] or config.contentEditable in ["true", true]))
+        if property and 'function' is typeof binding.get and ('string' isnt typeof type or type in ['input', 'select', 'textarea'] or config.contentEditable in ["true", true])
             # to ease testing
             props['data-bind-attr'] = property
 
@@ -184,26 +184,40 @@ freact = ({_, $})->
             if typeof value in ['boolean', 'number', 'string']
                 if type is 'input' and config.type is 'checkbox'
                     props.checked = value
+                else if type in ['input', 'select', 'textarea']
+                    props.value = value
+                else if config.contentEditable in ["true", true]
+                    props.dangerouslySetInnerHTML = __html: value
                 else
                     props.value = value
             else
                 delete props.value
 
-            # TODO : Find a way to avoid new props.onChange function
-            # if model+events didn't change
-            if onInput or config.contentEditable in ["true", true]
-                onInput = 'onInput'
-            else
-                onInput = 'onChange'
+            onChangeEvent = binding.onChangeEvent
 
-            if 'function' is typeof props[onInput]
-                onChange = props[onInput]
-                props[onInput] = ->
+            if not onChangeEvent
+                # TODO : Find a way to avoid new props.onChange function
+                # if model+events didn't change
+                if type is 'input'
+                    onInput = config.type isnt 'checkbox'
+                else
+                    onInput = type in ['select', 'textarea'] or config.contentEditable in ["true", true]
+
+                if onInput
+                    onChangeEvent = 'onInput'
+                else
+                    onChangeEvent = 'onChange'
+
+                binding.onChangeEvent = onChangeEvent
+
+            if 'function' is typeof props[onChangeEvent]
+                onChange = props[onChangeEvent]
+                props[onChangeEvent] = ->
                     __onChange.apply undefined, arguments
                     onChange.apply undefined, arguments
                     return
             else
-                props[onInput] = __onChange
+                props[onChangeEvent] = __onChange
 
         # TODO : Find a way to avoid new element.ref function
         # if model+events didn't change

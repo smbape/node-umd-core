@@ -4,7 +4,8 @@ deps = [
     './AbstractModelComponent'
 ]
 
-freact = ({_, $}, {throttle}, AbstractModelComponent)->
+freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
+    {deepCloneElement} = AbstractModelComponent.deepCloneElement
 
     length = (value)->
         if value then value.length else 0
@@ -12,13 +13,8 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
     class InputText extends AbstractModelComponent
         uid: 'InputText_'
 
-        constructor: ->
-            super
-            # @_updateClass = throttle(100, @_updateClass, true).bind @
-
         componentWillMount: ->
             @props.binding?.instance = @
-            @id = _.uniqueId @uid
             @classList = ['input']
             super
 
@@ -35,23 +31,21 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
             return
 
         onFocus: (evt)=>
-            @_addClass 'input--focused', evt.target.parentNode, @classList
+            @_addClass 'input--focused', @$el, @classList
             return
 
         onBlur: (evt)=>
-            @_removeClass 'input--focused', evt.target.parentNode, @classList
+            @_removeClass 'input--focused', @$el, @classList
             return
 
         render:->
             props = _.clone @props
 
             id = props.id or @id
-            {children, className, spModel, input, style, disabled} = props
-            delete props.children
-            delete props.className
-            delete props.spModel
-            delete props.input
-            delete props.style
+            {children, className, spModel, input, style, disabled, onFocus, onBlur, onChange} = props
+
+            for prop in ['children', 'className', 'spModel', 'input', 'style', 'disabled', 'onFocus', 'onBlur', 'onChange']
+                delete props[prop]
 
             if className
                 className = @classList.join(" ") + " " + className
@@ -60,18 +54,58 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
 
             wrapperProps = {disabled, className, style}
 
-            if not input
-                input = 'input'
+            if React.isValidElement(input)
+                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange} = input.props
+                input = deepCloneElement input, {
+                    ref: 'input'
+                    onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
+                    onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
+                    onChange: mergeFunctions @_updateClass, onChange, onInputChange
+                    spModel: null
+                    label: null
+                }
             else if _.isArray(input)
-                [input, inputProps, inputChildren] = input
+                [type, inputProps, inputChildren] = input
+                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange} = inputProps
 
-            input = React.createElement input, _.extend({
-                id
-                className: "input__field"
-                @onFocus
-                @onBlur
-                onInput: @_updateClass
-            }, props, inputProps, {ref: 'input'}), inputChildren
+                inputProps = _.extend {
+                    id
+                    className: "input__field"
+                }, props, inputProps, {
+                    ref: 'input'
+                    onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
+                    onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
+                    onChange: mergeFunctions @_updateClass, onChange, onInputChange
+                    spModel: null
+                    label: null
+                }
+
+                args = [type, inputProps]
+                if _.isArray inputChildren
+                    args.push.apply args, inputChildren
+                else
+                    args.push inputChildren
+
+                input = React.createElement.apply React, args
+            else
+                if typeof input not in ['string', 'function']
+                    type = 'input'
+                else
+                    type = input
+
+                inputProps = _.extend {
+                    id
+                    className: "input__field"
+                }, props, {
+                    ref: 'input'
+                    onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
+                    onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
+                    onChange: mergeFunctions @_updateClass, onChange, onInputChange
+                    spModel: null
+                    label: null
+                }
+
+                input = React.createElement type, inputProps
 
             if props.label
                 label = `<label className={"input__label"} htmlFor={id}>
@@ -92,31 +126,38 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
             else
                 args.push undefined
 
-            args.push children
+            if _.isArray children
+                args.push.apply args, children
+            else
+                args.push children
 
             React.createElement.apply React, args
 
         _getInput: ->
-            @refs.input
+            input = @refs.input
+            if typeof input.getInput is 'function'
+                return input.getInput()
+            
+            return input
 
         _updateClass: =>
             el = @_getInput()
 
             if /^\s*$/.test (el.value or el.innerHTML)
-                @_removeClass 'input--has-value', el.parentNode, @classList
+                @_removeClass 'input--has-value', @$el, @classList
             else
-                @_addClass 'input--has-value', el.parentNode, @classList
+                @_addClass 'input--has-value', @$el, @classList
             return
 
-        _addClass: (className, el, classList)->
+        _addClass: (className, $el, classList)->
             if classList.indexOf(className) is -1
                 classList.push className
-            $(el).addClass(className)
+            $el.addClass(className)
 
-        _removeClass: (className, el, classList)->
+        _removeClass: (className, $el, classList)->
             if ~(index = classList.indexOf(className))
                 classList.splice index, 1
-            $(el).removeClass(className)
+            $el.removeClass(className)
 
     # 2 way binbing is done on input, not on this component
     InputText.getBinding = (binding, config)->

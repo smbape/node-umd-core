@@ -215,6 +215,30 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
     AbstractModelComponent.MdlComponent = MdlComponent
 
+    AbstractModelComponent.deepCloneElement = (element, overrides)->
+        if not React.isValidElement element
+            return _.clone element
+
+        {key, props, ref, type} = element
+        {children} = props
+        props = _.extend {}, props, overrides
+        props.key = key if key
+        props.ref = ref if ref
+
+        if not children
+            return React.createElement type, props
+
+        args = [type, props]
+        if _.isArray children
+            for child, i in children
+                children[i] = deepCloneElement child
+            args.push.apply args, children
+        else
+            args.push deepCloneElement children
+
+        return React.createElement.apply React, args
+
+
     # avoid circular reference
     makeTwoWayBinbing.init AbstractModelComponent
 

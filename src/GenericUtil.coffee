@@ -54,6 +54,25 @@ factory = ->
                         fn.apply context, args
                 return
 
+        mergeFunctions: ->
+            fns = []
+            size = 0
+
+            for arg in arguments
+                if 'function' is typeof arg
+                    fns.push arg
+                    ++size
+
+            if size is 0 or size is 1
+                return fns[0]
+
+            func = ->
+                for fn in fns
+                    fn.apply null, arguments
+                return
+
+            func
+
     class GenericUtil.Timer
         constructor: ->
             @data = {}
