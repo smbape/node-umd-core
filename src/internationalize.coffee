@@ -144,7 +144,8 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                 return
 
         app.router.on 'routeChangeSuccess', (rendable, {app, pathParams}, options)->
-            app.set 'language', pathParams.language
+            if pathParams?.language
+                app.set 'language', pathParams.language
             return
 
         if app.router instanceof BasicRouter
