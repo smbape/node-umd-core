@@ -35,8 +35,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 if opt.charAt(0) isnt '_' and opt of @
                     @[opt] = options[opt]
 
-            options = _.pick @, ['app', 'routes', 'otherwise']
-
+            _.extend options, _.pick @, ['app', 'routes', 'otherwise']
             super routes: '*url': 'dispatch'
 
             if not options.app

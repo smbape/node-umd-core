@@ -157,11 +157,11 @@ freact = ({_, $})->
         @_bindings.push binding
 
         if type is 'input' and config.type is 'checkbox'
-            binding.get = (binding, evt)->
-                $(evt.target).prop('checked')
-
+            binding.get = (binding, evt)-> $(evt.target).prop('checked')
         else if 'function' is typeof type and 'function' is typeof type.getBinding
             binding = type.getBinding binding, config
+        else if type in ['input', 'select', 'textarea']
+            binding.get = (binding, evt)-> evt.target.value
         else
             binding.get = (binding, evt)->
                 input = evt.target
@@ -201,7 +201,7 @@ freact = ({_, $})->
                 if type is 'input'
                     onInput = config.type isnt 'checkbox'
                 else
-                    onInput = type in ['select', 'textarea'] or config.contentEditable in ["true", true]
+                    onInput = type is 'textarea' or config.contentEditable in ["true", true]
 
                 if onInput
                     onChangeEvent = 'onInput'

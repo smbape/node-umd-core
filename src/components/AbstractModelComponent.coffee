@@ -215,7 +215,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
     AbstractModelComponent.MdlComponent = MdlComponent
 
-    AbstractModelComponent.deepCloneElement = (element, overrides)->
+    AbstractModelComponent.deepCloneElement = deepCloneElement = (element, overrides)->
         if not React.isValidElement element
             return _.clone element
 

@@ -85,7 +85,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             if not currentModel or nextModel isnt @props.model or nextComparator isnt currentComparator or nextReverse isnt currentReverse or nextFilter isnt currentFilter
                 if 'string' is typeof nextComparator
-                    nextComparator = @byAttribute nextComparator
+                    nextComparator = byAttribute nextComparator
 
                 if nextReverse
                     nextComparator = reverse nextComparator
