@@ -35,7 +35,7 @@ factory = ({$, Backbone}, eachSeries)->
                     # addTag 'base', href: appConfig.baseUrl
                     @hasPushState = Modernizr.history
 
-                @set 'resource', appConfig.resource
+                @set 'build', appConfig.build
 
                 if @hasPushState
                     @getLocation = @_getPathLocation
