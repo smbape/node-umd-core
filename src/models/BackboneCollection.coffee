@@ -534,6 +534,9 @@ factory = ({_, Backbone})->
             subSet
 
         _onModelEvent: (event, model, collection, options) ->
+            if @destroyed
+                return
+
             if (event is 'add' or event is 'remove') and collection isnt @
                 return
             if event is 'destroy'
