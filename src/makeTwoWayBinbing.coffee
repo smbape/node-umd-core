@@ -18,6 +18,9 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
+        if 'function' is typeof type and not type.getBinding
+            return
+
         {spModel: model, validate, forceUpdate, onlyThis} = config
 
         if 'string' is typeof model
@@ -37,9 +40,6 @@ freact = ({_, $})->
         else
             return
 
-        if 'function' is typeof type and not type.getBinding
-            return
-
         if not _.isObject(model) or 'function' isnt typeof model.on or 'function' isnt typeof model.off
             return
 
@@ -48,10 +48,8 @@ freact = ({_, $})->
                 events = "change:#{property}" + events
             else
                 events = "change:#{property}"
-        else
-            property = null
 
-        if 'string' isnt typeof events
+        if not events
             return
 
         # until creation, instance is not known
@@ -105,15 +103,14 @@ freact = ({_, $})->
                     if forceUpdate or onlyThis
                         _ref._updateView()
 
+                if onlyThis
+                    return
+
                 state = {}
                 state[uid] = new Date()
 
-                # https://facebook.github.io/react/docs/two-way-binding-helpers.html
-                # set state on owner to trigger rerender
-                if owner and not onlyThis
-                    if owner instanceof AbstractModelComponent
-                        owner.shouldUpdate = true
-                    owner.setState state
+                if owner
+                    owner._updateView()
                 return
 
             __ref: (ref)->
@@ -153,27 +150,41 @@ freact = ({_, $})->
                 binding._attach binding
                 return
 
+        if property
+            switch typeof type
+                when 'function'
+                    if 'function' is typeof type.getBinding
+                        valueProp = 'value'
+                        binding = type.getBinding binding, config
+                when 'string'
+                    switch type
+                        when 'input'
+                            if config.type is 'checkbox'
+                                valueProp = 'checked'
+                                binding.get = (binding, evt)-> evt.target.checked
+                            else
+                                valueProp = 'value'
+                                binding.get = (binding, evt)-> evt.target.value
+                        when 'textarea', 'select', 'option', 'button', 'datalist', 'output'
+                            valueProp = 'value'
+                            binding.get = (binding, evt)-> evt.target.value
+                        else
+                            if config.contentEditable in ["true", true]
+                                valueProp = 'innerHTML'
+                                binding.get = (binding, evt)-> evt.target.innerHTML
+
         binding.index = @_bindings.length
+        binding.__ref = binding.__ref.bind binding
         @_bindings.push binding
 
-        if type is 'input' and config.type is 'checkbox'
-            binding.get = (binding, evt)-> $(evt.target).prop('checked')
-        else if 'function' is typeof type and 'function' is typeof type.getBinding
-            binding = type.getBinding binding, config
-        else if type in ['input', 'select', 'textarea']
-            binding.get = (binding, evt)-> evt.target.value
-        else
-            binding.get = (binding, evt)->
-                input = evt.target
-                input.innerHTML or input.value
+        if valueProp
+            props = element.props
 
-        binding.__ref = binding.__ref.bind binding
-
-        props = element.props
-
-        if property and 'function' is typeof binding.get and ('string' isnt typeof type or type in ['input', 'select', 'textarea'] or config.contentEditable in ["true", true])
             # to ease testing
             props['data-bind-attr'] = property
+
+            # TODO : Find a way to avoid new props.onChange function
+            # if model+events didn't change
 
             __onChange = (evt)->
                 binding.model.set property, binding.get(binding, evt), {dom: true, validate: binding.validate}
@@ -182,22 +193,19 @@ freact = ({_, $})->
             # make sure created native component will have the correct initial value
             value = model.attributes[property]
             if typeof value in ['boolean', 'number', 'string']
-                if type is 'input' and config.type is 'checkbox'
-                    props.checked = value
-                else if type in ['input', 'select', 'textarea']
-                    props.value = value
-                else if config.contentEditable in ["true", true]
+                if valueProp is 'innerHTML'
                     props.dangerouslySetInnerHTML = __html: value
                 else
-                    props.value = value
+                    props[valueProp] = value
             else
-                delete props.value
+                if valueProp is 'innerHTML'
+                    delete props.dangerouslySetInnerHTML
+                else
+                    delete props[valueProp]
 
             onChangeEvent = binding.onChangeEvent
 
             if not onChangeEvent
-                # TODO : Find a way to avoid new props.onChange function
-                # if model+events didn't change
                 if type is 'input'
                     onInput = config.type isnt 'checkbox'
                 else

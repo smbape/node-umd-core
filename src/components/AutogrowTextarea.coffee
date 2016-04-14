@@ -26,8 +26,8 @@ freact = ({_}, {mergeFunctions}, AbstractModelComponent)->
 
         render: ->
             props = _.defaults {
-                ref: @setRef('input')
-                onInput: mergeFunctions(@_updateHeight, @props.onInput)
+                ref: mergeFunctions @setRef('input'), @props.ref
+                onInput: mergeFunctions @_updateHeight, @props.onInput
             }, @props
 
             textarea = React.createElement 'textarea', props

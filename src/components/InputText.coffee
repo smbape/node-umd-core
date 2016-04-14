@@ -5,10 +5,24 @@ deps = [
 ]
 
 freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
-    {deepCloneElement} = AbstractModelComponent.deepCloneElement
+    {deepCloneElement} = AbstractModelComponent
 
     length = (value)->
         if value then value.length else 0
+
+    getInputValue = (input)->
+        switch input.nodeName
+            when 'INPUT'
+                if input.type is 'checkbox'
+                    return input.checked
+
+                return input.value
+            
+            when 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON', 'DATALIST', 'OUTPUT'
+                return input.value
+            else
+                return input.innerHTML
+
 
     class InputText extends AbstractModelComponent
         uid: 'InputText_'
@@ -55,8 +69,13 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
             wrapperProps = {disabled, className, style}
 
             if React.isValidElement(input)
-                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange} = input.props
+                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange, className: classNameInput} = input.props
+                if not classNameInput
+                    classNameInput = 'input__field'
+
                 input = deepCloneElement input, {
+                    id
+                    className: classNameInput
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
                     onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
@@ -66,11 +85,14 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                 }
             else if _.isArray(input)
                 [type, inputProps, inputChildren] = input
-                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange} = inputProps
+                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange, className: classNameInput} = inputProps
+                if not classNameInput
+                    classNameInput = 'input__field'
+
 
                 inputProps = _.extend {
                     id
-                    className: "input__field"
+                    className: classNameInput
                 }, props, inputProps, {
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
@@ -143,7 +165,7 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
         _updateClass: =>
             el = @_getInput()
 
-            if /^\s*$/.test (el.value or el.innerHTML)
+            if /^\s*$/.test getInputValue el
                 @_removeClass 'input--has-value', @$el, @classList
             else
                 @_addClass 'input--has-value', @$el, @classList
@@ -166,8 +188,7 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
             if binding._ref instanceof InputText
                 instance = binding._ref
                 input = instance._getInput()
-                input.innerHTML or input.value
-
+                return getInputValue input
         return binding
 
 

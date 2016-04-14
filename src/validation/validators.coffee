@@ -2,18 +2,18 @@ deps = ['../common']
 
 factory = ({_, i18n})->
 
-    makeError = (error, opts = {}, config)->
+    makeError = (error, options = {}, config)->
         if not _.isEmpty(config)
             switch typeof config.msg
                 when 'string'
                     return config.msg
                 when 'function'
-                    return config.msg error, opts
+                    return config.msg error, options
 
             if _.isObject(config.translator) and 'function' is typeof config.translator.t
-                return config.translator.t error, opts
+                return config.translator.t error, options
 
-        return {error, opts}
+        return {error, options}
 
     # Determines whether or not a value is empty
     hasValue = (value) ->
@@ -32,6 +32,9 @@ factory = ({_, i18n})->
 
     defaults: defaultOptions
 
+    getOptions: (validator)->
+        validator?.fn?.options
+
     email: (config)->
         config = _.extend {}, defaultOptions, config
         fn: (value, attr, computed)->
@@ -43,11 +46,16 @@ factory = ({_, i18n})->
     pattern: (pattern, config)->
         config = _.extend {}, defaultOptions, config
         return if not _.isRegExp(pattern)
-        fn: (value, attr, computed)->
+
+        fn = (value, attr, computed)->
             if 'string' is typeof value and not pattern.test value
                 if 'function' is typeof config.label
                     attr = config.label(attr)
                 makeError 'error.pattern', {field: attr, pattern}, config
+
+        fn.options = {pattern}
+
+        {fn}
 
     required: (config)->
         config = _.extend {}, defaultOptions, config
@@ -74,30 +82,46 @@ factory = ({_, i18n})->
 
     range: (minLength, maxLength, config)->
         config = _.extend {}, defaultOptions, config
-        fn: (value, attr, computed) ->
+        fn = (value, attr, computed) ->
             if typeof value is 'string'
                 if value.length > maxLength
                     makeError 'error.maxLength', {maxLength: maxLength, given: value.length}, config
                 else if value.length < minLength
                     makeError 'error.minLength', {minLength: minLength, given: value.length}, config
 
+        fn.options = {minLength, maxLength}
+
+        {fn}
+
     maxLength: (maxLength, config)->
         config = _.extend {}, defaultOptions, config
-        fn: (value, attr, computed) ->
+        fn = (value, attr, computed) ->
             if typeof value is 'string' and value.length > maxLength
                 makeError 'error.maxLength', {maxLength: maxLength, given: value.length}, config
 
+        fn.options = {maxLength}
+
+        {fn}
+
     minLength: (minLength, config)->
         config = _.extend {}, defaultOptions, config
-        fn: (value, attr, computed) ->
+        fn = (value, attr, computed) ->
             if typeof value is 'string' and value.length < minLength
                 makeError 'error.minLength', {minLength: minLength, given: value.length}, config
 
+        fn.options = {minLength}
+
+        {fn}
+
     length: (length, config)->
         config = _.extend {}, defaultOptions, config
-        fn: (value, attr, computed) ->
+        fn = (value, attr, computed) ->
             if typeof value isnt 'string' or value.length isnt length
                 makeError 'error.length', {length: length, given: value.length}, config
+
+        fn.options = {length}
+
+        {fn}
 
     password: (config)->
         config = _.extend {}, defaultOptions, config
