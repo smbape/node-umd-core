@@ -11,7 +11,7 @@ freact = ({_}, {mergeFunctions}, AbstractModelComponent)->
             @getRef('input')
 
         _updateHeight: =>
-            @refs.textareaSize.innerHTML = @getRef('input').value
+            @refs.textareaSize.innerHTML = @getRef('input').value + '\n'
             return
 
         componentDidMount: ->
@@ -25,9 +25,14 @@ freact = ({_}, {mergeFunctions}, AbstractModelComponent)->
             return
 
         render: ->
+            if @props.spModel
+                onInput = @props.onInput
+            else
+                onInput = mergeFunctions @_updateHeight, @props.onInput
+
             props = _.defaults {
                 ref: mergeFunctions @setRef('input'), @props.ref
-                onInput: mergeFunctions @_updateHeight, @props.onInput
+                onInput
             }, @props
 
             textarea = React.createElement 'textarea', props

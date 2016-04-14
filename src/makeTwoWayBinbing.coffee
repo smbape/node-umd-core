@@ -18,9 +18,6 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
-        if 'function' is typeof type and not type.getBinding
-            return
-
         {spModel: model, validate, forceUpdate, onlyThis} = config
 
         if 'string' is typeof model
@@ -38,6 +35,9 @@ freact = ({_, $})->
             else
                 [model, property, events] = model
         else
+            return
+
+        if 'function' is typeof type and not type.getBinding
             return
 
         if not _.isObject(model) or 'function' isnt typeof model.on or 'function' isnt typeof model.off
