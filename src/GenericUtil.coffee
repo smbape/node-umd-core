@@ -4,6 +4,7 @@ factory = ->
     toString = {}.toString
     hasOwn = {}.hasOwnProperty
     slice = [].slice
+    splice = [].splice
 
     extend = (target, obj)->
         for own prop of obj
@@ -263,5 +264,30 @@ factory = ->
 
         return
     )(GenericUtil.sql = {})
+
+    ((DOMUtil)->
+        # http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object#384380
+
+        #Returns true if it is a DOM node
+        DOMUtil.isNode = (o) ->
+            if typeof Node is 'object' then o instanceof Node else o and typeof o is 'object' and typeof o.nodeType is 'number' and typeof o.nodeName is 'string'
+
+        #Returns true if it is a DOM element    
+        DOMUtil.isElement =(o) ->
+            if typeof HTMLElement is 'object' then o instanceof HTMLElement else o and typeof o is 'object' and o isnt null and o.nodeType is 1 and typeof o.nodeName is 'string'
+
+        DOMUtil.isNodeOrElement =(o)->
+            DOMUtil.isNode(o) or DOMUtil.isElement(o)
+
+        DOMUtil.discardElement = (element) ->
+            # http://jsperf.com/emptying-a-node
+            DOMUtil.discardElement element.lastChild while element.lastChild
+            if element.nodeType is 1 and not /^(?:IMG|SCRIPT|INPUT)$/.test element.nodeName
+                element.innerHTML = ''
+            element.parentNode.removeChild element if element.parentNode
+            return
+
+        return
+    )(GenericUtil.DOMUtil = {})
 
     return GenericUtil

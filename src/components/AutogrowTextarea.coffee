@@ -4,14 +4,14 @@ deps = [
     './AbstractModelComponent'
 ]
 
-freact = ({_}, {mergeFunctions}, AbstractModelComponent)->
+freact = ({_}, {StringUtil, mergeFunctions}, AbstractModelComponent)->
 
     class AutogrowTextarea extends AbstractModelComponent
         getInput: ->
             @getRef('input')
 
         _updateHeight: =>
-            @refs.textareaSize.innerHTML = @getRef('input').value + '\n'
+            @refs.textareaSize.innerHTML = StringUtil.escapeHTML(@getRef('input').value) + '\n'
             return
 
         componentDidMount: ->
