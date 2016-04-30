@@ -10,7 +10,7 @@ freact = ({_}, AbstractModelComponent, InputText)->
         uid: 'InputWithError' + ('' + Math.random()).replace(/\D/g, '')
 
         _onVStateChange: ->
-            [model, attr] = @getEventArgs()
+            {spModel: [model, attr]} = @props
 
             if model.invalidAttrs?[attr]
                 @className = 'input--invalid'
@@ -23,21 +23,22 @@ freact = ({_}, AbstractModelComponent, InputText)->
             return
 
         getEventArgs: (props = @props, state = @state)->
-            props.spModel
+            {spModel: [model, attr], deferred} = props
+            if deferred then [model] else [model, attr]
 
         attachEvents: (model, attr)->
-            events = "vstate:#{attr}"
+            events = if attr then "vstate:#{attr}" else 'vstate'
             model.on events, @_onVStateChange, @
             return
 
         detachEvents: (model, attr)->
-            events = "vstate:#{attr}"
+            events = if attr then "vstate:#{attr}" else 'vstate'
             model.off events, @_onVStateChange, @
             return
 
         render: ->
             props = _.clone @props
-            {spModel: [model, attr], children} = props
+            {spModel: [model, attr], children, deferred} = props
             delete props.children
 
             if className = @className
@@ -52,7 +53,7 @@ freact = ({_}, AbstractModelComponent, InputText)->
             else
                 args.push children
 
-            if model.invalidAttrs?[attr]
+            if (not deferred or @isValid is false) and model.invalidAttrs?[attr]
                 errors = `<div spRepeat="(message, index) in model.invalidAttrs[attr]" className="error-message" key={index}>{message}</div>`
 
             args.push `<div className="error-messages">

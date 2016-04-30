@@ -4,7 +4,7 @@ deps = [
     './patch'
 ]
 
-factory = ({$, Backbone}, eachSeries)->
+factory = ({_, $, Backbone}, eachSeries)->
 
     headEl = document.getElementsByTagName('head')[0]
     addTag = (name, attributes) ->
@@ -73,10 +73,12 @@ factory = ({$, Backbone}, eachSeries)->
                 location = @_getHashLocation()
 
                 if @hasPushState
-                    #   /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
+                    # /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
                     if routeInfo = @router.getRouteInfo location
                         [engine, pathParams] = routeInfo
                         window.history.replaceState {}, document.title, appConfig.baseUrl + location.pathname + location.search + '#' + location.hash.substring(1)
+                    else
+                        location.pathname = ''
 
                 else if not @router.getRouteInfo location
                     #   use route from pathname with partial match
@@ -87,6 +89,26 @@ factory = ({$, Backbone}, eachSeries)->
                         window.location.href = url
 
                 @_listenHrefClick()
+
+                app = @
+                Backbone.history.checkUrl = _.bind (e)->
+                    current = @getFragment()
+
+                    # If the user pressed the back button, the iframe's hash will have
+                    # changed and we should use that for comparison.
+                    if current is @fragment and @iframe
+                        current = @getHash(@iframe.contentWindow)
+
+                    if current is @fragment
+                        app.setLocationHash app.getLocation().hash
+                        return false
+
+                    if @iframe
+                        @navigate current
+
+                    @loadUrl()
+                    return
+                , Backbone.history
 
                 # history.start do not take hash into account, silent it and do loadUrl
                 Backbone.history.start pushState: @hasPushState, silent: true

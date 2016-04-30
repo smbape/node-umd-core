@@ -178,6 +178,8 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     if rendable
                         $.data(container, 'rendable', rendable)
 
+                    container.scrollTop = 0
+
                     app.setLocationHash()
                     router.onRouteChangeSuccess res, handlerOptions, options
                     router.emit 'routeChangeSuccess', res, handlerOptions, options

@@ -32,6 +32,9 @@ factory = ({_, i18n})->
 
     defaults: defaultOptions
 
+    error: (err, options)->
+        makeError err, options, defaultOptions
+
     getOptions: (validator)->
         validator?.fn?.options
 
