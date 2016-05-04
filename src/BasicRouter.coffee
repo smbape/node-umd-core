@@ -109,8 +109,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             options = _.defaults {throws: false}, options
             for route, routeConfig of @engines
                 {engine, handlers} = routeConfig
-                pathParams = engine.getParams location.pathname, options
-                break if pathParams
+                try
+                    pathParams = engine.getParams location.pathname, options
+                    break if pathParams
+                catch err
 
             if pathParams
                 return [engine, pathParams, handlers]
