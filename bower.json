@@ -20,7 +20,7 @@
     "backbone": "^1.2.3",
     "i18next": "^2.0.10",
     "jquery": "^2.1.4",
-    "lodash": "^3.10.1",
+    "lodash": "^4.13.1",
     "qs": "git+https://github.com/hapijs/qs#^5.1.0",
     "react": "^15.2.1"
   },
