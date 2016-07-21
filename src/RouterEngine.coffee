@@ -78,11 +78,11 @@ factory = (require, _, GenericUtil, qs)->
         # Parameters used to generate default url when calling RouterEngin.url
         # @param [Object] defaults parts parameters
         setDefaults: (defaults, reset)->
-            if not _.isPlainObject defaults
+            if not _.isObject defaults
                 return
 
             if reset
-                @defaults = defaults
+                @defaults = _.clone defaults
             else
                 _.extend @defaults, defaults
 

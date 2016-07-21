@@ -95,10 +95,10 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
             if 'function'is typeof resources
                 resources = resources(i18nOptions)
 
-            if _.isPlainObject resources
-                for lng of resources
-                    if _.isPlainObject resources[lng]
-                        for nsp of resources[lng]
+            if _.isObject resources
+                for own lng of resources
+                    if _.isObject resources[lng]
+                        for own nsp of resources[lng]
                             i18n.addResourceBundle lng, nsp, resources[lng][nsp], true, true
 
             return i18nOptions

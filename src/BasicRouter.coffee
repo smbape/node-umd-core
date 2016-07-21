@@ -21,6 +21,11 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             if pathParams and engine
                 JSON.stringify _.pick pathParams, engine.getVariables()
 
+    makeError = (msg, code)->
+        err = new Error msg
+        err.code = code
+        err
+
     class BasicRouter extends Backbone.Router
         app: null
         routes: null
@@ -76,7 +81,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             if typeof options is 'string'
                 url += '?' + options
                 options = {}
-            else if not _.isPlainObject options
+            else if not _.isObject options
                 options = {}
 
             app = @app
@@ -199,7 +204,14 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
             index = 0
             length = handlers.length
-            iterate = (err, res)->
+            iterate = (err, res, initial)->
+                # if (err instanceof EvalError) or (err instanceof RangeError) or (err instanceof ReferenceError) or (err instanceof SyntaxError) or (err instanceof TypeError) or (err instanceof URIError)
+                if not (err instanceof Error) or # Error that are not instance of Error are not module not found errors
+                (err.code not in ['CONTROLLER_HANDLER', 'VIEW_HANDLER'] and # Invalid handler
+                not /^(?:Cannot find module|Script error for) /.test(err.message)) # CommonJs module not found error and RequireJs module not found error
+                    callback err, res
+                    return
+
                 if not err or index is length
                     if not err and cacheId
                         router.routeCache[cacheId] = handlers[index - 1]
@@ -216,7 +228,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             @beforeDispatch(handlerOptions)
 
             app.take()
-            iterate(1)
+            router.executeHandler handlers[index++], handlerOptions, iterate
 
             return
 
@@ -366,15 +378,15 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                 require [path], (Controller)->
                     if 'function' isnt typeof Controller
-                        return callback(new Error "invalid Controller at #{path}: not a function")
+                        return callback(makeError "Invalid Controller at #{path}: not a function", 'CONTROLLER_HANDLER')
 
                     if 'function' isnt typeof Controller::getMethod
-                        return callback(new Error "Controller at #{path}: prototype property 'getMethod' is not a function")
+                        return callback(makeError "Invalid method 'getMethod'. Controller.prototype.getMethod is not a function (#{path})", 'CONTROLLER_HANDLER')
 
                     method = Controller::getMethod options
 
                     if 'function' isnt typeof Controller::[method]
-                        return callback(new Error "controller at #{path}: prototype property '#{method}' is not a function")
+                        return callback(makeError "Invalid method '#{method}'. Controller.prototype.#{method} is not a function (#{path})", 'CONTROLLER_HANDLER')
 
                     return callback(null, Controller) if options.checkOnly
 
@@ -384,7 +396,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     }, options
 
                     if 'function' isnt typeof controller[method]
-                        return callback(new Error "controller at #{path}: instance property '#{method}' is not a function")
+                        return callback(makeError "Invalid method '#{method}'. controller.#{method} is not a function (#{path})", 'CONTROLLER_HANDLER')
 
                     if controller[method].length is 1
                         timeout = setTimeout ->
@@ -422,7 +434,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                 require [path], (View)->
                     if 'function' isnt typeof View
-                        return callback(new Error "invalid View at #{path}")
+                        return callback(makeError "invalid View at #{path}", 'VIEW_HANDLER')
 
                     return callback(null, View) if options.checkOnly
 
@@ -437,7 +449,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                         view = new View options
 
                     if 'function' isnt typeof view.render or view.render.length > 1
-                        return callback(new Error "view at #{path}: invalid render method. It should be a function expectingat most ine argument")
+                        return callback(makeError "view at #{path}: invalid render method. It should be a function expectingat most ine argument", 'VIEW_HANDLER')
 
                     if view.render.length is 1
                         timeout = setTimeout ->
