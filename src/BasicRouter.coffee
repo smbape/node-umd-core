@@ -234,7 +234,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
         executeHandler: (handler, handlerOptions, done)->
             timeout = setTimeout ->
-                console.log 'taking too long to handle. Make sure you called done function', handler
+                console.log 'taking too long to handle. Make sure you called done function', handler, handlerOptions
                 return
             , 1000
 
@@ -497,8 +497,8 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
                     $(options.container).html html
                     callback null, title: if titleEngine then titleEngine.getUrl(pathParams)
-
                     return
+                , callback
 
                 return
 
