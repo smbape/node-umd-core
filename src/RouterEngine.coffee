@@ -129,9 +129,9 @@ factory = (require, _, GenericUtil, qs)->
                         # str[i] is not supported in IE8
                         if variable.charAt(variable.length - 1) is ':'
                             inRegExp = true
-                            _variable = variable.substring(0, variable.length - 1)
+                            _variable = variable.substring(0, variable.length - 1).trim()
                         else
-                            _variable = variable
+                            _variable = variable.trim()
                     return ''
                 else if match is '}'
                     if inVariable
@@ -140,7 +140,7 @@ factory = (require, _, GenericUtil, qs)->
                         variables.push _variable
                         inVariable = false
                         if inRegExp
-                            match = regex.join('')
+                            match = regex.join('').trim()
                             regex = []
                             inRegExp = false
                         else
@@ -159,7 +159,7 @@ factory = (require, _, GenericUtil, qs)->
                     sanitized.push match
                 match
 
-            replacer = @pattern.replace /(?:(?:\{(\w+:?))|(\/\*?\*$)|(\/?\*\*|[\}\/])|([\\^$.|?*+()\[\]{}])|(.))/g, tokenizer
+            replacer = @pattern.replace /(?:(?:\{\s*(\w+\s*:?)\s*)|(\/\*?\*$)|(\/?\*\*|[\}\/])|([\\^$.|?*+()\[\]{}])|(.))/g, tokenizer
             @replacer = new RegExp('^' + replacer + '$')
             @sanitized = sanitized.join('')
 
@@ -308,4 +308,3 @@ factory = (require, _, GenericUtil, qs)->
             variables = @getVariables()
             mandatoryParams = _.pick params, variables
             @getUrl mandatoryParams, options
-

@@ -17,8 +17,24 @@ factory = ({_, Backbone}, Util)->
 
             @get('engine').getUrl(params, options)
 
-        render: (done)->
-            view = @view
+        render: (View, options, done)->
+            switch arguments.length
+                when 0
+                    return
+                when 1
+                    done = View
+                    view = @view
+                when 2
+                    done = options
+                    options =
+                        container: @get('container')
+                        controller: @
+                    view = @view = View.createElement options
+                else
+                    options = _.extend options,
+                        container: @get('container')
+                        controller: @
+                    view = @view = View.createElement options
 
             if 'function' isnt typeof view.render or view.render.length > 1
                 return done(new Error "invalid render method. It should be a function expectingat most ine argument")
