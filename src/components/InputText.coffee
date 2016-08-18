@@ -89,10 +89,20 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                 if not classNameInput
                     classNameInput = 'input__field'
 
+                switch typeof input
+                    when 'string'
+                        type = input
+                        value = ''
+                    when 'function'
+                        type = input
+                    else
+                        type = 'input'
+                        value = ''
 
                 inputProps = _.extend {
                     id
                     className: classNameInput
+                    value: value
                 }, props, inputProps, {
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
@@ -110,14 +120,23 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
 
                 input = React.createElement.apply React, args
             else
-                if typeof input not in ['string', 'function']
-                    type = 'input'
-                else
-                    type = input
+                switch typeof input
+                    when 'string'
+                        type = input
+                        value = ''
+                        inputType = 'text'
+                    when 'function'
+                        type = input
+                    else
+                        type = 'input'
+                        value = ''
+                        inputType = 'text'
 
                 inputProps = _.extend {
                     id
                     className: "input__field"
+                    value: value
+                    type: inputType
                 }, props, {
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus

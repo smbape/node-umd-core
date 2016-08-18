@@ -68,6 +68,10 @@ factory = ({_, Backbone}, Util)->
             @get('router').navigate url, _.extend {trigger: true}, options
             return
 
+        clearContainer: (container)->
+            @get('router').clearContainer container
+            return
+
         destroy: ->
             if @view
                 @view.destroy()

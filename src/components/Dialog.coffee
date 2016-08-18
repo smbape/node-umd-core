@@ -5,45 +5,44 @@ deps = [
 ]
 
 freact = ({_}, AbstractModelComponent, dialogPolyfill)->
-    dialog = document.createElement 'dialog'
-    if dialog.showModal
-        dialog = null
-        polyfill = false
-    else
-        polyfill = true
 
     class Dialog extends AbstractModelComponent
         componentDidMount: ->
             super
             if @el.tagName is 'DIALOG' and not @el.showModal
                 @polyfill = dialogPolyfill.registerDialog @el
+
+            if @props.onCancel
+                @getDOMNode().addEventListener('cancel', @props.onCancel, true)
+
+            if @props.open
+                @getDOMNode().showModal()
+
             return
 
         componentWillUnmout: ->
+            if @props.onCancel
+                @getDOMNode().removeEventListener('cancel', @props.onCancel, true)
+
             if @polyfill
                 @polyfill.destroy()
-                dialog = @dialog
-                setTimeout ->
-                    ReactDOM.unmountComponentAtNode dialog
-                    dialog = null
-                    return
-                , 0
+
             super
             return
 
         showModal: ->
-            if @dialogEl
-                @dialogEl.el.showModal()
-            else
-                @el.showModal()
+            @getDOMNode().showModal()
+            if @props.onOpen
+                @props.onOpen()
             return
 
         close: ->
-            if @dialogEl
-                @dialogEl.el.close()
-            else
-                @el.close()
+            @getDOMNode().close()
             return
+
+        _createDialog: (args)->
+            @addClass args[1], 'mdl-dialog'
+            return React.createElement.apply React, args
 
         render: ->
             props = _.clone @props
@@ -51,6 +50,8 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
 
             delete props.children
             delete props.spModel
+            delete props.onOpen
+            delete props.onCancel
 
             if _.isArray children
                 args = ['dialog', props].concat children
@@ -59,29 +60,7 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
             else
                 args = ['dialog', props]
 
-            if polyfill
-                if props.ignoreDialog
-                    return React.createElement.apply React, args
-
-                props.ignoreDialog = true
-                args[0] = this.constructor
-                element = React.createElement.apply React, args
-
-                if not @dialog
-                    @dialog = document.createElement 'span'
-                    document.body.appendChild @dialog
-
-                # 2nd render call in the same render process is not allowed
-                setTimeout =>
-                    @dialogEl = ReactDOM.render element, @dialog
-                    return
-                , 0
-
-                # dummy element because render method must return an element
-                # the real one is hold by @dialogEl
-                return `<span />`
-            else
-                return React.createElement.apply React, args
+            return @_createDialog args
 
     Dialog.getBinding = (binding)-> binding
 

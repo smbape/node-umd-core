@@ -10,19 +10,28 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
     createElement = React.createElement
     React.createElement = (type, config)->
-        args = arguments
+        args = slice.call arguments
 
         if config and not config.mdlIgnore and 'string' is typeof type and /(?:^|\s)mdl-/.test config.className
             # dynamic mdl component creation
             # TODO: create a hook system to allow more dynamic components creation
-            args = slice.call arguments
             config = _.defaults {tagName: type, mdlIgnore: true}, config
             type = args[0] = MdlComponent
             args[1] = config
 
+        if config and 'string' is typeof type
+            _config = args[1] = _.clone config
+            delete _config.binding
+            delete _config.mdlIgnore
+            delete _config.spModel
+            delete _config.tagName
+
         element = createElement.apply React, args
+
         binding = makeTwoWayBinbing element, type, config
-        element.props.binding = binding
+
+        if binding
+            element.props.binding = binding
 
         if not appConfig.isProduction
             Object.freeze element.props
@@ -124,6 +133,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             @destroyed = true
             return
 
+        getDOMNode: -> @el
+
         getEventArgs: ->
 
         attachEvents: ->
@@ -187,6 +198,16 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                 else
                     null
 
+        addClass: (props, name)->
+            if props.className
+                classes = props.className.trim().split(/\s+/)
+                if classes.indexOf(name) is -1
+                    classes.push name
+                    props.className = classes.join(' ')
+            else
+                props.className = name
+            return
+
     class MdlComponent extends AbstractModelComponent
         componentDidMount:->
             super
@@ -200,7 +221,10 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         render:->
-            React.createElement @props.tagName or 'span', @props
+            props = _.clone @props
+            tagName = props.tagName or 'span'
+            delete props.tagName
+            React.createElement tagName, props
 
     MdlComponent.getBinding = (binding, config)->
         if config.tagName is 'input' and config.type is 'checkbox'

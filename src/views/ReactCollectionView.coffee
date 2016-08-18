@@ -85,9 +85,9 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             if not currentModel or nextModel isnt @props.model or nextComparator isnt currentComparator or nextReverse isnt currentReverse or nextFilter isnt currentFilter
                 if 'string' is typeof nextComparator
-                    nextComparator = byAttribute nextComparator
+                    nextComparator = byAttribute nextComparator, if nextReverse then -1 else 1
 
-                if nextReverse
+                else if nextReverse
                     nextComparator = reverse nextComparator
 
                 if 'string' is typeof nextFilter
@@ -102,12 +102,12 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             currentModel
 
         getEventArgs: (props = @props, state = @state)->
-            [@getModel(props, state)]
+            [@getModel(props, state), props, state]
 
         getNewEventArgs: (props = @props, state = @state)->
-            [@getNewModel(props, state)]
+            [@getNewModel(props, state), props, state]
 
-        attachEvents: (collection)->
+        attachEvents: (collection, props, state)->
             super
             if collection
                 collection.on 'add', this.onAdd, this
@@ -117,12 +117,11 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 collection.on 'switch', this.onSwitch, this
 
                 if @state.model isnt collection
-                    @state.model = collection
-                    # @setState model: model
+                    state.model = collection
 
             return
 
-        detachEvents: (collection)->
+        detachEvents: (collection, props, state)->
             if collection
                 collection.off 'switch', this.onSwitch, this
                 collection.off 'reset', this.onReset, this
@@ -223,6 +222,8 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
         render:->
             props = _.clone @props
+            delete props.childNode
+            delete props.model
 
             children  = props.children
             delete props.children

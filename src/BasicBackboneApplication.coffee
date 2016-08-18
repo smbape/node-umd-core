@@ -216,7 +216,7 @@ factory = ({_, $, Backbone}, eachSeries)->
 
         _listenHrefClick: ->
             app = @
-            $document = $(document)
+            $document = $(document.body)
 
             # on IE < 9 which is not defined on click event, only on mouseup and mousedown
             if document.documentMode < 9
@@ -224,6 +224,7 @@ factory = ({_, $, Backbone}, eachSeries)->
                 which = 0
                 $document.on 'mouseup mousedown', (evt)->
                     which = evt.which
+                    return
 
             $document.on 'click', 'a[href]', (evt) ->
 
@@ -238,7 +239,7 @@ factory = ({_, $, Backbone}, eachSeries)->
                 return if which isnt 1 or evt.altKey or evt.ctrlKey or evt.shiftKey
 
                 # Ignore elements that have no-navigate class
-                return if /\bno-navigate\b/.test this.className
+                return if /(?:^|\s)no-navigate(?:\s|$)/.test this.className
 
                 # Only cares about non anchor click
                 href = this.getAttribute 'href'

@@ -6,7 +6,7 @@
   ],
   "description": "umd-core files",
   "homepage": "https://github.com/smbape/node-umd-core",
-  "main": "src/**",
+  "main": ["lib/", "src/**"],
   "umd": true,
   "license": "MIT",
   "ignore": [

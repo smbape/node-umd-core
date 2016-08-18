@@ -50,22 +50,30 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             @_initRoutes options
             @container = options.container or document.body
 
-        navigate: (fragment, options = {}, evt)->
-            # evt is defined when comming from a click on a[href]
-
+        navigate: (fragment, options = {})->
             location = @app.getLocation fragment
             if location.pathname.charAt(0) in ['/', '#']
                 location.pathname = location.pathname.substring(1)
 
-            if options.force
-                Backbone.history.fragment = null
-                options.trigger = true
-            else if @current.location and location.pathname is @current.location.pathname and location.search is @current.location.search
+            if @current.location and location.pathname is @current.location.pathname and location.search is @current.location.search
+                if options.force
+                    Backbone.history.loadUrl location.pathname + location.search + location.hash
+                    return
+
                 location = @app.getLocation fragment
                 @app.setLocationHash location.hash
-                return @
+                return
 
             super
+
+        getCurrentUrl: ->
+            if location = @app.getLocation()
+                return location.pathname + location.search + location.hash
+
+        refresh: ->
+            if url = @getCurrentUrl()
+                Backbone.history.loadUrl url
+            return
 
         dispatch: (url, options, callback)->
             if url is null
@@ -100,7 +108,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
             mainContainer = @container
 
-            if not container or container is mainContainer
+            if not container
                 container = mainContainer
 
             if not container
@@ -121,6 +129,13 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
             if pathParams
                 return [engine, pathParams, handlers]
+
+        clearContainer: (container)->
+            if prevRendable = $.data(container, 'rendable')
+                prevRendable.destroy()
+                $.removeData(container, 'rendable')
+
+            return
 
         _dispatch: (copts, options, done)->
             app = @app
@@ -148,9 +163,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             else
                 throw new Error "unmatched route for #{location.pathname}"
 
-            if prevRendable = $.data(container, 'rendable')
-                prevRendable.destroy()
-                $.removeData(container, 'rendable')
+            @clearContainer container
 
             $(container).empty()
 
@@ -249,35 +262,14 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
             return
 
-        getRendableTitle: (rendable)->
-            if rendable
-                title = _.result(rendable, 'title')
-
-                if not title and 'function' is typeof rendable?.get
-                    title = rendable.get('title')
-
-                if not title and rendable.props?.title
-                    title = rendable.props.title
-
-            return title
-
         onRouteChangeSuccess: (rendable, options)->
-            if title = @getRendableTitle rendable
-                document.title = title
 
-            if 'function' is typeof appConfig.onRouteChangeSuccess
-                appConfig.onRouteChangeSuccess()
-            return
-
-        onRouteChangeFailure: (err, {container})->
+        onRouteChangeFailure: (err, { container })->
             container.innerHTML = err
             return
 
         engine: (name)->
             @routeByName[name]?.engine
-
-        title: (name)->
-            @routeByName[name]?.title
 
         back: ->
             window.history.back()
@@ -290,6 +282,9 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
         beforeDispatch: (options)->
 
         afterDispatch: (err, rendable, options)->
+
+        isMainContainer: (container)->
+            container is @container
 
         _extractParameters: (route, fragment) ->
             # return fragment as is
@@ -331,9 +326,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 routeConfig = engines[route] =
                     engine: new RouterEngine options
 
-                if 'string' is typeof config.title
-                    routeConfig.title = new RouterEngine route: config.title
-
                 if 'string' is typeof config.name
                     if hasOwn.call routeByName, config.name
                         throw new Error "Error in route '#{route}', handler #{index}: duplicate route name '#{config.name}'"
@@ -369,7 +361,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
         _controllerHandler: (handler, routeConfig)->
             router = @
-            titleEngine = routeConfig.title
             engine = new RouterEngine handler
             (options, callback)->
 
@@ -391,7 +382,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     return callback(null, Controller) if options.checkOnly
 
                     controller = new Controller _.defaults {
-                        title:  if titleEngine then titleEngine.getUrl(pathParams)
                         router: router
                     }, options
 
@@ -425,7 +415,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
         _viewHandler: (handler, routeConfig)->
             router = @
-            titleEngine = routeConfig.title
             engine = new RouterEngine handler
             (options, callback)->
 
@@ -439,7 +428,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     return callback(null, View) if options.checkOnly
 
                     options = _.defaults {
-                        title:  if titleEngine then titleEngine.getUrl(pathParams)
                         router: router
                     }, options
 
@@ -478,7 +466,6 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
         _templateHandler: (handler, routeConfig)->
             router = @
-            titleEngine = routeConfig.title
             engine = new RouterEngine handler
             (options, callback)->
 
@@ -496,7 +483,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                             return
 
                     $(options.container).html html
-                    callback null, title: if titleEngine then titleEngine.getUrl(pathParams)
+                    callback()
                     return
                 , callback
 
