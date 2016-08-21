@@ -23,7 +23,8 @@ freact = ({_, $})->
         if 'string' is typeof model
             property = model
             model = @inline
-            element.props.spModel = [model, property]
+            if 'string' isnt typeof type
+                element.props.spModel = [model, property]
         else if _.isArray model
             if _.isArray model[0]
                 models = []

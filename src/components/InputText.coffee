@@ -89,20 +89,9 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                 if not classNameInput
                     classNameInput = 'input__field'
 
-                switch typeof input
-                    when 'string'
-                        type = input
-                        value = ''
-                    when 'function'
-                        type = input
-                    else
-                        type = 'input'
-                        value = ''
-
                 inputProps = _.extend {
                     id
                     className: classNameInput
-                    value: value
                 }, props, inputProps, {
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
@@ -123,20 +112,22 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                 switch typeof input
                     when 'string'
                         type = input
-                        value = ''
                         inputType = 'text'
+                        if not props.defaultValue
+                            value = ''
                     when 'function'
                         type = input
                     else
                         type = 'input'
-                        value = ''
                         inputType = 'text'
+                        if not props.defaultValue
+                            value = ''
 
                 inputProps = _.extend {
                     id
                     className: "input__field"
-                    value: value
                     type: inputType
+                    value: value
                 }, props, {
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus

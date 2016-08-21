@@ -29,8 +29,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         element = createElement.apply React, args
 
         binding = makeTwoWayBinbing element, type, config
-
-        if binding
+        if binding and 'string' isnt typeof type
             element.props.binding = binding
 
         if not appConfig.isProduction
