@@ -133,12 +133,20 @@ factory = ->
                 str.charAt(0).toUpperCase() + str.slice 1
 
             toCamel: (str, mark = '-')->
+                if commonCamel[mark]
+                    return commonCamel[mark].toCamel str
+
                 reg = new RegExp StringUtil.escapeRegExp(mark) + '\\w', 'g'
                 str.replace reg, (match) ->
                     match[1].toUpperCase()
 
             toCapitalCamel: (str, mark) ->
-                StringUtil.toCamel StringUtil.capitalize(str), mark
+                if commonCamel[mark]
+                    return commonCamel[mark].toCapitalCamel str
+
+                reg = new RegExp '(?:^|' + StringUtil.escapeRegExp(mark) + ')(\\w)', 'g'
+                str.replace reg, (match, letter)->
+                    letter.toUpperCase()
 
             toCamelDash: (str) ->
                 str.replace /-(\w)/g, (match) ->
@@ -156,6 +164,29 @@ factory = ->
                 return str if typeof str isnt "string"
                 return str if n >= str.length
                 str.substring str.length - n, str.length
+
+        commonCamel =
+            '-':
+                toCamel: (str)->
+                    str.replace /-\w/g, (match) ->
+                        match[1].toUpperCase()
+                toCapitalCamel: (str) ->
+                    str.replace /(?:^|-)(\w)/g, (match, letter)->
+                        letter.toUpperCase()
+            ':':
+                toCamel: (str)->
+                    str.replace /:\w/g, (match) ->
+                        match[1].toUpperCase()
+                toCapitalCamel: (str) ->
+                    str.replace /(?:^|:)(\w)/g, (match, letter)->
+                        letter.toUpperCase()
+            ' ': 
+                toCamel: (str) ->
+                    str.replace RegExp(' \\w', 'g'), (match) ->
+                        match[1].toUpperCase()
+                toCapitalCamel: (str) ->
+                    str.replace /(?:^| )(\w)/g, (match, letter) ->
+                        letter.toUpperCase()
 
         _entityMap =
             '&': '&amp;'

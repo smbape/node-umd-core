@@ -9,8 +9,18 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
     class Dialog extends AbstractModelComponent
         componentDidMount: ->
             super
-            if @el.tagName is 'DIALOG' and not @el.showModal
-                @polyfill = dialogPolyfill.registerDialog @el
+            el = @el
+            if el.tagName is 'DIALOG' and not el.showModal
+                polyfill = @polyfill = dialogPolyfill.registerDialog el
+                setOpen = polyfill.setOpen
+                polyfill.setOpen = (value)->
+                    setOpen.call polyfill, value
+                    if value
+                        windowHeight = window.innerHeight
+                        dialogHeight = el.clientHeight
+                        el.style.position = 'fixed'
+                        el.style.top = "#{(windowHeight - dialogHeight) / 2}px"
+                    return
 
             if @props.onCancel
                 @getDOMNode().addEventListener('cancel', @props.onCancel, true)
@@ -25,6 +35,7 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
                 @getDOMNode().removeEventListener('cancel', @props.onCancel, true)
 
             if @polyfill
+                delete @polyfill.setOpen
                 @polyfill.destroy()
 
             super
