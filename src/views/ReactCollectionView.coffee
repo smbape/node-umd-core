@@ -102,12 +102,12 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             currentModel
 
         getEventArgs: (props = @props, state = @state)->
-            [@getModel(props, state), props, state]
+            [@getModel(props, state)]
 
         getNewEventArgs: (props = @props, state = @state)->
-            [@getNewModel(props, state), props, state]
+            [@getNewModel(props, state)]
 
-        attachEvents: (collection, props, state)->
+        attachEvents: (collection, nextProps, nextState)->
             super
             if collection
                 collection.on 'add', this.onAdd, this
@@ -117,11 +117,12 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 collection.on 'switch', this.onSwitch, this
 
                 if @state.model isnt collection
-                    state.model = collection
+                    @state.model = collection
+                    nextState.model = collection if nextState
 
             return
 
-        detachEvents: (collection, props, state)->
+        detachEvents: (collection, nextProps, nextState)->
             if collection
                 collection.off 'switch', this.onSwitch, this
                 collection.off 'reset', this.onReset, this
@@ -131,6 +132,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 if collection.stateSubSet
                     collection.destroy()
                     @state.model = undefined
+                    nextState.model = undefined if nextState
             super
 
             return

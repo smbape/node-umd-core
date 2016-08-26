@@ -101,12 +101,15 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         componentWillUpdate: (nextProps, nextState)->
             if @shouldUpdateEvent
                 oldArgs = @getEventArgs()
+                oldArgs.push.apply oldArgs, [nextProps, nextState]
                 @detachEvents.apply @, oldArgs
 
                 if 'function' is typeof @getNewEventArgs
                     args = @getNewEventArgs nextProps, nextState
                 else
                     args = @getEventArgs nextProps, nextState
+
+                args.push.apply args, [nextProps, nextState]
                 @attachEvents.apply @, args
 
             @shouldUpdate = @shouldUpdateEvent = false
@@ -197,14 +200,44 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                 else
                     null
 
-        addClass: (props, name)->
+        addClass: (props, toAdd)->
             if props.className
-                classes = props.className.trim().split(/\s+/)
-                if classes.indexOf(name) is -1
-                    classes.push name
-                    props.className = classes.join(' ')
+                classes = props.className.trim().split(/\s+/g)
             else
-                props.className = name
+                classes = []
+
+            if Array.isArray toAdd
+                for className in toAdd
+                    if classes.indexOf(className) is -1
+                        hasChanged = true
+                        classes.push className
+            else if classes.indexOf(toAdd) is -1
+                hasChanged = true
+                classes.push toAdd
+
+            if hasChanged
+                props.className = classes.join(' ')
+
+            return
+
+        removeClass: (props, toRemove)->
+            if props.className
+                classes = props.className.trim().split(/\s+/g)
+            else
+                classes = []
+
+            if Array.isArray toRemove
+                for className in toRemove
+                    if ~(at = classes.indexOf(className))
+                        hasChanged = true
+                        classes.splice at, 1
+            else if ~(at = classes.indexOf(toRemove))
+                hasChanged = true
+                classes.splice at, 1
+
+            if hasChanged
+                props.className = classes.join(' ')
+
             return
 
     class MdlComponent extends AbstractModelComponent
