@@ -12,7 +12,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     React.createElement = (type, config)->
         args = slice.call arguments
 
-        if config and not config.mdlIgnore and 'string' is typeof type and /(?:^|\s)mdl-/.test config.className
+        if window.componentHandler and config and not config.mdlIgnore and 'string' is typeof type and /(?:^|\s)mdl-/.test config.className
             # dynamic mdl component creation
             # TODO: create a hook system to allow more dynamic components creation
             config = _.defaults {tagName: type, mdlIgnore: true}, config
