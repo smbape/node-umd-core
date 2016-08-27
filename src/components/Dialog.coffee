@@ -6,6 +6,11 @@ deps = [
 
 freact = ({_}, AbstractModelComponent, dialogPolyfill)->
 
+    testElementStyle = document.createElement('div').style
+    transformJSPropertyName = if 'transform' of testElementStyle then 'transform' else 'webkitTransform'
+    transitionJSPropertyName = if 'transition' of testElementStyle then 'transition' else 'webkitTransition'
+    testElementStyle = null
+
     class Dialog extends AbstractModelComponent
         componentDidMount: ->
             super
@@ -23,16 +28,16 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
                     return
 
             if @props.onCancel
-                @getDOMNode().addEventListener('cancel', @props.onCancel, true)
+                @el.addEventListener('cancel', @props.onCancel, true)
 
             if @props.open
-                @getDOMNode().showModal()
+                @el.showModal()
 
             return
 
         componentWillUnmout: ->
             if @props.onCancel
-                @getDOMNode().removeEventListener('cancel', @props.onCancel, true)
+                @el.removeEventListener('cancel', @props.onCancel, true)
 
             if @polyfill
                 delete @polyfill.setOpen
@@ -41,14 +46,39 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
             super
             return
 
-        showModal: ->
-            @getDOMNode().showModal()
+        showModal: (options)->
+            el = @el
+            if options?.from
+                {target, clientX, clientY} = options.from
+                tx = clientX - window.innerWidth / 2
+                ty = clientY - window.innerHeight / 2
+                sx = target.clientWidth / (el.clientWidth or window.innerWidth)
+                sy = target.clientHeight / (el.clientHeight or window.innerHeight)
+                el.style[transitionJSPropertyName] = 'initial'
+                el.style.opacity = 0
+                @transform = el.style[transformJSPropertyName] = "translate3d( #{tx}px, #{ty}px, 0 ) scale( #{sx}, #{sy} )"
+            el.showModal()
+            if options
+                el.style[transitionJSPropertyName] = ''
+                el.style[transformJSPropertyName] = ''
+                el.style.opacity = 1
+
             if @props.onOpen
                 @props.onOpen()
             return
 
-        close: ->
-            @getDOMNode().close()
+        close: (options)->
+            el = @el
+            if @transform
+                el.style.opacity = 0
+                el.style[transformJSPropertyName] = @transform
+                @transform = null
+                setTimeout ->
+                    el.close()
+                    return
+                , 250
+            else
+                el.close()
             return
 
         _createDialog: (args)->

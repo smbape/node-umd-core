@@ -22,13 +22,13 @@ freact = ({_, i18n}, AbstractModelComponent, Dialog)->
         str and str.length or 0
 
     class ConfirmDialog extends AbstractModelComponent
-        showModal: (content, {title, close, confirm} = {})->
+        showModal: (content, {title, close, confirm, from} = {})->
             if not content
                 content = i18n.t('confirm.content')
             if not title
                 title = i18n.t('confirm.title')
             @inline.set {content, title, close, confirm}
-            @getRef('dialog').showModal()
+            @getRef('dialog').showModal({from})
             return
 
         close: =>
