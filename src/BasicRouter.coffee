@@ -247,7 +247,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
         executeHandler: (handler, handlerOptions, done)->
             timeout = setTimeout ->
-                console.log 'taking too long to handle. Make sure you called done function', handler, handlerOptions
+                console.log 'taking too long to handle. Make sure you called done function'
                 return
             , 1000
 

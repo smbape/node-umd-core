@@ -1,7 +1,7 @@
 deps = [
     '../common'
     './resources'
-    {amd: 'backbone.validation'}
+    '../../lib/backbone-validation'
 ]
 
 factory = ({_, Backbone, i18n}, resources)->
