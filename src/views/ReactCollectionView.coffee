@@ -221,8 +221,8 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
         render:->
             props = _.clone @props
-            delete props.childNode
-            delete props.model
+            for key in ['order', 'filter', 'reverse', 'model', 'childNode']
+                delete props[key]
 
             children  = props.children
             delete props.children
