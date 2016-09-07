@@ -61,7 +61,7 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
     SUPPORTS_POINTER_IE10 = window.navigator.msPointerEnabled and !window.navigator.pointerEnabled and !SUPPORTS_TOUCH
     SUPPORTS_POINTER = (window.navigator.pointerEnabled or window.navigator.msPointerEnabled) and !SUPPORTS_TOUCH
 
-    useTouchEvents = SUPPORTS_TOUCH or SUPPORTS_POINTER
+    useTouchEvents = SUPPORTS_TOUCH
     START_EV = if useTouchEvents then (if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerDown' else 'pointerdown') else 'touchstart') else 'mousedown'
     MOVE_EV = if useTouchEvents then (if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerMove' else 'pointermove') else 'touchmove') else 'mousemove'
     END_EV = if useTouchEvents then (if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerUp' else 'pointerup') else 'touchend') else 'mouseup'

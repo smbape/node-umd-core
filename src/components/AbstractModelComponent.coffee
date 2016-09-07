@@ -5,8 +5,8 @@ deps = [
 ]
 
 freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
-    slice = [].slice
-    hasOwn = {}.hasOwnProperty
+    slice = Array::slice
+    hasOwn = Object::hasOwnProperty
 
     createElement = React.createElement
     React.createElement = (type, config)->
@@ -116,6 +116,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         componentDidUpdate: (prevProps, prevState)->
+            @_updating = false
+            return
 
         componentWillUnmount: ->
             if @_bindings
@@ -153,8 +155,10 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         _updateView: ->
+            return if @_updating
             @shouldUpdate = true
             if @_reactInternalInstance
+                @_updating = true
                 state = {}
                 state[@uid] = new Date().getTime()
                 @setState state

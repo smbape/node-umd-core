@@ -107,9 +107,6 @@ freact = ({_, $})->
                 if onlyThis
                     return
 
-                state = {}
-                state[uid] = new Date()
-
                 if owner
                     owner._updateView()
                 return

@@ -1,10 +1,10 @@
 deps = []
 
 factory = ->
-    toString = {}.toString
-    hasOwn = {}.hasOwnProperty
-    slice = [].slice
-    splice = [].splice
+    toString = Object::toString
+    hasOwn = Object::hasOwnProperty
+    slice = Array::slice
+    splice = Array::splice
 
     extend = (target, obj)->
         for own prop of obj
@@ -30,7 +30,7 @@ factory = ->
         notEmptyString: (str)->
             typeof str is 'string' and str.length > 0
 
-        throttle: (delay, fn, alwaysDefer) ->
+        throttle: (fn, delay = 0, alwaysDefer) ->
             last = undefined
             deferTimer = undefined
             ->

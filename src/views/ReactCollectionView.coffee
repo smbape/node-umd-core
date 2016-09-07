@@ -24,9 +24,6 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             shouldUpdate
 
-        componentDidUpdate: (prevProps, prevState)->
-            super
-
         getModel: (props = @props, state = @state)->
             state?.model
 

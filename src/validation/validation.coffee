@@ -79,29 +79,41 @@ factory = ({_, Backbone, i18n}, resources)->
                     else
                         model.invalidAttrs = invalidAttrs or {}
 
-                # Trigger validated events.
-                # Need to defer this so the model is actually updated before
-                # the event is triggered.
-                _.defer ->
-                    if invalidAttrs
-                        for attr of validateAttrs
-                            if hasOwn.call(invalidAttrs, attr)
-                                isAttrValid = false
+                if not opts.silent
+                    # Trigger validated events.
+                    # Need to defer this so the model is actually updated before
+                    # the event is triggered.
+                    # Do not use setTimeout because it may occur before 'keyUp/keyDown' events but after 'input' event
+                    # onIE changed is triggered on topKeyUp, topKeyDown after topInput
+                    # problem: when fastley enter 'mer'
+                    #     +0 topInput: read input 'm'
+                    #     +1 topKeyUp|topKeyDown: read input 'm'
+                    #     +1 handler: set model 'm'
+                    #     +2 topInput: read input 'me'
+                    #     +2 deferred: read model 'm'
+                    #         +2 trigger change: set input 'm'
+                    #     +3 topKeyUp|topKeyDown: read input 'm'
+                    #         should read input 'me'
+                    model.once 'change', ->
+                        if invalidAttrs
+                            for attr of validateAttrs
+                                if hasOwn.call(invalidAttrs, attr)
+                                    isAttrValid = false
 
-                            else
-                                isAttrValid = true
+                                else
+                                    isAttrValid = true
 
-                            if validateAll or hasOwn.call(attrs, attr)
-                                model.trigger 'vstate:' + attr, isAttrValid, attr, model, invalidAttrs[attr] or []
-                    else
-                        isAttrValid = true
-                        for attr of validateAttrs
-                            if validateAll or hasOwn.call(attrs, attr)
-                                model.trigger 'vstate:' + attr, true, attr, model, []
+                                if validateAll or hasOwn.call(attrs, attr)
+                                    model.trigger 'vstate:' + attr, isAttrValid, attr, model, invalidAttrs[attr] or []
+                        else
+                            isAttrValid = true
+                            for attr of validateAttrs
+                                if validateAll or hasOwn.call(attrs, attr)
+                                    model.trigger 'vstate:' + attr, true, attr, model, []
 
-                    if validateAll
-                        model.trigger 'vstate', model._isValid, model, invalidAttrs or {}
-                    return
+                        if validateAll
+                            model.trigger 'vstate', model._isValid, model, invalidAttrs or {}
+                        return
 
                 if options.forceUpdate is false
                     invalidAttrs

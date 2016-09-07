@@ -19,8 +19,8 @@ freact = ({_}, {StringUtil, mergeFunctions}, AbstractModelComponent)->
             @_updateHeight()
             return
 
-        componentDidUpdate: ->
-            super
+        componentDidUpdate: (prevProps, prevState)->
+            super(prevProps, prevState)
             @_updateHeight()
             return
 
