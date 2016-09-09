@@ -180,6 +180,10 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             }
 
             callback = (err, res)->
+                if callback.called
+                    return
+                callback.called = true
+
                 app.give()
                 app.current = router.current = handlerOptions
 

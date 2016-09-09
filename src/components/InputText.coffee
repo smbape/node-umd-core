@@ -137,6 +137,7 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                     label: null
                 }
 
+                delete inputProps.charCount
                 input = React.createElement type, inputProps
 
             if props.label

@@ -40,6 +40,7 @@ freact = ({_}, AbstractModelComponent, InputText)->
             props = _.clone @props
             {spModel: [model, attr], children, deferred} = props
             delete props.children
+            delete props.deferred
 
             if className = @className
                 if props.className

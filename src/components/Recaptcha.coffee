@@ -62,7 +62,7 @@ freact = (app, {_, Backbone}, {DOMUtil}, AbstractModelComponent)->
                 DOMUtil.isNodeOrElement(value)
 
             toDelete = null
-            _.map window.___grecaptcha_cfg.clients, (widget, index)->
+            _.map window.___grecaptcha_cfg?.clients, (widget, index)->
                 for own key, value of widget
                     if value is el
                         deepDelete widget, [], only
