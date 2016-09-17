@@ -159,6 +159,7 @@ freact = ({_, $})->
                         when 'input'
                             if config.type is 'checkbox'
                                 valueProp = 'checked'
+                                defaultValue = false
                                 binding.get = (binding, evt)-> evt.target.checked
                             else
                                 valueProp = 'value'
@@ -190,16 +191,26 @@ freact = ({_, $})->
 
             # make sure created native component will have the correct initial value
             value = model.attributes[property]
-            if typeof value in ['boolean', 'number', 'string']
-                if valueProp is 'innerHTML'
-                    props.dangerouslySetInnerHTML = __html: value
+            switch typeof value
+                when 'undefined'
+                    if valueProp is 'innerHTML'
+                        delete props.dangerouslySetInnerHTML
+                    else if typeof defaultValue isnt 'undefined'
+                        props[valueProp] = defaultValue
+                    else
+                        delete props[valueProp]
+
+                when 'boolean', 'number', 'string'
+                    if valueProp is 'innerHTML'
+                        props.dangerouslySetInnerHTML = __html: value
+                    else
+                        props[valueProp] = value
+
                 else
-                    props[valueProp] = value
-            else
-                if valueProp is 'innerHTML'
-                    delete props.dangerouslySetInnerHTML
-                else
-                    delete props[valueProp]
+                    if valueProp is 'innerHTML'
+                        delete props.dangerouslySetInnerHTML
+                    else
+                        delete props[valueProp]
 
             onChangeEvent = binding.onChangeEvent
 

@@ -192,8 +192,13 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
                     regexp = new RegExp query.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'
                     fn = (model)->
-                        for own prop of model.attributes
-                            if regexp.test(model.attributes[prop])
+                        if model instanceof Backbone.Model
+                            attributes = model.attributes
+                        else
+                            attributes = model
+
+                        for own prop of attributes
+                            if regexp.test(attributes[prop])
                                 return true
 
                         return false

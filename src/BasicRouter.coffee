@@ -76,7 +76,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
             return
 
         dispatch: (url, options, callback)->
-            if url is null
+            if url in [null, 'blank']
                 if @_otherwise
                     @navigate @_otherwise
                     return
@@ -190,7 +190,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                 if _.isObject(res) and 'function' is typeof res.destroy
                     rendable = res
 
-                if err
+                onError = (err)->
                     if rendable
                         rendable.destroy()
 
@@ -198,16 +198,23 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
                     router.onRouteChangeFailure err, handlerOptions
                     router.emit 'routeChangeFailure', err, options
                     app.emit 'routeChangeFailure', router, err, options
+                    return
+
+                if err
+                    onError err
                 else
                     if rendable
                         $.data(container, 'rendable', rendable)
 
                     container.scrollTop = 0
 
-                    app.setLocationHash()
-                    router.onRouteChangeSuccess res, handlerOptions, options
-                    router.emit 'routeChangeSuccess', res, handlerOptions, options
-                    app.emit 'routeChangeSuccess', router, res, handlerOptions, options
+                    try
+                        app.setLocationHash()
+                        router.onRouteChangeSuccess res, handlerOptions, options
+                        router.emit 'routeChangeSuccess', res, handlerOptions, options
+                        app.emit 'routeChangeSuccess', router, res, handlerOptions, options
+                    catch err
+                        onError err
 
                 router.afterDispatch(err, res, handlerOptions)
                 done(err, res) if 'function' is typeof done

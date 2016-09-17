@@ -33,6 +33,8 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 filter: nextFilter,
                 reverse: nextReverse,
                 model: nextModel
+                limit: nextLimit
+                offset: nextOffset
             } = props
 
             if not nextModel
@@ -41,7 +43,10 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             currentModel = @getModel()
 
             if currentModel
-                {comparator: currentComparator, selector: currentFilter} = currentModel
+                {
+                    comparator: currentComparator
+                    selector: currentFilter
+                } = currentModel
                 currentReverse = currentComparator?.reverse
 
             if typeof nextComparator is 'undefined'
@@ -91,8 +96,8 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                     nextFilter = @getFilter nextFilter, true
 
                 if nextComparator or nextFilter
-                    currentModel = nextModel.getSubSet {comparator: nextComparator, selector: nextFilter}
-                    currentModel.stateSubSet = true
+                    currentModel = nextModel.getSubSet {comparator: nextComparator, selector: nextFilter, models: false}
+                    currentModel.isSubset = true
                 else
                     currentModel = nextModel
 
@@ -126,7 +131,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 collection.off 'move', this.onMove, this
                 collection.off 'remove', this.onRemove, this
                 collection.off 'add', this.onAdd, this
-                if collection.stateSubSet
+                if collection.isSubset
                     collection.destroy()
                     @state.model = undefined
                     nextState.model = undefined if nextState
@@ -157,8 +162,33 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 return @_childNodeList
 
             if collection = @getModel()
-                @_childNodeList = collection.models.map (model, index)=>
-                    @props.childNode model, index, collection, {}
+                if collection.isSubset
+                    collection.detachEvents()
+                    collection.populate()
+                    collection.attachEvents()
+
+                {limit, offset} = @props
+                models = collection.models
+
+                if limit > 0
+                    if offset > 0
+                        limit += offset
+                    else
+                        offset = 0
+                    if limit > models.length
+                        limit = models.length
+                else
+                    limit = models.length
+                    offset = 0
+
+                index = 0
+                @_childNodeList = []
+                for i in [offset...limit] by 1
+                    model = models[i]
+                    @_childNodeList[index] = @props.childNode model, index, collection, {}
+                    index++
+                
+                @_childNodeList
 
         onAdd: (model, collection, options)->
             if @destroyed or options?.bubble > 1
@@ -173,7 +203,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             childNode = @props.childNode model, index, collection, options
             childNodeList.splice index, 0, childNode
 
-            @_updateView()
+            @_updateView() if not options.silentView
             return
 
         onRemove: (model, collection, options)->
@@ -187,7 +217,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             childNode = childNodeList[index]
             childNodeList.splice(index, 1)
 
-            @_updateView()
+            @_updateView() if not options.silentView
             return
 
         onMove: (model, collection, options)->
@@ -200,7 +230,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             childNode = childNodeList[from]
             childNodeList.splice from, 1
             childNodeList.splice index, 0, childNode
-            @_updateView()
+            @_updateView() if not options.silentView
             return
 
         onReset: (collection, options)->
@@ -219,10 +249,14 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             @reRender()
             return
 
-        render:->
+        _getProps: ->
             props = _.clone @props
-            for key in ['order', 'filter', 'reverse', 'model', 'childNode']
+            for key in ['order', 'filter', 'reverse', 'model', 'childNode', 'limit', 'offset']
                 delete props[key]
+            props
+
+        render:->
+            props = @_getProps()
 
             children  = props.children
             delete props.children

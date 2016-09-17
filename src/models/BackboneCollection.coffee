@@ -118,7 +118,6 @@ factory = ({_, Backbone})->
             options = _.clone options
             if 'string' is typeof options.comparator
                 options.comparator = byAttribute options.comparator
-            proto = @constructor.prototype
 
             for own opt of options
                 if opt.charAt(0) isnt '_' and opt of @
@@ -379,6 +378,7 @@ factory = ({_, Backbone})->
             if remove
                 toRemove = @clone()
 
+            timerInit = new Date().getTime()
             for model in models
                 if existing = @get model
                     hasChanged = false
@@ -416,12 +416,12 @@ factory = ({_, Backbone})->
                 if @selector and not (match = @selector model)
                     continue
 
+                at = @length
+
                 # maintain order
-                if @comparator
+                if @comparator and options.sort isnt false
                     at = binaryIndex model, @models, @comparator
                     at = if at is -1 then @length else at
-                else
-                    at = @length
 
                 @_addReference model, options
                 @models.splice at, 0, model
@@ -454,7 +454,12 @@ factory = ({_, Backbone})->
             if not options.comparator and not options.selector
                 return @
 
-            subSet = new @constructor @models, _.extend {
+            if options.models is false
+                models = []
+            else
+                models = @models
+
+            subSet = new @constructor models, _.extend {
                 model: @model
                 comparator: @comparator
                 selector: @selector
@@ -474,52 +479,63 @@ factory = ({_, Backbone})->
                 proto.add.call @, models, options
             subSet.parent = @
 
-            @on 'change', subSet._onChange = (model, collection, options)->
-                if not @destroyed
-                    if not options
-                        options = collection
+            subSet.populate = ->
+                proto.reset.call @, @parent.models, _.extend({reset: true, silent: true}, options)
+                return
 
-                    if model is @parent
-                        attributes = model.changed
-                        @set attributes, options
-                    else if options.bubble is 1
-                        # maintain filter and order
-                        if not @parent.contains(model)
-                            if @contains(model)
+            subSet.attachEvents = ->
+                @parent.on 'change', @._onChange = (model, collection, options)->
+                    if not @destroyed
+                        if not options
+                            options = collection
+
+                        if model is @parent
+                            attributes = model.changed
+                            @set attributes, options
+                        else if options.bubble is 1
+                            # maintain filter and order
+                            if not @parent.contains(model)
+                                if @contains(model)
+                                    proto.remove.call @, model
+                            else if @selector and not @selector model
                                 proto.remove.call @, model
-                        else if @selector and not @selector model
-                            proto.remove.call @, model
 
-                        # avoid circular event add => some thing triggers change => which triggers add again
-                        else if not @contains(model)
-                            proto.add.call @, model
+                            # avoid circular event add => some thing triggers change => which triggers add again
+                            else if not @contains(model)
+                                proto.add.call @, model
+                    return
+                , @
+
+                @parent.on 'add', @._onAdd = (model, collection, options)->
+                    if not @destroyed and collection is @parent
+                        proto.add.call @, model, _.defaults {bubble: 0}, options
+                    return
+                , @
+
+                @parent.on 'remove', @._onRemove = (model, collection, options)->
+                    if not @destroyed and collection is @parent
+                        proto.remove.call @, model, _.defaults {bubble: 0}, options
+                    return
+                , @
+
+                @parent.on 'reset', @._onReset = (collection, options)->
+                    if not @destroyed and collection is @parent
+                        proto.reset.call @, collection.models, _.defaults {bubble: 0, reset: true}, options
+                    return
+                , @
+
                 return
-            , subSet
 
-            @on 'add', subSet._onAdd = (model, collection, options)->
-                if not @destroyed and collection is @parent
-                    proto.add.call @, model
-                return
-            , subSet
-
-            @on 'remove', subSet._onRemove = (model, collection, options)->
-                if not @destroyed and collection is @parent
-                    proto.remove.call @, model
-                return
-            , subSet
-
-            @on 'reset', subSet._onReset = (collection, options)->
-                if not @destroyed and collection is @parent
-                    proto.reset.call @, collection.models, _.defaults {reset: true}, options
-                return
-            , subSet
-
-            subSet.destroy = ->
+            subSet.detachEvents = ->
                 parent = @parent
                 parent.off 'change', @_onChange, @
                 parent.off 'add', @_onAdd, @
                 parent.off 'remove', @_onRemove, @
                 parent.off 'reset', @_onReset, @
+                return
+
+            subSet.destroy = ->
+                @detachEvents()
 
                 for own prop of @
                     if prop isnt '_uid'
@@ -530,6 +546,9 @@ factory = ({_, Backbone})->
                 # @destroyed helps skipping callback if needed
                 @destroyed = true
                 return
+            
+            if options.models isnt false
+                subSet.attachEvents()
 
             subSet
 
