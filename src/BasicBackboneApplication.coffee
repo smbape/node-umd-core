@@ -116,7 +116,7 @@ factory = ({_, $, Backbone}, eachSeries)->
                 if location.pathname is ''
                     location = window.location
 
-                Backbone.history.loadUrl location.pathname + location.search + location.hash
+                Backbone.history.loadUrl location.pathname + location.search
                 return
             , @
 
@@ -191,7 +191,7 @@ factory = ({_, $, Backbone}, eachSeries)->
             hash = hash.substring(1)
 
             if window.location.hash is '#' + hash
-                element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-.])/g, '\\$1')}]")[0]
+                element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-])/g, '\\$1')}]")[0]
                 element.scrollIntoView() if element
             else
                 window.location.hash = '#' + hash
@@ -209,7 +209,7 @@ factory = ({_, $, Backbone}, eachSeries)->
 
             location.hash = '!' + hash
             window.location.hash = '#' + location.pathname + location.search + location.hash
-            element = document.getElementById(hash) or $("[name=#{hash}]")[0]
+            element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-])/g, '\\$1')}]")[0]
             element.scrollIntoView() if element
 
             return

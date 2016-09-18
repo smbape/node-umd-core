@@ -56,16 +56,10 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
         $(evt.currentTarget).closest('.layout').toggleClass 'layout-open-left'
         return
 
-    # from jquery touch swipe
-    SUPPORTS_TOUCH = 'ontouchstart' of window
-    SUPPORTS_POINTER_IE10 = window.navigator.msPointerEnabled and !window.navigator.pointerEnabled and !SUPPORTS_TOUCH
-    SUPPORTS_POINTER = (window.navigator.pointerEnabled or window.navigator.msPointerEnabled) and !SUPPORTS_TOUCH
-
-    useTouchEvents = SUPPORTS_TOUCH
-    START_EV = if useTouchEvents then (if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerDown' else 'pointerdown') else 'touchstart') else 'mousedown'
-    MOVE_EV = if useTouchEvents then (if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerMove' else 'pointermove') else 'touchmove') else 'mousemove'
-    END_EV = if useTouchEvents then (if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerUp' else 'pointerup') else 'touchend') else 'mouseup'
-    CANCEL_EV = if SUPPORTS_POINTER then (if SUPPORTS_POINTER_IE10 then 'MSPointerCancel' else 'pointercancel') else 'touchcancel'
+    START_EV = 'MSPointerDown pointerdown touchstart mousedown'
+    MOVE_EV = 'MSPointerMove pointermove touchmove mousemove'
+    END_EV = 'MSPointerUp pointerup touchend mouseup'
+    CANCEL_EV = 'MSPointerCancel pointercancel touchcancel mouseleave'
 
     $document.on 'click', '.layout > .layout__overlay', closeRightPanel
     $document.on 'click', '.layout > .layout__overlay', closeLeftPanel
@@ -84,9 +78,11 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
     userSelectJSPropertyName = if 'userSelect' of testElementStyle then 'userSelect' else 'webkitUserSelect'
     testElementStyle = null
 
-    END_EV = [END_EV, CANCEL_EV, userSelectJSPropertyName].join(' ')
-    MAX_TAN = Math.tan(35 * Math.PI / 180)
+    END_EV = [END_EV, CANCEL_EV].join(' ')
+    MAX_TAN = Math.tan(45 * Math.PI / 180)
     MAX_TEAR = 5
+
+    nativeCeil = Math.ceil
 
     class Layout extends AbstractModelComponent
         uid: 'Layout' + ('' + Math.random()).replace(/\D/g, '')
@@ -94,34 +90,43 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
         componentDidMount: ->
             @_updateWidth()
             super
+            return
+
+        attachEvents: ->
             $(window).on 'resize', @_updateWidth
+            if @$el
+                @$el.find('> .layout__left, > .layout__right').on START_EV, @onTouchStart
+                @$el.find('> .layout__left, > .layout__right').on MOVE_EV, @onTouchMove
+                @$el.find('> .layout__left, > .layout__right').on END_EV, @onTouchEnd
+            return
 
-            @getPosition = if useTouchEvents then @_getTouchPosition else @_getMousePosition
-
-            @$el.on START_EV, @onTouchStart
-            @$el.on MOVE_EV, @onTouchMove
-            @$el.on END_EV, @onTouchEnd
+        detachEvents: ->
+            if @$el
+                @$el.find('> .layout__left, > .layout__right').off START_EV, @onTouchStart
+                @$el.find('> .layout__left, > .layout__right').off MOVE_EV, @onTouchMove
+                @$el.find('> .layout__left, > .layout__right').off END_EV, @onTouchEnd
+            $(window).off 'resize', @_updateWidth
             return
 
         _getCurrentTarget: (evt)->
             data = evt.originalEvent or evt
             return if data.targetPanelHandled
             data.targetPanelHandled = true
-            $(evt.target).closest('.layout > .layout__left, .layout > .layout__right')
+            $(evt.currentTarget)
 
-        _getTouchPosition: (evt)->
-            x: evt.touches[0].clientX
-            y: evt.touches[0].clientY
-
-        _getMousePosition: (evt)->
-            x: evt.clientX
-            y: evt.clientY
+        getPosition: (evt)->
+            touches = evt.touches
+            if touches
+                x: touches[0].clientX
+                y: touches[0].clientY
+            else
+                x: evt.clientX
+                y: evt.clientY
 
         onTouchStart: (evt)=>
             # only care about single touch
-            if useTouchEvents
-                if evt.touches.length > 1
-                    return
+            if evt.touches && evt.touches.length isnt 1
+                return
 
             $target = @_getCurrentTarget(evt)
             return if not $target or not $target.length
@@ -130,6 +135,7 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
             @_panelState.target = $target[0]
             @_panelState.isLeft = $target.hasClass('layout__left')
             @_panelState.timerInit = new Date().getTime()
+            @_panelState.target.style.transition = 'none'
 
             @_inMove = false
             @_inVScroll = false
@@ -162,18 +168,15 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
                     @_panelState.diffX = -diffX
                     if diffX > MAX_TEAR
                         diffX = MAX_TEAR
-                    tx = "#{diffX}px"
+                    tx = "#{nativeCeil(diffX)}px"
                 else
                     @_panelState.diffX = diffX
                     if -diffX > MAX_TEAR
                         diffX = -MAX_TEAR
-                    tx = "calc(-100% + #{diffX}px)"
+                    tx = "calc(-100% + #{nativeCeil(diffX)}px)"
 
-                timerDiff = new Date().getTime() - timerInit
-                if timerDiff >= 200
-                    scrollContainer.style.overflow = 'hidden' if scrollContainer
-                    target.style.transition = 'none'
-                    target.style[transformJSPropertyName] = "translateX(#{tx})"
+                scrollContainer.style.overflow = 'hidden' if scrollContainer
+                target.style[transformJSPropertyName] = "translate3d(#{tx}, 0px, 0px)"
             return
 
         onTouchEnd: (evt)=>
@@ -181,22 +184,14 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
                 {x: startX, y: startY, isLeft, target, scrollContainer, diffX, timerInit} = @_panelState
                 if @_inMove
                     timerDiff = new Date().getTime() - timerInit
-                    if timerDiff < 200 or diffX > $(target).width() / 3
-                        @$el.removeClass if isLeft then 'layout-open-left' else 'layout-open-right'
+                    if (timerDiff < 200 and diffX > 0) or diffX > $(target).width() / 3
+                        @$el.removeClass('layout-open-left layout-open-right')
                 scrollContainer.style.overflow = '' if scrollContainer
                 target.style.transition = ''
                 target.style[transformJSPropertyName] = ''
                 @_panelState.target = null
                 @_panelState.scrollContainer = null
                 @_panelState = null
-            return
-
-        componentWillUnmount: ->
-            @$el.off START_EV, @onTouchStart
-            @$el.off MOVE_EV, @onTouchMove
-            @$el.off END_EV, @onTouchEnd
-            $(window).off 'resize', @_updateWidth
-            super()
             return
 
         _updateWidth: =>

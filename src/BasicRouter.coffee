@@ -57,7 +57,7 @@ factory = ({_, $, Backbone}, RouterEngine, qs)->
 
             if @current.location and location.pathname is @current.location.pathname and location.search is @current.location.search
                 if options.force
-                    Backbone.history.loadUrl location.pathname + location.search + location.hash
+                    Backbone.history.loadUrl location.pathname + location.search
                     return
 
                 location = @app.getLocation fragment

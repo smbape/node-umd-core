@@ -98,42 +98,45 @@ factory = ($)->
                 this.appendChild elem
             return
 
-    # # http://stackoverflow.com/questions/333634/http-head-request-in-javascript-ajax#333657
-    # urlExists = (url, callback) ->
-    #     http = new XMLHttpRequest()
-    #     http.open 'HEAD', url
+    {MaterialRipple} = window
+    if MaterialRipple
+        # delegated ripple effect
+        $(document).on 'mousedown touchstart mouseup mouseleave touchend blur', '.mdl-js-ripple-effect:not([data-upgraded]) .mdl-button__ripple-container', (evt)->
+            element_ = evt.currentTarget.parentNode
+            ripple = $.data element_, 'ripple'
 
-    #     http.onreadystatechange = ->
-    #         if @readyState is @DONE
-    #             callback @status is 200
-    #         return
+            if not ripple
+                ripple = new MaterialRipple(element_)
+                $.data element_, 'ripple', ripple
+                setRippleStyles = ripple.setRippleStyles
+                ripple.setRippleStyles = (start)->
+                    setRippleStyles.call this, start
+                    if this.frameCount_ is 0
+                        $.removeData this.element_, 'ripple'
 
-    #     http.send()
-    #     return
+                        this.element_.removeEventListener('mousedown', this.boundDownHandler)
+                        this.element_.removeEventListener('touchstart', this.boundDownHandler)
+                        this.element_.removeEventListener('mouseup', this.boundUpHandler)
+                        this.element_.removeEventListener('mouseleave', this.boundUpHandler)
+                        this.element_.removeEventListener('touchend', this.boundUpHandler)
+                        this.element_.removeEventListener('blur', this.boundUpHandler)
 
-    # # try a faster error notfication for url that doesn't exists
-    # if 'undefined' isnt typeof requirejs
-    #     load = requirejs.load
+                        # delete this.element_
+                        for own prop of this
+                            delete this[prop]
+                    return
 
-    #     requirejs.load = (context, moduleName, url) ->
-    #         config = (context and context.config) or {}
-    #         node = requirejs.createNode(config, moduleName, url)
-    #         node.setAttribute 'data-requirecontext', context.contextName
-    #         node.setAttribute 'data-requiremodule', moduleName
-    #         node.src = url
+            overridedEvt = {}
+            for prop of evt.originalEvent
+                overridedEvt[prop] = evt.originalEvent[prop]
+            overridedEvt.currentTarget = element_
 
-    #         urlExists node.src, (exists)->
-    #             if not exists
-    #                 evt = document.createEvent('Event')
-    #                 evt.initEvent('error', true, true)
-    #                 node.addEventListener('error', context.onScriptError, false)
-    #                 node.dispatchEvent(evt)
-    #                 return
+            switch evt.type
+                when 'mousedown', 'touchstart'
+                    ripple.downHandler_(overridedEvt)
+                when 'mouseup', 'mouseleave', 'touchend', 'blur'
+                    ripple.upHandler_(overridedEvt)
 
-    #             load context, moduleName, url
-    #             return
-
-    #         node
-    #         return
+            return
 
     return
