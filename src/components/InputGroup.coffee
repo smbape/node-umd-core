@@ -7,88 +7,124 @@ deps = [
 freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
     map = [].map
 
-    configs =
-        radio:
-            get: (binding)->
-                $(binding._node).find("input[type=radio]:checked").val()
-
-            setValue: (name)->
-                (value)->
-                    selected = false
-
-                    # for correct html behaviour, every radio name must have the same name
-                    @$el.find('input[type=radio]').each (index, element)->
-                        element.setAttribute 'name', name
-                        if not selected and element.value is value
-                            selected = true
-                            element.checked = true
-                        return
-
-                    return
-
-        checkbox:
-            get: (binding)->
-                map.call $(binding._node).find("input[type=checkbox]:checked"), (element)->
-                    element.value
-
-            setValue: (name)->
-                (value)->
-                    if Array.isArray @props.value
-                        value = @props.value.map (element)->
-                            '' + element
-                        @$el.find('input[type="checkbox"]').each (index, element)->
-                            element.setAttribute 'name', name
-                            if element.value in value
-                                element.checked = true
-                            else
-                                element.checked = false
-                            return
-
-                    else
-                        @$el.find('input[type="checkbox"]').each (index, element)->
-                            element.setAttribute 'name', name
-                            if element.value is value
-                                element.checked = true
-                            return
-
-                    return
-
     class InputGroup extends AbstractModelComponent
         uid: 'InputGroup' + ('' + Math.random()).replace(/\D/g, '')
 
-        constructor: (props)->
+        configs:
+            tristate:
+                get: (binding)->
+                    value = $(binding._node).find("input[type=radio]:checked").val()
+                    switch value
+                        when '1', 'true', 'on', 'yes', 't'
+                            return true
+                        when '0', 'false', 'off', 'no', 'f'
+                            return false
+                        else
+                            return null
 
-            # clone because we will modify props
-            props = _.clone props
+                setValue: (name)->
+                    (value)->
+                        selected = false
 
-            props.name = props.name or _.uniqueId @uid
-            if props.type is 'radio'
-                @type = props.type
+                        # for correct html behaviour, every radio name must have the same name
+                        @$el.find('input[type=radio]').each (index, element)->
+                            element.setAttribute 'name', name
+                            return if selected
+                            switch element.value
+                                when '1', 'true', 'on', 'yes', 't'
+                                    element.checked = value is true
+                                when '0', 'false', 'off', 'no', 'f'
+                                    element.checked = value is false
+                                else
+                                    element.checked = value in [null, undefined]
+                            return
+
+                        return
+
+            radio:
+                get: (binding)->
+                    $(binding._node).find("input[type=radio]:checked").val()
+
+                setValue: (name)->
+                    (value)->
+                        selected = false
+
+                        # for correct html behaviour, every radio name must have the same name
+                        @$el.find('input[type=radio]').each (index, element)->
+                            element.setAttribute 'name', name
+                            if not selected and element.value is value
+                                selected = true
+                                element.checked = true
+                            return
+
+                        return
+
+            checkbox:
+                get: (binding)->
+                    map.call $(binding._node).find("input[type=checkbox]:checked"), (element)->
+                        element.value
+
+                setValue: (name)->
+                    (value)->
+                        if Array.isArray @props.value
+                            value = @props.value.map (element)->
+                                '' + element
+
+                            @$el.find('input[type="checkbox"]').each (index, element)->
+                                element.setAttribute 'name', name
+                                if element.value in value
+                                    element.checked = true
+                                else
+                                    element.checked = false
+                                return
+
+                        else
+                            @$el.find('input[type="checkbox"]').each (index, element)->
+                                element.setAttribute 'name', name
+                                if element.value is value
+                                    element.checked = true
+                                return
+
+                        return
+
+        initialize: (props)->
+            props = @props
+
+            name = props.name or _.uniqueId(@uid + '_')
+
+            if props.type in ['radio', 'tristate', 'checkbox']
+                type = props.type
             else
-                @type = 'checkbox'
+                type = 'checkbox'
 
-            # type prop is only for us
-            delete props.type
+            @setValue = @configs[type].setValue(name)
 
-            @setValue = configs[@type].setValue(props.name)
-            super(props)
+            @state = { name, type }
+            return
 
         componentDidMount: ->
+            super
             @setValue @props.value
-            super()
             return
 
         componentDidUpdate: (prevProps, prevState)->
+            super
             @setValue @props.value
-            super(prevProps, prevState)
             return
 
-        render: -> `(<div {...this.props}/>)`
+        render: ->
+            props = _.clone @props
+
+            for prop in ['type', 'getValue', 'setValue']
+                delete props[prop]
+
+            React.createElement 'div', props
 
     # define 2 way binding behaviour
     InputGroup.getBinding = (binding, config)->
-        bconf = configs[config.type]
+        bconf = this.prototype.configs[config.type]
         binding.get = bconf.get
+        binding.getValue = config.getValue
 
         return binding
 

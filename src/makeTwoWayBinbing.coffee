@@ -10,6 +10,7 @@ freact = ({_, $})->
 
     emptyObject = (obj)->
         for own prop of obj
+            obj[prop] = null
             delete obj[prop]
 
         return
@@ -102,13 +103,13 @@ freact = ({_, $})->
                 if _ref instanceof AbstractModelComponent
                     _ref.shouldUpdate = true
                     if forceUpdate or onlyThis
-                        _ref._updateView()
+                        _ref._updateView(model, value, options)
 
                 if onlyThis
                     return
 
                 if owner
-                    owner._updateView()
+                    owner._updateView(model, value, options)
                 return
 
             __ref: (ref)->
@@ -148,29 +149,42 @@ freact = ({_, $})->
                 binding._attach binding
                 return
 
+        if type is AbstractModelComponent.MdlComponent
+            tagName = config.tagName
+        else
+            tagName = type
+
         if property
+            defaultValue = undefined
+            valueProp = undefined
+            initTagBinding = (type)->
+                switch type
+                    when 'input'
+                        if config.type is 'checkbox'
+                            valueProp = 'checked'
+                            defaultValue = false
+                            binding.get = (binding, evt)-> evt.target.checked
+                        else
+                            valueProp = 'value'
+                            binding.get = (binding, evt)-> evt.target.value
+                    when 'textarea', 'select', 'option', 'button', 'datalist', 'output'
+                        valueProp = 'value'
+                        binding.get = (binding, evt)-> evt.target.value
+                    else
+                        if config.contentEditable in ["true", true]
+                            valueProp = 'innerHTML'
+                            binding.get = (binding, evt)-> evt.target.innerHTML
+                return
+
             switch typeof type
                 when 'function'
-                    if 'function' is typeof type.getBinding
+                    if type is AbstractModelComponent.MdlComponent
+                        initTagBinding(tagName)
+                    else if 'function' is typeof type.getBinding
                         valueProp = 'value'
                         binding = type.getBinding binding, config
                 when 'string'
-                    switch type
-                        when 'input'
-                            if config.type is 'checkbox'
-                                valueProp = 'checked'
-                                defaultValue = false
-                                binding.get = (binding, evt)-> evt.target.checked
-                            else
-                                valueProp = 'value'
-                                binding.get = (binding, evt)-> evt.target.value
-                        when 'textarea', 'select', 'option', 'button', 'datalist', 'output'
-                            valueProp = 'value'
-                            binding.get = (binding, evt)-> evt.target.value
-                        else
-                            if config.contentEditable in ["true", true]
-                                valueProp = 'innerHTML'
-                                binding.get = (binding, evt)-> evt.target.innerHTML
+                    initTagBinding(type)
 
         binding.index = @_bindings.length
         binding.__ref = binding.__ref.bind binding
@@ -215,7 +229,7 @@ freact = ({_, $})->
             onChangeEvent = binding.onChangeEvent
 
             if not onChangeEvent
-                if type is 'input'
+                if tagName is 'input'
                     onInput = config.type isnt 'checkbox'
                 else
                     onInput = type is 'textarea' or config.contentEditable in ["true", true]

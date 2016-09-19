@@ -76,9 +76,9 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
 
             if collection isnt nextCollection
                 delete @_childNodeList
-            else if filter isnt nextFilter
+            else if filter isnt nextFilter and @getFilter(filter) isnt @getFilter(nextFilter)
                 delete @_childNodeList
-            else if order isnt nextOrder
+            else if order isnt nextOrder and @getComparator(order, reverse) isnt @getComparator(nextOrder, nextReverse)
                 ordered = @_setOrderedArray @_filtered, nextOrder, nextReverse
                 @_setNodeList ordered, nextLimit, nextOffset, nextChildNode
             else if reverse isnt nextReverse
