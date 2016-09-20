@@ -32,11 +32,11 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
                             return if selected
                             switch element.value
                                 when '1', 'true', 'on', 'yes', 't'
-                                    element.checked = value is true
+                                    selected = element.checked = value is true
                                 when '0', 'false', 'off', 'no', 'f'
-                                    element.checked = value is false
+                                    selected = element.checked = value is false
                                 else
-                                    element.checked = value in [null, undefined]
+                                    selected = element.checked = value in [null, undefined]
                             return
 
                         return
@@ -87,7 +87,7 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
 
                         return
 
-        initialize: (props)->
+        initialize: ->
             props = @props
 
             name = props.name or _.uniqueId(@uid + '_')
@@ -100,6 +100,12 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
             @setValue = @configs[type].setValue(name)
 
             @state = { name, type }
+            return
+
+        componentWillUpdate: (nextProps, nextState)->
+            super
+            if @props.name isnt nextProps.name
+                nextState.name = nextProps.name or @state.name
             return
 
         componentDidMount: ->
@@ -115,7 +121,7 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
         render: ->
             props = _.clone @props
 
-            for prop in ['type', 'getValue', 'setValue']
+            for prop in ['type']
                 delete props[prop]
 
             React.createElement 'div', props
@@ -124,7 +130,6 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
     InputGroup.getBinding = (binding, config)->
         bconf = this.prototype.configs[config.type]
         binding.get = bconf.get
-        binding.getValue = config.getValue
 
         return binding
 

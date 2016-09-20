@@ -112,7 +112,7 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
             }
 
         _setOrderedArray: (filtered, order, reverse)->
-            @_ordered = filtered.sort @getComparator order, reverse
+            @_ordered = filtered.slice().sort @getComparator order, reverse
 
         _setNodeList: (ordered, limit, start, childNode)->
             len = ordered.length
