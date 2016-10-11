@@ -65,6 +65,17 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
     # ================================
     # Internationalization
     # ================================
+    intComparator = (a, b)->
+        a = parseInt(a, 10)
+        b = parseInt(b, 10)
+        if a > b
+            return 1
+
+        if a < b
+            return -1
+
+        return 0
+
     i18nOptions =
         lng: 'en-GB'
         interpolation:
@@ -76,12 +87,13 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
             if not hasOwn.call(options, 'choice') or 'number' isnt typeof options.choice or not hasOwn.call(value, 'choice') or 'object' isnt typeof value.choice
                 return "key '#{@ns[0]}:#{key} (#{@lng})' returned an object instead of string."
 
-            keys = Object.keys value.choice
+            keys = Object.keys(value.choice).sort(intComparator)
             choice = keys[0]
             value = options.choice
-            for num in keys
+            for num, i in keys
+                num = parseInt(num, 10)
                 if value >= num
-                    choice = num
+                    choice = keys[i]
 
             i18n.t "#{key}.choice.#{choice}", options
 

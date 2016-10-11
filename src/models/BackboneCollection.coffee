@@ -19,34 +19,46 @@ factory = ({_, Backbone})->
         else
             0
 
-    byAttribute = (attr, order)->
+    byAttribute = byAttributes = (attrs, order)->
+        # way faster comparator function
         order = if order < 0 then -1 else 1
-        fn = (a, b)->
-            compareAttr a, b, attr, order
 
-        fn.attribute = attr
-        fn
+        if 'string' is typeof attrs
+            attrs = [attrs]
 
-    byAttributes = (attributes, order)->
-        order = if order < 0 then -1 else 1
-        if _.isArray attributes
-            attributes = _.map attributes, (attr, index)->
+        if _.isArray attrs
+            attrs = _.map attrs, (attr, index)->
                 if _.isArray attr
                     attr
                 else
                     [attr, order]
-        else if _.isObject attributes
-            attributes = _.map attributes, (attr, order)->
+        else if _.isObject attrs
+            attrs = _.map attrs, (attr, order)->
                 [attr, if order < 0 then -1 else 1]
         else
             return -> true
 
-        (a, b)->
-            for [attr, order] in attributes
-                if 0 isnt (res = compareAttr(a, b, attr, order))
-                    return res
+        if attrs.length is 1
+            ### jshint evil: true ###
+            return new Function 'a', 'b', 'return ' + compareAttr(attrs[0][0], attrs[0][1]) + ';'
+            ### jshint evil: false ###
 
-            0
+        blocks = ['var res = 0;']
+
+        for [attr, order] in attrs
+            res = compareAttr(attr, order)
+            blocks.push """
+            res = #{res};
+            if (res !== 0) {
+                return res;
+            }
+            """
+
+        blocks.push "return res;"
+
+        ### jshint evil: true ###
+        return new Function('a', 'b', blocks.join('\n\n'))
+        ### jshint evil: false ###
 
     reverse = (compare)->
         return compare.original if compare.reverse and compare.original

@@ -201,20 +201,7 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
                 el = ReactDOM.findDOMNode @
                 $el = $ el
 
-            parents = $el.parents('[class^=layout__],[class*= layout__]')
-
-            if parents.length is 0
-                @_doUpdateWitdh el, $el
-            else
-                # Wait until parents css animation is done
-                # TODO: find a way to avoid transition on resize
-                onTransitioned = (evt)=>
-                    clearTimeout timeout
-                    parents.off 'transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd', onTransitioned
-                    @_doUpdateWitdh el, $el
-                    return
-                timeout = setTimeout onTransitioned, parents.length * 250
-                parents.one 'transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd', onTransitioned
+            @_doUpdateWitdh el, $el
             return
 
         _doUpdateWitdh: (el, $el)->
