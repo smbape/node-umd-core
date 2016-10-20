@@ -3,19 +3,19 @@ deps = [
 ]
 
 factory = ({_, Backbone})->
-    hasOwn = {}.hasOwnProperty
-    slice = [].slice
+    hasOwn = Object::hasOwnProperty
+    slice = Array::slice
 
     compareAttr = (attr, order)->
-        iblocks = [
-            "left = a[#{JSON.stringify(attr)}];"
-            "right = b[#{JSON.stringify(attr)}];"
-            "res = left > right ? #{order} : left < right ? #{-order} : 0;"
-        ].join('')
+        """
+            left = a[#{JSON.stringify(attr)}];
+            right = b[#{JSON.stringify(attr)}];
+            res = left > right ? #{order} : left < right ? #{-order} : 0;
+        """
 
     byAttribute = byAttributes = (attrs, order)->
         # way faster comparator function
-        order = if order < 0 then -1 else 1
+        order = if order < 0 or order is true then -1 else 1
 
         if 'string' is typeof attrs
             attrs = [attrs]
@@ -32,17 +32,23 @@ factory = ({_, Backbone})->
         else
             return -> true
 
-        if attrs.length is 1
-            ### jshint evil: true ###
-            return new Function 'a', 'b', 'var left, right; return ' + compareAttr(attrs[0][0], attrs[0][1]) + ';'
-            ### jshint evil: false ###
+        blocks = ["""
+            var res, left, right;
 
-        blocks = ['var res = 0;']
+            if (a instanceof Backbone.Model) {
+                a = a.attributes;
+            }
+
+            if (b instanceof Backbone.Model) {
+                b = b.attributes;
+            }
+        """]
 
         for [attr, order] in attrs
-            res = compareAttr(attr, order)
             blocks.push """
-            res = #{res};
+            left = a[#{JSON.stringify(attr)}];
+            right = b[#{JSON.stringify(attr)}];
+            res = left > right ? #{order} : left < right ? #{-order} : 0;
             if (res !== 0) {
                 return res;
             }
@@ -336,6 +342,9 @@ factory = ({_, Backbone})->
             return
 
         indexOf: (model, options)->
+            size = @length
+            return -1 if not size
+
             if compare = @comparator
                 if options?.loose
                     if _model = @get model
@@ -347,12 +356,9 @@ factory = ({_, Backbone})->
                 mid = index = binaryIndexOf model, @models, compare
                 return index if index is -1 or model is @models[index]
 
-                size = @length
-
-                if (index + 1) isnt size
-                    while index < size and model isnt @models[index] and compare(model, @models[++index]) is 0
-                        true
-                    return index if @models[index] is model
+                while model isnt @models[index] and (index + 1) < size and compare(model, @models[index + 1]) is 0
+                    index++
+                return index if @models[index] is model
 
                 if mid isnt 0
                     index = mid - 1
@@ -384,7 +390,6 @@ factory = ({_, Backbone})->
             if remove
                 toRemove = @clone()
 
-            timerInit = new Date().getTime()
             for model in models
                 if existing = @get model
                     hasChanged = false
@@ -408,10 +413,10 @@ factory = ({_, Backbone})->
                                 actions.push ['remove', existing, opts.remove]
                         else
                             res.push existing
-                        continue
                     else
                         res.push existing
-                        continue
+
+                    continue
 
                 continue if not add
 
