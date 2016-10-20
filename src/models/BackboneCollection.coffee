@@ -6,18 +6,12 @@ factory = ({_, Backbone})->
     hasOwn = {}.hasOwnProperty
     slice = [].slice
 
-    compareAttr = (a, b, attr, order)->
-        if a instanceof Backbone.Model
-            a = a.attributes
-        if b instanceof Backbone.Model
-            b = b.attributes
-
-        if a[attr] > b[attr]
-            order
-        else if a[attr] < b[attr]
-            -order
-        else
-            0
+    compareAttr = (attr, order)->
+        iblocks = [
+            "left = a[#{JSON.stringify(attr)}];"
+            "right = b[#{JSON.stringify(attr)}];"
+            "res = left > right ? #{order} : left < right ? #{-order} : 0;"
+        ].join('')
 
     byAttribute = byAttributes = (attrs, order)->
         # way faster comparator function
@@ -40,7 +34,7 @@ factory = ({_, Backbone})->
 
         if attrs.length is 1
             ### jshint evil: true ###
-            return new Function 'a', 'b', 'return ' + compareAttr(attrs[0][0], attrs[0][1]) + ';'
+            return new Function 'a', 'b', 'var left, right; return ' + compareAttr(attrs[0][0], attrs[0][1]) + ';'
             ### jshint evil: false ###
 
         blocks = ['var res = 0;']

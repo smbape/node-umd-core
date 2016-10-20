@@ -1,11 +1,10 @@
 deps = [
-    'application'
     'umd-core/src/common'
     'umd-core/src/GenericUtil'
     'umd-core/src/components/AbstractModelComponent'
 ]
 
-freact = (app, {_, Backbone}, {DOMUtil}, AbstractModelComponent)->
+freact = ({_, Backbone}, {DOMUtil}, AbstractModelComponent)->
     ### globals grecaptcha: false ###
     loading = false
     loaded = false
@@ -97,7 +96,14 @@ freact = (app, {_, Backbone}, {DOMUtil}, AbstractModelComponent)->
             `<span className="clearfix" />`
 
     Recaptcha.init = ->
+        app = require('application')
+        return if not app
+
         return if loading
+
+        lng = app.get('language')
+        app.on 'change:language', Recaptcha.reset, Recaptcha
+
         loading = true
         loaded = false
         callbackId = 'onloadCallback_' + new Date().getTime()
@@ -107,15 +113,18 @@ freact = (app, {_, Backbone}, {DOMUtil}, AbstractModelComponent)->
             emitter.trigger 'ready'
             return
 
-        lng = app.get('language')
         depsLoader.loadScript "https://www.google.com/recaptcha/api.js?onload=#{callbackId}&render=explicit&hl=#{lng}",
             async: true
             defer: true
         return
 
     Recaptcha.reset = ->
+        app = require('application')
+        return if not app
+
         loading = false
         loaded = false
+        app.off 'change:language', Recaptcha.reset, Recaptcha
         Recaptcha.init()
         return
 
@@ -127,7 +136,5 @@ freact = (app, {_, Backbone}, {DOMUtil}, AbstractModelComponent)->
                 grecaptcha.getResponse instance.widgetId
 
         binding
-
-    app.on 'change:language', Recaptcha.reset, Recaptcha
 
     Recaptcha

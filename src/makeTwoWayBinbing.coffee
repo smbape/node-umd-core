@@ -244,31 +244,24 @@ freact = ({_, $})->
             if 'function' is typeof props[onChangeEvent]
                 onChange = props[onChangeEvent]
                 props[onChangeEvent] = ->
-                    __onChange.apply undefined, arguments
-                    onChange.apply undefined, arguments
+                    __onChange.apply @, arguments
+                    onChange.apply @, arguments
                     return
             else
                 props[onChangeEvent] = __onChange
 
-        # TODO : Find a way to avoid new element.ref function
-        # if model+events didn't change
+        # TODO : Find a way to avoid new element.ref function if model+events didn't change
         switch typeof element.ref
             when 'function'
                 ref = element.ref
                 __ref = binding.__ref
                 element.ref = ->
-                    __ref.apply undefined, arguments
-                    ref.apply undefined, arguments
+                    __ref.apply @, arguments
+                    ref.apply @, arguments
                     return
             when 'string'
                 # TODO : find a way to deal with string ref
                 console.error 'string ref is not yet supported with 2 way binding'
-                # ref = this.setRef element.ref
-                # __ref = binding.__ref
-                # element.ref = ->
-                #     __ref.apply undefined, arguments
-                #     ref.apply undefined, arguments
-                #     return
             when 'undefined'
                 element.ref = binding.__ref
             when 'object'
