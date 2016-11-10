@@ -25,22 +25,13 @@
     "i18next": "^3.4.1",
     "jquery": "^3.1.0",
     "lodash": "^4.13.1",
-    "qs": "git+https://github.com/hapijs/qs#^6.2.1",
-    "react": "^15.2.1"
+    "qs": "git+https://github.com/hapijs/qs#^6.2.1"
   },
   "overrides": {
     "backbone": {
       "dependencies": {
         "jquery": "*",
         "lodash": "*"
-      }
-    },
-    "react": {
-      "main": [
-        "react.min.js"
-      ],
-      "map": {
-        "react-dom.min.js": "react-dom"
       }
     }
   }
