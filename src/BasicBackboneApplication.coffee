@@ -191,8 +191,10 @@ factory = ({_, $, Backbone}, eachSeries)->
             hash = hash.substring(1)
 
             if window.location.hash is '#' + hash
-                element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-])/g, '\\$1')}]")[0]
-                element.scrollIntoView() if element
+                element = document.getElementById(hash)
+                if not element and hash
+                    element = $("[name=#{ hash.replace(/([^\w\-])/g, '\\$1') }]")[0]
+                    element.scrollIntoView() if element
             else
                 window.location.hash = '#' + hash
 
@@ -208,10 +210,12 @@ factory = ({_, $, Backbone}, eachSeries)->
             hash = hash.substring(1)
 
             location.hash = '!' + hash
-            window.location.hash = '#' + location.pathname + location.search + location.hash
-            element = document.getElementById(hash) or $("[name=#{hash.replace(/([^\w\-])/g, '\\$1')}]")[0]
+            element = document.getElementById(hash)
+            if not element and hash
+                element = $("[name=#{ hash.replace(/([^\w\-])/g, '\\$1') }]")[0]
             element.scrollIntoView() if element
 
+            window.location.hash = '#' + location.pathname + location.search + location.hash
             return
 
         _listenHrefClick: ->
@@ -256,11 +260,16 @@ factory = ({_, $, Backbone}, eachSeries)->
                         app.setLocationHash href
                         return
 
-                    hash = href.substring 1
-                    if document.getElementById(hash) or $("[name=#{hash.replace(/([\\\/])/g, '\\$1')}]")[0]
-                        evt.preventDefault()
-                        app.setLocationHash href
-                        return
+                    hash = href.substring(1)
+                    if hash
+                        element = document.getElementById(hash)
+                        if not element
+                            element = $("[name=#{ hash.replace(/([^\w\-])/g, '\\$1') }]")[0]
+
+                        if element
+                            evt.preventDefault()
+                            app.setLocationHash href
+                            return
 
                 # Get the absolute root path
                 root = window.location.protocol + '//' + window.location.host + appConfig.baseUrl
