@@ -19,6 +19,14 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
+        # TODO :
+        # on owner render return
+        # get all elements with spModel
+        # for each element
+        # compare props, nextProps
+        # => need for every sub tag/Component
+        # beforeRender(vnode, prevVnode)
+
         {spModel: model, validate, forceUpdate, onlyThis} = config
 
         if 'string' is typeof model
@@ -47,7 +55,7 @@ freact = ({_, $})->
 
         if 'string' is typeof property
             if 'string' is typeof events and events.length > 0
-                events = "change:#{property}" + events
+                events = events.map((type)-> "#{type}:#{property}").join(' ')
             else
                 events = "change:#{property}"
 
@@ -251,6 +259,9 @@ freact = ({_, $})->
                 props[onChangeEvent] = __onChange
 
         # TODO : Find a way to avoid new element.ref function if model+events didn't change
+        if element.preactCompatNormalized
+            element = element.attributes
+
         switch typeof element.ref
             when 'function'
                 ref = element.ref

@@ -8,11 +8,13 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     slice = Array::slice
     hasOwn = Object::hasOwnProperty
 
+    randomString = -> ('' + Math.random()).replace(/\D/g, '')
+
     createElement = React.createElement
     React.createElement = (type, config)->
         args = slice.call arguments
 
-        if window.componentHandler and config and not config.mdlIgnore and 'string' is typeof type and /(?:^|\s)mdl-/.test config.className
+        if componentHandler and config and not config.mdlIgnore and 'string' is typeof type and /(?:^|\s)mdl-/.test config.className
             # dynamic mdl component creation
             # TODO: create a hook system to allow more dynamic components creation
             config = _.defaults {tagName: type, mdlIgnore: true}, config
@@ -39,7 +41,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         return element
 
     class AbstractModelComponent extends React.Component
-        uid: 'AbstractModelComponent' + ('' + Math.random()).replace(/\D/g, '')
+        uid: 'AbstractModelComponent' + randomString()
 
         constructor: ->
             super
@@ -70,6 +72,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         initialize: ->
 
         componentWillMount: ->
+            `return`
+            return
 
         componentDidMount: ->
             @el = ReactDOM.findDOMNode @
@@ -78,6 +82,8 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         componentWillReceiveProps: (nextProps)->
+            `return;`
+            return
 
         shouldComponentUpdate: (nextProps, nextState)->
             @shouldUpdate = @shouldUpdate or !_.isEqual(@state, nextState) or !_.isEqual(@props, nextProps)
@@ -120,6 +126,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         componentWillUnmount: ->
+            id = @id
             if @_bindings
                 for binding in @_bindings
                     binding._detach binding
@@ -129,7 +136,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             # remove every references
             for own prop of @
                 switch prop
-                    when 'props', 'state', 'refs', 'context', 'updater', '_reactInternalInstance'
+                    when React.expando, 'id', 'props', 'refs', '_reactInternalInstance'
                         continue
 
                 delete @[prop]
@@ -157,19 +164,19 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         _updateView: ->
             return if @_updating
             @shouldUpdate = true
-            if @_reactInternalInstance
+            if @el
                 @_updating = true
                 state = {}
-                state[@uid] = new Date().getTime()
+                state[@uid] = randomString()
                 @setState state
             return
 
         _updateOwner: ->
             @shouldUpdate = true
 
-            if @_reactInternalInstance
+            if @el
                 state = {}
-                state[@uid] = new Date().getTime()
+                state[@uid] = randomString()
                 if owner = @_reactInternalInstance._currentElement._owner?._instance
                     owner.setState state
                 else
@@ -295,11 +302,12 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
         args = [type, props]
         if _.isArray children
-            for child, i in children
-                children[i] = deepCloneElement child
+            # for child, i in children
+            #     children[i] = deepCloneElement child
             args.push.apply args, children
         else
-            args.push deepCloneElement children
+            # args.push deepCloneElement children
+            args.push children
 
         return React.createElement.apply React, args
 
