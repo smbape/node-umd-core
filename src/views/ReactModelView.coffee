@@ -73,8 +73,8 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
     _render = (element, {mediator, container})->
         (done)->
             if 'function' is typeof done
-                mediator.once 'mount', ->
-                    done null, element
+                mediator.once 'mount', (instance)->
+                    done null, element, instance
                     return
 
             mediator.once 'instance', (component)->
@@ -92,9 +92,9 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
 
     class Element
         constructor: (Component, props)->
-            {mediator, container} = props
+            { container } = props
             mediator = _.extend {}, Backbone.Events
-            @props = props = _.extend {mediator}, props
+            @props = props = _.extend { mediator }, props
 
             if not container
                 throw new Error 'container must be defined'

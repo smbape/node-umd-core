@@ -72,7 +72,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         initialize: ->
 
         componentWillMount: ->
-            `return`
             return
 
         componentDidMount: ->
@@ -82,7 +81,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             return
 
         componentWillReceiveProps: (nextProps)->
-            `return;`
             return
 
         shouldComponentUpdate: (nextProps, nextState)->

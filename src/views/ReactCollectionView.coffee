@@ -225,11 +225,14 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 # ignore bubbled events
                 return false
 
-            {index, from} = options
+            {from, index} = options
+
             childNodeList = @childNodeList()
+
             childNode = childNodeList[from]
             childNodeList.splice from, 1
             childNodeList.splice index, 0, childNode
+
             @_updateView() if not options.silentView
             return
 
