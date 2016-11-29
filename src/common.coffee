@@ -1,8 +1,8 @@
 deps = [
-    {amd: 'lodash', common: '!_', node: 'lodash'}
-    {amd: 'jquery', common: '!jQuery'}
-    {amd: 'backbone', common: '!Backbone', node: 'backbone'}
-    {amd: 'i18next', common: '!i18next'}
+    {amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}
+    {amd: 'jquery', common: 'jquery', brunch: '!jQuery'}
+    {amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}
+    {amd: 'i18next', common: 'i18next', brunch: '!i18next'}
 ]
 
 factory = (_, $, Backbone, i18n)->

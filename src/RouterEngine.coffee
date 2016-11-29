@@ -1,5 +1,5 @@
 deps = [
-    {node: 'lodash', common: '!_', amd: 'lodash'}
+    {amd: 'lodash', common: 'lodash', node: 'lodash', brunch: '!_'}
     './GenericUtil'
     './QueryString'
 ]

@@ -1,7 +1,7 @@
 deps = [
-    {amd: 'lodash', common: '!_', node: 'lodash'}
-    {amd: 'jquery', common: '!jQuery'}
-    {amd: 'backbone', common: '!Backbone'}
+    {amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}
+    {amd: 'jquery', common: 'jquery', brunch: '!jQuery'}
+    {amd: 'backbone', brunch: '!Backbone'}
     '../eachSeries'
     '../ExpressionParser'
     '../patch'

@@ -1,6 +1,6 @@
 deps = [
     'umd-core/src/common'
-    {amd: 'i18next', common: '!i18next'}
+    {amd: 'i18next', common: 'i18next', brunch: '!i18next'}
     'umd-core/src/BasicRouter'
     'umd-core/src/RouterEngine'
     './resources'

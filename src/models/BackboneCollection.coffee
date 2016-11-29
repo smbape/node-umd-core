@@ -333,9 +333,15 @@ factory = ({ _, Backbone, $ })->
         if options
             { overrides } = options
 
-        model = models[index]
-        if overrides and overrides[model.cid]
-            model = overrides[model.cid]
+        if index is -1
+            model = options.model if options
+        else
+            model = models[index]
+
+        if model
+            if overrides and overrides[model.cid]
+                model = overrides[model.cid]
+
         if index is -1 or compare(model, value) is 0
             return index
 
@@ -561,7 +567,7 @@ factory = ({ _, Backbone, $ })->
                     _model.set model
             _model
 
-        _onChange: (model, options)->
+        _onChange: (model, collection, options)->
             if model isnt @
                 @_ensureEntegrity model, options
             return
@@ -624,7 +630,7 @@ factory = ({ _, Backbone, $ })->
 
                     overrides = {}
                     overrides[model.cid] = model._previousAttributes
-                    index = binarySearch model._previousAttributes, models, compare, _.defaults({overrides}, options)
+                    index = binarySearch model._previousAttributes, models, compare, _.defaults({overrides, model: _model}, options)
 
                     # if models[index] is _model
                     #     return index
@@ -839,7 +845,7 @@ factory = ({ _, Backbone, $ })->
 
                 @parent.on 'add', @._onAdd = (model, collection, options)->
                     if not @destroyed and collection is @parent
-                        proto.add.call @, model, _.defaults {bubble: 0}, options
+                        proto.add.call @, model, _.defaults {bubble: 0, sort: true}, options
                     return
                 , @
 

@@ -1,5 +1,5 @@
 deps = [
-    {amd: 'lodash', common: '!_', node: 'lodash'}
+    {amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}
     '../lib/acorn'
 ]
 

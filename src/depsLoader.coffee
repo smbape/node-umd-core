@@ -5,11 +5,11 @@
         module.exports = factory()
     else if typeof define is 'function' and define.amd
         # AMD
-        define ['./path-browserify'], factory
+        define [], factory
     else
-        root.depsLoader = factory root.pathBrowserify
+        root.depsLoader = factory()
     return
-) this, (path)->
+) this, ->
     'use strict'
 
     isObject = (obj)->
@@ -21,6 +21,48 @@
                 target[prop] = src[prop]
         target
 
+    _processCommonDep = (require, type, dep, global, libs, errors)->
+        if dep is null or typeof dep is 'undefined'
+            libs.push null
+            return
+
+        switch dep.charAt(0)
+            when '!'
+                # global depency requested
+                throw 'global scope is not defined' if not global
+                libs.push global[dep.substring(1)]
+            when '$'
+                # Ignore dependency. To use with angular as an example
+                libs.push null
+            else
+                if errors
+                    try
+                        libs.push require dep
+                    catch ex
+                        throw ex if typeof errback isnt 'function'
+                        errors.push ex
+                else
+                    libs.push require dep
+
+        return
+
+    _commonRequireDeps = (require, type, deps, global, libs, errors)->
+        for dep in deps
+            if isObject dep
+                if Array.isArray type
+                    found = null
+                    for name in type
+                        if hasProp.call(dep, name)
+                            found = dep[name]
+                            break
+                    dep = found
+                else
+                    dep = dep[type]
+
+            _processCommonDep require, type, dep, global, libs, errors
+
+        return libs
+
     # Module definition for Common Specification
     commonSpecDefine = (require, type, deps, factory, global)->
         deps = [] if typeof deps is 'undefined'
@@ -31,30 +73,7 @@
 
         libs = [localRequire]
 
-        _processDep = (dep)->
-            if typeof dep is 'undefined'
-                libs.push null
-                return
-
-            switch dep.charAt(0)
-                when '!'
-                    # global depency requested
-                    throw 'global scope is not defined' if not global
-                    libs.push global[dep.substring(1)]
-                when '$'
-                    # Ignore dependency. To use with angular as an example
-                    libs.push null
-                else
-                    libs.push require dep
-
-            return
-
-
-        for dep in deps
-            if typeof dep is 'string'
-                _processDep dep
-            else if isObject dep
-                _processDep dep[type]
+        _commonRequireDeps(require, type, deps, global, libs)
 
         factory.apply global, libs
 
@@ -66,43 +85,42 @@
             deps = []
         libs = []
         errors = []
-        hasError = false
 
-        _processDep = (dep)->
-            if typeof dep is 'undefined'
-                libs.push null
-                return
+        _commonRequireDeps(require, type, deps, global, libs, errors)
 
-            switch dep.charAt(0)
-                when '!'
-                    # global depency requested
-                    throw 'global scope is not defined' if not global
-                    libs.push global[dep.substring(1)]
-                when '$'
-                    # Ignore dependency. To use with angular as an example
-                    libs.push null
-                else
-                    try
-                        libs.push require dep
-                    catch ex
-                        throw ex if typeof errback isnt 'function'
-                        hasError = true
-                        errors.push ex
-
-            return
-
-        for dep in deps
-            if typeof dep is 'string'
-                _processDep dep
-            else if isObject dep
-                _processDep dep[type]
-
-        if hasError
+        if errors.length isnt 0
             errback.apply global, errors
         else if typeof callback is 'function'
             callback.apply global, libs
         else if deps.length is 1
             libs[0]
+
+    _processAmdDep = (global, libs, availables, map, dep, index, tries)->
+        if typeof dep is 'undefined'
+            availables[index] = null
+            return
+
+        if typeof dep is 'string'
+            switch dep.charAt(0)
+                when '!'
+                    # global depency requested
+                    throw 'global scope is not defined' if not global
+                    availables[index] = global[dep.substring(1)]
+                when '$'
+                    # Ignore dependency. To use with angular as an example
+                    availables[index] = null
+                else
+                    if tries
+                        try
+                            availables[index] = require dep
+                        catch ex
+                            map[libs.length] = index
+                            libs.push dep
+                    else
+                        map[libs.length] = index
+                        libs.push dep
+
+        return
 
     amdDefine = (name, deps, factory, global)->
         if arguments.length is 3
@@ -116,30 +134,11 @@
         availables = []
         map = {}
 
-        _processDep = (dep, index)->
-            if typeof dep is 'undefined'
-                availables[index] = null
-                return
-
-            if typeof dep is 'string'
-                switch dep.charAt(0)
-                    when '!'
-                        # global depency requested
-                        throw 'global scope is not defined' if not global
-                        availables[index] = global[dep.substring(1)]
-                    when '$'
-                        # Ignore dependency. To use with angular as an example
-                        availables[index] = null
-                    else
-                        map[libs.length] = index
-                        libs.push dep
-            return
-
         for dependency, index in deps
             if typeof dependency is 'string'
-                _processDep dependency, index + 1
+                _processAmdDep(global, libs, availables, map, dependency, index + 1)
             else if isObject dependency
-                _processDep dependency.amd, index + 1
+                _processAmdDep(global, libs, availables, map, dependency.amd, index + 1)
 
         callback = (require)->
             for index in [1...arguments.length] by 1
@@ -166,34 +165,11 @@
         availables = []
         map = {}
 
-        _processDep = (dep, index)->
-            if typeof dep is 'undefined'
-                availables[index] = null
-                return
-
-            if typeof dep is 'string'
-                switch dep.charAt(0)
-                    when '!'
-                        # global depency requested
-                        throw 'global scope is not defined' if not global
-                        availables[index] = global[dep.substring(1)]
-                    when '$'
-                        # Ignore dependency. To use with angular as an example
-                        availables[index] = null
-                    else
-                        try
-                            availables[index] = require dep
-                        catch ex
-                            map[libs.length] = index
-                            libs.push dep
-
-            return
-
         for dependency, index in deps
             if typeof dependency is 'string'
-                _processDep dependency, index
+                _processAmdDep(global, libs, availables, map, dependency, index)
             else if isObject dependency
-                _processDep dependency.amd, index
+                _processAmdDep(global, libs, availables, map, dependency.amd, index)
 
         if typeof callback isnt 'function' and deps.length is 1
             return availables[0]
@@ -208,25 +184,11 @@
         , errback
         return
 
-    # For bower component files that has AMD definition and requires relative paths
-    localDefine = (workingFile)->
-        fn = (deps)->
-            if Array.isArray deps
-                for dep, index in deps
-                    if dep.charAt(0) is '.'
-                        dep = path.resolve workingFile, dep
-                        deps[index] = dep
-
-            define.apply null, arguments
-        fn.amd = define.amd
-        fn
-
     exports =
         common: commonSpecDefine
         amd: amdDefine
-        define: localDefine
 
-    has = Object::hasOwnProperty
+    hasProp = Object::hasOwnProperty
 
     exports.createNgModule = (angular, name, ngdeps, ngmap, resolvedDeps)->
         toRegister = []
@@ -266,7 +228,7 @@
             app.dependencies or (app.dependencies = {})
             app.dependencies[ngmethod] or (app.dependencies[ngmethod] = {})
 
-            if !has.call(app.dependencies[ngmethod], name)
+            if !hasProp.call(app.dependencies[ngmethod], name)
                 # first instruction to prevent infinite loop with recursion
                 app.dependencies[ngmethod][name] = true
 
@@ -465,19 +427,6 @@
             , attributes
             load attributes, callback, errback, completeback
             return
-
-        # exports.shim = shim = (name, options)->
-        #     if typeof define is 'function' and define.amd
-        #         config =
-        #             path: {}
-        #             shim: {}
-
-        #         config.path[name] = options.paths
-        #         config.shim[name] = options.shim
-
-        #         requirejs.config config
-
-        #     return
 
     browserExtend exports
     return exports

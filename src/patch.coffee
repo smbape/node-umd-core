@@ -1,5 +1,5 @@
 deps = [
-    {amd: 'jquery', common: '!jQuery'}
+    {amd: 'jquery', common: 'jquery', brunch: '!jQuery'}
 ]
 
 factory = ($)->

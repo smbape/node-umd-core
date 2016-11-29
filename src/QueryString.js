@@ -1,6 +1,7 @@
 deps = [{
     amd: 'qs',
-    common: '!Qs'
+    common: 'qs',
+    brunch: '!Qs'
 }];
 
 function factory(require, QueryString) {
