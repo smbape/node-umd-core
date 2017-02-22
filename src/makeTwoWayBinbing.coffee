@@ -19,14 +19,6 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
-        # TODO :
-        # on owner render return
-        # get all elements with spModel
-        # for each element
-        # compare props, nextProps
-        # => need for every sub tag/Component
-        # beforeRender(vnode, prevVnode)
-
         {spModel: model, validate, forceUpdate, onlyThis} = config
 
         if 'string' is typeof model
@@ -252,9 +244,9 @@ freact = ({_, $})->
             if 'function' is typeof props[onChangeEvent]
                 onChange = props[onChangeEvent]
                 props[onChangeEvent] = ->
+                    res = onChange.apply @, arguments
                     __onChange.apply @, arguments
-                    onChange.apply @, arguments
-                    return
+                    return res
             else
                 props[onChangeEvent] = __onChange
 

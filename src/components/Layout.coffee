@@ -56,10 +56,16 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
         $(evt.currentTarget).closest('.layout').toggleClass 'layout-open-left'
         return
 
-    START_EV = 'MSPointerDown pointerdown touchstart mousedown'
-    MOVE_EV = 'MSPointerMove pointermove touchmove mousemove'
-    END_EV = 'MSPointerUp pointerup touchend mouseup'
-    CANCEL_EV = 'MSPointerCancel pointercancel touchcancel mouseleave'
+    START_EV = 'touchstart mousedown MSPointerDown pointerdown'
+    MOVE_EV = 'touchmove mousemove MSPointerMove pointermove'
+    END_EV = 'touchend mouseup MSPointerUp pointerup'
+    CANCEL_EV = 'touchcancel mouseleave MSPointerCancel pointercancel'
+
+    START_EV_MAP =
+        touchstart: /^touch/
+        mousedown: /^mouse/
+        MSPointerDown: /^MSPointer/
+        pointerdown: /^pointer/
 
     $document.on 'click', '.layout > .layout__overlay', closeRightPanel
     $document.on 'click', '.layout > .layout__overlay', closeLeftPanel
@@ -124,19 +130,29 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
                 y: evt.clientY
 
         onTouchStart: (evt)=>
+            if @_moveState
+                # touchevents are more reliable that pointer events on Chrome 55-56
+                if evt.type is "touchstart" and @_moveState.type isnt evt.type
+                    @_moveState.type = evt.type
+                    @_moveState.regex = START_EV_MAP[evt.type]
+                return
+
             # only care about single touch
-            if evt.touches && evt.touches.length isnt 1
+            if evt.touches and evt.touches.length isnt 1
                 return
 
             $target = @_getCurrentTarget(evt)
             return if not $target or not $target.length
 
-            @_panelState = @getPosition(evt)
-            @_panelState.target = $target[0]
-            @_panelState.isLeft = $target.hasClass('layout__left')
-            @_panelState.timerInit = new Date().getTime()
-            @_panelState.target.style.transition = 'none'
+            @_moveState = _.extend @getPosition(evt), {
+                type: evt.type
+                regex: START_EV_MAP[evt.type]
+                target: $target[0]
+                isLeft: $target.hasClass('layout__left')
+                timerInit: new Date().getTime()
+            }
 
+            @_moveState.target.style.transition = 'none'
             @_inMove = false
             @_inVScroll = false
 
@@ -146,12 +162,15 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
                 scrollContainer = scrollContainer.parentNode
 
             if scrollContainer isnt document.body
-                @_panelState.scrollContainer = scrollContainer
+                @_moveState.scrollContainer = scrollContainer
             return
 
         onTouchMove: (evt)=>
-            if not @_inVScroll and @_panelState and @el.getAttribute('data-width') is 'small'
-                {x: startX, y: startY, isLeft, target, scrollContainer, timerInit} = @_panelState
+            if not @_moveState or not @_moveState.regex.test(evt.type)
+                return
+
+            if not @_inVScroll and @el.getAttribute('data-width') is 'small'
+                {x: startX, y: startY, isLeft, target, scrollContainer, timerInit} = @_moveState
                 {x, y} = @getPosition(evt)
                 diffX = x - startX
                 diffY = y - startY
@@ -160,38 +179,42 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
 
                 if not @_inMove and (aDiffX is 0 or MAX_TAN < (aDiffY / aDiffX))
                     @_inVScroll = true
-                    @onTouchEnd evt
+                    @onTouchEnd evt, true
                     return
 
                 @_inMove = true
                 if isLeft
-                    @_panelState.diffX = -diffX
+                    @_moveState.diffX = -diffX
                     if diffX > MAX_TEAR
                         diffX = MAX_TEAR
-                    tx = "#{nativeCeil(diffX)}px"
+                    tx = "translateX(#{nativeCeil(diffX)}px)"
                 else
-                    @_panelState.diffX = diffX
+                    @_moveState.diffX = diffX
                     if -diffX > MAX_TEAR
                         diffX = -MAX_TEAR
-                    tx = "calc(-100% + #{nativeCeil(diffX)}px)"
+                    tx = "translateX(-100%) translateX(#{nativeCeil(diffX)}px)"
 
                 scrollContainer.style.overflow = 'hidden' if scrollContainer
-                target.style[transformJSPropertyName] = "translate3d(#{tx}, 0px, 0px)"
+                console.log(transformJSPropertyName, tx)
+                target.style[transformJSPropertyName] = tx
             return
 
-        onTouchEnd: (evt)=>
-            if @_panelState
-                {x: startX, y: startY, isLeft, target, scrollContainer, diffX, timerInit} = @_panelState
-                if @_inMove
-                    timerDiff = new Date().getTime() - timerInit
-                    if (timerDiff < 200 and diffX > 0) or diffX > $(target).width() / 3
-                        @$el.removeClass('layout-open-left layout-open-right')
-                scrollContainer.style.overflow = '' if scrollContainer
-                target.style.transition = ''
-                target.style[transformJSPropertyName] = ''
-                @_panelState.target = null
-                @_panelState.scrollContainer = null
-                @_panelState = null
+        onTouchEnd: (evt, fromMove)=>
+            if not @_moveState or (not fromMove and not @_moveState.regex.test(evt.type))
+                return
+
+            {x: startX, y: startY, isLeft, target, scrollContainer, diffX, timerInit} = @_moveState
+            if @_inMove
+                timerDiff = new Date().getTime() - timerInit
+                if (timerDiff < 200 and diffX > 0) or diffX > $(target).width() / 3
+                    @$el.removeClass('layout-open-left layout-open-right')
+            scrollContainer.style.overflow = '' if scrollContainer
+            target.style.transition = ''
+            target.style[transformJSPropertyName] = ''
+            @_moveState.target = null
+            @_moveState.scrollContainer = null
+            @_moveState = null
+
             return
 
         _updateWidth: =>

@@ -57,14 +57,17 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
                 el.style[transitionJSPropertyName] = 'initial'
                 el.style.opacity = 0
                 @transform = el.style[transformJSPropertyName] = "translate3d( #{tx}px, #{ty}px, 0 ) scale( #{sx}, #{sy} )"
+
             el.showModal()
-            if options
+
+            if options?.from
                 el.style[transitionJSPropertyName] = ''
                 el.style[transformJSPropertyName] = ''
                 el.style.opacity = 1
 
             if @props.onOpen
                 @props.onOpen()
+
             return
 
         close: (options)->

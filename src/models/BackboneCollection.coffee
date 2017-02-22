@@ -33,6 +33,7 @@ factory = ({ _, Backbone, $ })->
             return -> true
 
         blocks = ["""
+            "use strict";
             var res, left, right;
 
             if (a instanceof Backbone.Model) {
