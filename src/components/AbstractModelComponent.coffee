@@ -8,7 +8,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     slice = Array::slice
     hasOwn = Object::hasOwnProperty
 
-    randomString = -> ('' + Math.random()).replace(/\D/g, '')
+    randomString = -> Math.random().toString(36).slice(2)
 
     createElement = React.createElement
     React.createElement = (type, config)->
@@ -33,10 +33,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         binding = makeTwoWayBinbing element, type, config
         if binding and 'string' isnt typeof type
             element.props.binding = binding
-
-        if not appConfig.isProduction
-            Object.freeze element.props
-            Object.freeze element
 
         return element
 
@@ -128,6 +124,13 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             if @_bindings
                 for binding in @_bindings
                     binding._detach binding
+                    for own key of binding
+                        delete binding[key]
+
+            for name in ['_previousAttributes', 'attributes', 'changed']
+                attributes = @inline[name]
+                for own key of attributes
+                    delete attributes[key]
 
             @detachEvents.apply @, @getEventArgs()
 

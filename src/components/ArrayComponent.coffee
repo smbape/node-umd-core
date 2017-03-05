@@ -87,6 +87,7 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
             else if limit isnt nextLimit or offset isnt nextOffset or childNode isnt nextChildNode
                 @_setNodeList @_ordered, nextLimit, nextOffset, nextChildNode
 
+            @shouldUpdate = @shouldUpdateEvent = false;
             return
 
         _initState: (props, state)->
@@ -138,7 +139,8 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
                 model = ordered[i]
                 list[index] = childNode model, index, ordered
                 index++
-            list
+
+            return list
 
         childNodeList: ->
             if @_childNodeList
@@ -151,7 +153,7 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
 
             @_filtered = _.filter collection, @getFilter(filter)
             ordered = @_setOrderedArray @_filtered, order, reverse
-            @_setNodeList ordered, limit, offset, childNode
+            return @_setNodeList ordered, limit, offset, childNode
 
         _getProps: ->
             props = _.clone @props

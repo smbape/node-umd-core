@@ -98,10 +98,81 @@ factory = ($)->
                 this.appendChild elem
             return
 
-    {MaterialRipple} = window
+    hasProp = Object::hasOwnProperty
+    emptyFn = Function.prototype
+
+    # https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+    supportsPassive = do ->
+        # Test via a getter in the options object to see if the passive property is accessed
+        supportsPassive = false
+
+        try
+            opts = Object.defineProperty({}, 'passive', get: ->
+                supportsPassive = true
+                return
+            )
+            window.addEventListener 'test', null, opts
+        catch e
+        supportsPassive
+
+    captureOptions = if supportsPassive then passive: true else false
+
+    supportOnPassive = ($, name)->
+        if !captureOptions
+            return emptyFn
+
+        if /\s/.test(name)
+            names = name.split(/\s+/g)
+            destroyers = []
+            for name in names
+                destroyers.push supportOnPassive($, name)
+            return ->
+                for i in [destroyers.length - 1...-1] by -1
+                    destroyers[i]()
+                destroyers = null
+                return
+
+        special = $.event.special
+        if hasProp.call special, name
+            hasSpecial = true
+            if hasProp.call special[name], "setup"
+                preSetup = special[name].setup
+                if preSetup.passiveSupported
+                    return emptyFn
+                hasPrevSetup = true
+        else
+            special[name] = {}
+
+        setup = special[name].setup = (data, namespaces, eventHandle)->
+            @addEventListener( name, eventHandle, captureOptions )
+            return
+
+        setup.passiveSupported = true
+
+        ->
+            if hasPrevSetup
+                special[name].setup = preSetup
+                preSetup = null
+            else if hasSpecial
+                delete special[name].setup
+            else
+                delete special[name].setup
+                delete special[name]
+
+            name = null
+            special = null
+            $ = null
+            return
+
+    { MaterialRipple } = window
+
     if MaterialRipple
         # delegated ripple effect
-        $(document).on 'mousedown touchstart mouseup mouseleave touchend blur', '.mdl-js-ripple-effect:not([data-upgraded]) .mdl-button__ripple-container', (evt)->
+
+        rippleEvents = 'mousedown touchstart mouseup mouseleave touchend blur'
+        restore = supportOnPassive($, rippleEvents)
+
+        $(document).on rippleEvents, '.mdl-js-ripple-effect:not([data-upgraded]) .mdl-button__ripple-container', (evt)->
             element_ = evt.currentTarget.parentNode
             ripple = $.data element_, 'ripple'
 
@@ -138,5 +209,7 @@ factory = ($)->
                     ripple.upHandler_(overridedEvt)
 
             return
+
+        restore()
 
     return

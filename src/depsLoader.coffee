@@ -17,7 +17,7 @@
 
     extend = (target, src)->
         if isObject(src) and isObject(target)
-            for own prop of src
+            for prop of src
                 target[prop] = src[prop]
         target
 
@@ -285,7 +285,7 @@
             node = document.createElement attributes.tag
             node.charset = 'utf-8'
             node.async = true
-            for own attr, value of attributes
+            for attr, value of attributes
                 if attr isnt 'tag' and node[attr] isnt value
                     node.setAttribute attr, value
 

@@ -1,10 +1,10 @@
 deps = [
     '../common'
-    'umd-core/src/GenericUtil'
     './AbstractModelComponent'
+    '../functions/throttle'
 ]
 
-freact = ({_, $}, {throttle}, AbstractModelComponent)->
+freact = ({_, $}, AbstractModelComponent, throttle)->
 
     $document = $(document)
 
@@ -60,6 +60,7 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
     MOVE_EV = 'touchmove mousemove MSPointerMove pointermove'
     END_EV = 'touchend mouseup MSPointerUp pointerup'
     CANCEL_EV = 'touchcancel mouseleave MSPointerCancel pointercancel'
+    END_EV = [END_EV, CANCEL_EV].join(' ')
 
     START_EV_MAP =
         touchstart: /^touch/
@@ -84,34 +85,111 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
     userSelectJSPropertyName = if 'userSelect' of testElementStyle then 'userSelect' else 'webkitUserSelect'
     testElementStyle = null
 
-    END_EV = [END_EV, CANCEL_EV].join(' ')
     MAX_TAN = Math.tan(45 * Math.PI / 180)
     MAX_TEAR = 5
 
     nativeCeil = Math.ceil
+
+    # https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+    supportsPassive = do ->
+        # Test via a getter in the options object to see if the passive property is accessed
+        supportsPassive = false
+
+        try
+            opts = Object.defineProperty({}, 'passive', get: ->
+                supportsPassive = true
+                return
+            )
+            window.addEventListener 'test', null, opts
+
+        supportsPassive
+
+    captureOptions = if supportsPassive then passive: true else false
+
+    hasProp = Object::hasOwnProperty
+    emptyFn = Function.prototype
+
+    supportOnPassive = ($, name)->
+        if !captureOptions
+            return emptyFn
+
+        if /\s/.test(name)
+            names = name.split(/\s+/g)
+            destroyers = []
+            for name in names
+                destroyers.push supportOnPassive($, name)
+            return ->
+                for i in [destroyers.length - 1...-1] by -1
+                    destroyers[i]()
+                destroyers = null
+                return
+
+        special = $.event.special
+        if hasProp.call special, name
+            hasSpecial = true
+            if hasProp.call special[name], "setup"
+                preSetup = special[name].setup
+                if preSetup.passiveSupported
+                    return emptyFn
+                hasPrevSetup = true
+        else
+            special[name] = {}
+
+        setup = special[name].setup = (data, namespaces, eventHandle)->
+            @addEventListener( name, eventHandle, captureOptions )
+            return
+
+        setup.passiveSupported = true
+
+        ->
+            if hasPrevSetup
+                special[name].setup = preSetup
+                preSetup = null
+            else if hasSpecial
+                delete special[name].setup
+            else
+                delete special[name].setup
+                delete special[name]
+
+            name = null
+            special = null
+            $ = null
+            return
+
+    preventDefault = (evt)->
+        evt.preventDefault()
+        # console.log(evt.type, "defaultPrevented")
+        return
 
     class Layout extends AbstractModelComponent
         uid: 'Layout' + ('' + Math.random()).replace(/\D/g, '')
 
         componentDidMount: ->
             @_updateWidth()
+            count = $(ReactDOM.findDOMNode(this)).parents(".layout").length + 1
+            @_updateWidth = throttle @_updateWidth, count * 4, { leading: false }
             super
             return
 
         attachEvents: ->
-            $(window).on 'resize', @_updateWidth
+            window.addEventListener 'resize', @_updateWidth, true
             if @$el
+                restore = supportOnPassive($, START_EV)
                 @$el.find('> .layout__left, > .layout__right').on START_EV, @onTouchStart
-                @$el.find('> .layout__left, > .layout__right').on MOVE_EV, @onTouchMove
-                @$el.find('> .layout__left, > .layout__right').on END_EV, @onTouchEnd
+                restore()
             return
 
         detachEvents: ->
             if @$el
                 @$el.find('> .layout__left, > .layout__right').off START_EV, @onTouchStart
-                @$el.find('> .layout__left, > .layout__right').off MOVE_EV, @onTouchMove
-                @$el.find('> .layout__left, > .layout__right').off END_EV, @onTouchEnd
-            $(window).off 'resize', @_updateWidth
+
+            if @_moveState
+                @_moveState.removeTouchEventListeners()
+
+            if @_updateWidth.cancel
+                @_updateWidth.cancel()
+
+            window.removeEventListener 'resize', @_updateWidth
             return
 
         _getCurrentTarget: (evt)->
@@ -163,6 +241,21 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
 
             if scrollContainer isnt document.body
                 @_moveState.scrollContainer = scrollContainer
+
+
+            restore = supportOnPassive($, MOVE_EV + " " + END_EV)
+            $target.on MOVE_EV, @onTouchMove
+            $target.on END_EV, @onTouchEnd
+            restore()
+            # $(document).on MOVE_EV, preventDefault # has no effect
+
+            @_moveState.removeTouchEventListeners = (->
+                $target.off MOVE_EV, @onTouchMove
+                $target.off END_EV, @onTouchEnd
+                # $(document).off MOVE_EV, preventDefault # has no effect
+                $target = null
+                return
+            ).bind(this)
             return
 
         onTouchMove: (evt)=>
@@ -195,7 +288,7 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
                     tx = "translateX(-100%) translateX(#{nativeCeil(diffX)}px)"
 
                 scrollContainer.style.overflow = 'hidden' if scrollContainer
-                console.log(transformJSPropertyName, tx)
+                # console.log(transformJSPropertyName, tx)
                 target.style[transformJSPropertyName] = tx
             return
 
@@ -203,7 +296,9 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
             if not @_moveState or (not fromMove and not @_moveState.regex.test(evt.type))
                 return
 
-            {x: startX, y: startY, isLeft, target, scrollContainer, diffX, timerInit} = @_moveState
+            {x: startX, y: startY, isLeft, target, scrollContainer, diffX, timerInit, removeTouchEventListeners} = @_moveState
+            removeTouchEventListeners()
+
             if @_inMove
                 timerDiff = new Date().getTime() - timerInit
                 if (timerDiff < 200 and diffX > 0) or diffX > $(target).width() / 3
@@ -219,15 +314,11 @@ freact = ({_, $}, {throttle}, AbstractModelComponent)->
 
         _updateWidth: =>
             if @el
-                {el, $el} = this
+                { el, $el } = this
             else
                 el = ReactDOM.findDOMNode @
                 $el = $ el
 
-            @_doUpdateWitdh el, $el
-            return
-
-        _doUpdateWitdh: (el, $el)->
             width = $el.width()
             if width < 1024
                 el.setAttribute 'data-width', 'small'

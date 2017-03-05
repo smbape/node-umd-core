@@ -5,7 +5,7 @@ deps = [
 freact = ({_, $})->
     hasOwn = {}.hasOwnProperty
     _expressionCache = {}
-    uid = 'makeTwoWayBinbing' + ('' + Math.random()).replace(/\D/g, '')
+    uid = '_makeTwoWayBinbing:' + Math.random().toString(36).slice(2)
     AbstractModelComponent = null
 
     emptyObject = (obj)->
@@ -19,7 +19,7 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
-        {spModel: model, validate, forceUpdate, onlyThis} = config
+        {spModel: model, validate} = config
 
         if 'string' is typeof model
             property = model
@@ -68,8 +68,6 @@ freact = ({_, $})->
             owner: this
             model: model
             validate: validate
-            forceUpdate: forceUpdate
-            onlyThis: onlyThis
 
             _attach: (binding)->
                 if _.isArray binding.model
@@ -97,19 +95,18 @@ freact = ({_, $})->
                 return
 
             _onModelChange: (model, value, options)->
-                binding = @
-                {_ref, forceUpdate, onlyThis, owner} = binding
-
-                if _ref instanceof AbstractModelComponent
-                    _ref.shouldUpdate = true
-                    if forceUpdate or onlyThis
-                        _ref._updateView(model, value, options)
-
-                if onlyThis
-                    return
+                { owner, _ref } = @
 
                 if owner
-                    owner._updateView(model, value, options)
+                    component = owner
+                else if _ref instanceof AbstractModelComponent
+                    component = _ref
+
+                if component
+                    pure = component.isPureDataModel
+                    state = if pure then {} else getChangedState(model.cid, model.changed, model.attributes)
+                    component.setState(state)
+
                 return
 
             __ref: (ref)->
@@ -273,11 +270,20 @@ freact = ({_, $})->
 
         return binding
 
+    getChangedState = (cid, changed, attributes)->
+        state = {}
+        for key of changed
+            state[uid + ":" + cid + ":" + key] = attributes[key]
+
+        return state
+
     makeTwoWayBinbing = (element, type, config, toSetElement)->
         if element?._owner?._instance
             _makeTwoWayBinbing.call(element._owner._instance, type, config, toSetElement or element)
 
     makeTwoWayBinbing.init = (Component)->
         AbstractModelComponent = Component
+
+    makeTwoWayBinbing.getChangedState = getChangedState
 
     makeTwoWayBinbing
