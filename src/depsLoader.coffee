@@ -148,7 +148,7 @@
                 amdRequire require, deps, callback, errback, options, global
             availables[0] = localRequire
 
-            factory.apply this, availables
+            factory.apply global, availables
 
         if name
             define name, libs, callback
