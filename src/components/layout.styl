@@ -25,6 +25,7 @@
         transform-origin: left top
 
     .layout__overlay
+        display: none
         position: absolute
         top: 0
         left: 0
@@ -60,11 +61,13 @@
                 transform: translate3d(0, 0, 0)
 
             > .layout__overlay-center
+                display: block
                 visibility: visible
                 opacity: 0.5
 
         &.layout-open-right
             > .layout__overlay-left
+                display: block
                 visibility: visible
                 opacity: 0.5
 
@@ -93,6 +96,7 @@
 
         &.layout-open-right
             > .layout__overlay-left
+                display: block
                 visibility: visible
                 opacity: 0.5
 
