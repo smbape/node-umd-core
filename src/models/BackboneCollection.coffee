@@ -586,6 +586,12 @@ factory = ({ _, Backbone, $ })->
             if @comparator
                 at = @insertIndexOf model
                 index = @indexOf model
+
+                if index isnt -1
+                    if at > index
+                        # remove index will cause insert index to decrease
+                        at--
+
                 if at isnt index
                     if @isSubset
                         delete @matches[model.cid]

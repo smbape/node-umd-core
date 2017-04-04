@@ -183,7 +183,7 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
                 React.createElement.apply React, args
 
     ArrayComponent.getBinding = (binding)->
-        binding.get = ->
+        binding.get = (binding)->
             if binding._ref instanceof ArrayComponent
                 return binding._ref.el
         binding
