@@ -175,13 +175,13 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             window.addEventListener 'resize', @_updateWidth, true
             if @$el
                 restore = supportOnPassive($, START_EV)
-                @$el.find('> .layout__left, > .layout__right').on START_EV, @onTouchStart
+                @$el.on START_EV, '> .layout__left, > .layout__right', @onTouchStart
                 restore()
             return
 
         detachEvents: ->
             if @$el
-                @$el.find('> .layout__left, > .layout__right').off START_EV, @onTouchStart
+                @$el.off START_EV, '> .layout__left, > .layout__right', @onTouchStart
 
             if @_moveState
                 @_moveState.removeTouchEventListeners()
