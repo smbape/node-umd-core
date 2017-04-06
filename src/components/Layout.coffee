@@ -172,7 +172,7 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             return
 
         attachEvents: ->
-            window.addEventListener 'resize', @_updateWidth, true
+            window.addEventListener('resize', @_updateWidth, true)
             if @$el
                 restore = supportOnPassive($, START_EV)
                 @$el.on START_EV, '> .layout__left, > .layout__right', @onTouchStart
@@ -189,7 +189,7 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             if @_updateWidth.cancel
                 @_updateWidth.cancel()
 
-            window.removeEventListener 'resize', @_updateWidth
+            window.removeEventListener('resize', @_updateWidth, true)
             return
 
         _getCurrentTarget: (evt)->
