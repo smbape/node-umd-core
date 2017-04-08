@@ -156,11 +156,6 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             $ = null
             return
 
-    preventDefault = (evt)->
-        evt.preventDefault()
-        # console.log(evt.type, "defaultPrevented")
-        return
-
     class Layout extends AbstractModelComponent
         uid: 'Layout' + ('' + Math.random()).replace(/\D/g, '')
 
@@ -247,12 +242,10 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             $target.on MOVE_EV, @onTouchMove
             $target.on END_EV, @onTouchEnd
             restore()
-            # $(document).on MOVE_EV, preventDefault # has no effect
 
             @_moveState.removeTouchEventListeners = (->
                 $target.off MOVE_EV, @onTouchMove
                 $target.off END_EV, @onTouchEnd
-                # $(document).off MOVE_EV, preventDefault # has no effect
                 $target = null
                 return
             ).bind(this)
