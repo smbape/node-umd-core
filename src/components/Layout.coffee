@@ -335,11 +335,14 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             _remaining = []
 
             if children
+                if not Array.isArray(children)
+                    children = [children]
+
                 item = {}
                 for child, idx in children
                     continue if not child
 
-                    if className = child.props.className
+                    if className = child.props?.className
                         re = /(?:^|\s)layout__(content|left|right)(?:\s|$)/g
                         if match = re.exec(className)
                             while match
