@@ -402,6 +402,7 @@
                     return
 
         exports.load = load
+
         exports.getScript = getScript = (src)->
             scripts = head.getElementsByTagName 'script'
             a = document.createElement 'a'
@@ -413,6 +414,7 @@
             a = null
 
             return found
+
         exports.loadScript = loadScript = (src, attributes, callback, errback, completeback)->
             if getScript src
                 # console.log 'script already loaded', src

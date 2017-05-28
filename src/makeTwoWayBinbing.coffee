@@ -19,6 +19,9 @@ freact = ({_, $})->
         if not config or not (this instanceof AbstractModelComponent)
             return
 
+        # this._handleBinding(type, config, element)
+        # return
+
         {spModel: model, validate} = config
 
         if 'string' is typeof model
@@ -191,6 +194,7 @@ freact = ({_, $})->
             props = element.props
 
             # to ease testing
+            props['data-bind-model'] = model.cid
             props['data-bind-attr'] = property
 
             # TODO : Find a way to avoid new props.onChange function

@@ -6,9 +6,87 @@ deps = [
 
 freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     slice = Array::slice
-    hasOwn = Object::hasOwnProperty
+    hasProp = Object::hasOwnProperty
 
     randomString = -> Math.random().toString(36).slice(2)
+    expando = React.expando or (React.expando = randomString())
+    assign = Object.assign
+    EXPANDO_BINDINGS = expando + "_bindings"
+
+    assignProperty = (obj, property, value, definition) ->
+        Object.defineProperty obj, property, assign({
+            configurable: true
+            enumerable: true
+            writable: true
+            value: value
+        }, definition)
+
+        obj[property]
+
+    makeBindingRef = (bindings, events)->
+        (ref)->
+            if ref
+                for evt in events
+                    if (hasProp.call(bindings.events, evt))
+                        bindings.events[evt]++
+                    else
+                        bindings.events[evt] = 1
+            else
+                for evt in events
+                    if (hasProp.call(bindings.events, evt))
+                        bindings.events[evt]--
+                        if bindings.events[evt] is 0
+                            delete bindings.events[evt]
+
+            return
+
+    setRef = (name, ref)->
+        if (ref)
+            this.refs[name] = ref
+        else
+            delete this.refs[name]
+        return
+
+    createChainedFunction = (a, b)->
+        ->
+            a.apply(this, arguments)
+            b.apply(this, arguments)
+            return
+
+    _onModelChange = (model, value, options)->
+        pure = this.isPureDataModel
+        state = if pure then {} else getChangedState(model.cid, model.changed, model.attributes)
+        this.setState(state)
+        return
+
+    requestCheckboxChange = (evt)->
+        value = evt.currentTarget.checked
+        model.set property, value
+        return
+
+    requestValueChange = (evt)->
+        value = evt.currentTarget.value
+        model.set property, value
+        return
+
+    requestInnerHTMLChange = (evt)->
+        value = evt.currentTarget.innerHTML
+        model.set property, value
+        return
+
+    uid = '_' + randomString()
+    getChangedState = (cid, changed, attributes)->
+        state = {}
+        for key of changed
+            state[uid + ":" + cid + ":" + key] = attributes[key]
+
+        return state
+
+    setRequestChange = (onChange, requestChange)->
+        if not hasProp.call(onChange, "original") or onChange.original isnt requestChange
+            onChange.original = requestChange
+            onChange.derivated.clear()
+        return
 
     createElement = React.createElement
     React.createElement = (type, config)->
@@ -51,7 +129,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             if 'string' isnt typeof name or name.length is 0
                 return
 
-            if hasOwn.call @_reffn, name
+            if hasProp.call @_reffn, name
                 return @_reffn[name]
 
             @_reffn[name] = (ref)=>
@@ -60,12 +138,162 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                 return
 
         getRef: (name)->
-            if hasOwn.call @_refs, name
+            if hasProp.call @_refs, name
                 return @_refs[name]
 
             @refs[name]
 
         initialize: ->
+
+        _handleBinding: (type, config, element)->
+            {spModel: model, validate} = config
+
+            if 'string' is typeof model
+                property = model
+                model = @inline
+                if 'string' isnt typeof type
+                    element.props.spModel = [model, property]
+            else if _.isArray(model)
+                [model, property, events] = model
+            else
+                return
+
+            if 'function' is typeof type and not type.getBinding
+                return
+
+            if not _.isObject(model) or 'function' isnt typeof model.on or 'function' isnt typeof model.off
+                return
+
+            if 'string' is typeof property
+                if Array.isArray(events) and events.length > 0
+                    events = events.map((type)-> "#{type}:#{property}")
+                else if 'string' is typeof events and events.length > 0
+                    events = events.split(' ').map((type)-> "#{type}:#{property}")
+                else if not events
+                    events = ["change:#{property}"]
+
+            if not events
+                return
+
+            eventsId = events.sort().join(' ')
+            bindings = if hasProp.call(this, EXPANDO_BINDINGS) then this[EXPANDO_BINDINGS] else assignProperty(this, EXPANDO_BINDINGS, {}, { enumerable: false })
+            bindings = if hasProp.call(bindings, model.cid) then bindings[model.cid] else assignProperty(bindings, model.cid, {
+                model: model
+                refs: {}
+                events: {}
+                handlers: {}
+                onChange: {
+                    derivated: new Map()
+                }
+            })
+
+            if not hasProp.call(bindings.refs, eventsId)
+                bindings.refs[eventsId] = {
+                    original: makeBindingRef(bindings, events)
+                    derivated: new Map()
+                }
+            ref = bindings.refs[eventsId]
+
+            currentRef = element.ref
+            typeofRef = typeof currentRef
+            original = ref.original
+            derivated = ref.derivated
+
+            if not currentRef
+                ref = original
+            else if derivated.has(currentRef)
+                ref = derivated.get(currentRef)
+            else
+                if 'string' is typeofRef
+                    ref = setRef.bind(this, currentRef)
+                else if 'function' is typeofRef
+                    ref = createChainedFunction(currentRef, ref)
+                else
+                    ref = currentRef
+                derivated.set(currentRef, ref)
+
+            element.ref = ref
+
+            if property
+                props = element.props
+
+                # to ease testing
+                props['data-bind-model'] = model.cid
+                props['data-bind-attr'] = property
+
+                defaultValue = undefined
+                valueProp = undefined
+
+                switch type
+                    when 'input'
+                        if config.type is 'checkbox'
+                            valueProp = 'checked'
+                            defaultValue = false
+                            setRequestChange bindings.onChange, requestCheckboxChange
+                        else
+                            valueProp = 'value'
+                            setRequestChange bindings.onChange, requestValueChange
+                    when 'textarea', 'select', 'option', 'button', 'datalist', 'output'
+                        valueProp = 'value'
+                        setRequestChange bindings.onChange, requestValueChange
+                    else
+                        if 'string' is typeof type and Boolean(config.contentEditable)
+                            valueProp = 'innerHTML'
+                            setRequestChange bindings.onChange, requestInnerHTMLChange
+                        else
+                            valueProp = 'value'
+                            setRequestChange bindings.onChange, requestValueChange
+
+                value = model.attributes[property]
+                switch typeof value
+                    when 'undefined'
+                        if valueProp is 'innerHTML'
+                            delete props.dangerouslySetInnerHTML
+                        else if typeof defaultValue isnt 'undefined'
+                            props[valueProp] = defaultValue
+                        else
+                            delete props[valueProp]
+
+                    when 'boolean', 'number', 'string'
+                        if valueProp is 'innerHTML'
+                            props.dangerouslySetInnerHTML = __html: value
+                        else
+                            props[valueProp] = value
+
+                    else
+                        if valueProp is 'innerHTML'
+                            delete props.dangerouslySetInnerHTML
+                        else
+                            delete props[valueProp]
+
+                if type is 'input'
+                    onInput = config.type isnt 'checkbox'
+                else
+                    onInput = type is 'textarea' or Boolean(config.contentEditable)
+
+                if onInput
+                    onChangeEvent = 'onInput'
+                else
+                    onChangeEvent = 'onChange'
+
+                currentOnChange = props[onChangeEvent]
+                original = bindings.onChange.original
+                derivated = bindings.onChange.derivated
+
+                if not currentOnChange
+                    requestChange = original
+                else if derivated.has(currentOnChange)
+                    requestChange = derivated.get(currentOnChange)
+                else
+                    if 'function' is typeof currentOnChange
+                        requestChange = createChainedFunction(currentOnChange, requestChange)
+                    else
+                        requestChange = currentOnChange
+                    derivated.set(currentOnChange, requestChange)
+
+                props[onChangeEvent] = requestChange
+
+            return
 
         componentWillMount: ->
             return
@@ -74,6 +302,13 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             @el = ReactDOM.findDOMNode @
             @$el = $ @el
             @attachEvents.apply @, @getEventArgs()
+
+            if hasProp.call(this, EXPANDO_BINDINGS)
+                for cid, bindings of this[EXPANDO_BINDINGS]
+                    { model, events, handlers } = bindings
+                    for evt of events
+                        model.on evt, _onModelChange, @
+                        handlers[evt] = true
             return
 
         componentWillReceiveProps: (nextProps)->
@@ -112,6 +347,20 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                 args.push.apply args, [nextProps, nextState]
                 @attachEvents.apply @, args
 
+            if hasProp.call(this, EXPANDO_BINDINGS)
+                for cid, bindings of this[EXPANDO_BINDINGS]
+                    { model, events, handlers } = bindings
+
+                    for evt of handlers
+                        if not hasProp.call(events, evt)
+                            model.off evt, _onModelChange, @
+                            delete handlers[evt]
+
+                    for evt of events
+                        if not hasProp.call(handlers, evt)
+                            model.on evt, _onModelChange, @
+                            handlers[evt] = true
+
             @shouldUpdate = @shouldUpdateEvent = false
             return
 
@@ -121,11 +370,34 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
         componentWillUnmount: ->
             id = @id
+
             if @_bindings
                 for binding in @_bindings
                     binding._detach binding
                     for own key of binding
                         delete binding[key]
+
+            if hasProp.call(this, EXPANDO_BINDINGS)
+                for cid, bindings of this[EXPANDO_BINDINGS]
+                    { model, events, handlers, refs, onChange } = bindings
+                    for name in ['model', 'events', 'handlers', 'refs', 'onChange']
+                        delete bindings[name]
+
+                    onChange.derivated.clear()
+                    delete onChange.original
+                    delete onChange.derivated
+
+                    for eventsId, obj of refs
+                        obj.derivated.clear()
+                        delete obj.original
+                        delete obj.derivated
+                        delete refs[eventsId]
+
+                    for evt of handlers
+                        model.off evt, _onModelChange, @
+
+
+                delete this[EXPANDO_BINDINGS]
 
             for name in ['_previousAttributes', 'attributes', 'changed']
                 attributes = @inline[name]
@@ -137,7 +409,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             # remove every references
             for own prop of @
                 switch prop
-                    when React.expando, 'id', 'props', 'refs', '_reactInternalInstance'
+                    when expando, 'id', 'props', 'refs', '_reactInternalInstance'
                         continue
 
                 delete @[prop]
@@ -195,7 +467,7 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                         return null
 
                     @filterCache = {} if not @filterCache
-                    if hasOwn.call @filterCache, query
+                    if hasProp.call @filterCache, query
                         return @filterCache[query]
 
                     regexp = new RegExp query.replace(/([\\\/\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1'), 'i'

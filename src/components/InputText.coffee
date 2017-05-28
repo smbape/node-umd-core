@@ -66,40 +66,37 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
             else
                 className = @classList.join(" ")
 
-            wrapperProps = {disabled, className, style}
+            wrapperProps = { disabled, className, style }
 
             if React.isValidElement(input)
-                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange, className: classNameInput} = input.props
-                if not classNameInput
-                    classNameInput = 'input__field'
+                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange} = input.props
 
-                input = deepCloneElement input, {
-                    id
-                    className: classNameInput
+                input = deepCloneElement input, _.defaults({
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
                     onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
                     onChange: mergeFunctions @_updateClass, onChange, onInputChange
+                }, input.props, {
+                    id
+                    className: 'input__field'
                     spModel: null
                     label: null
-                }
+                }, props)
             else if _.isArray(input)
                 [type, inputProps, inputChildren] = input
-                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange, className: classNameInput} = inputProps
-                if not classNameInput
-                    classNameInput = 'input__field'
+                {onBlur: onInputBlur, onFocus: onInputFocus, onChange: onInputChange} = inputProps
 
-                inputProps = _.extend {
-                    id
-                    className: classNameInput
-                }, props, inputProps, {
+                inputProps = _.defaults({
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
                     onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
                     onChange: mergeFunctions @_updateClass, onChange, onInputChange
+                }, inputProps, {
+                    id
+                    className: 'input__field'
                     spModel: null
                     label: null
-                }
+                }, props)
 
                 args = [type, inputProps]
                 if _.isArray inputChildren
@@ -123,19 +120,20 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                         if not props.defaultValue
                             value = ''
 
-                inputProps = _.extend {
-                    id
-                    className: "input__field"
-                    type: inputType
-                    value: value
-                }, props, {
+                inputProps = _.defaults({
                     ref: 'input'
                     onFocus: mergeFunctions @onFocus, onFocus, onInputFocus
                     onBlur: mergeFunctions @onBlur, onBlur, onInputBlur
                     onChange: mergeFunctions @_updateClass, onChange, onInputChange
+
+                    id
+                    className: 'input__field'
                     spModel: null
                     label: null
-                }
+                }, props, {
+                    type: inputType
+                    value: value
+                })
 
                 delete inputProps.charCount
                 input = React.createElement type, inputProps
