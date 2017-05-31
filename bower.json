@@ -7,7 +7,7 @@
   "description": "umd-core files",
   "homepage": "https://github.com/smbape/node-umd-core",
   "main": [
-    "lib/",
+    "lib/**",
     "src/**"
   ],
   "umd": true,

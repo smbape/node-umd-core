@@ -1,72 +1,12 @@
 deps = [
     {amd: 'jquery', common: 'jquery', brunch: '!jQuery'}
+    "../lib/Polyfill/Array/isArray"
+    "../lib/Polyfill/Function/bind"
+    "../lib/Polyfill/Object/keys"
+    "../lib/Polyfill/String/trim"
 ]
 
 factory = ($)->
-
-    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind#Polyfill
-    unless Function::bind
-        Function::bind = (oThis) ->
-            if typeof this isnt 'function'
-                # closest thing possible to the ECMAScript 5
-                # internal IsCallable function
-                throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable')
-            aArgs = Array::slice.call(arguments, 1)
-            fToBind = this
-
-            fNOP = ->
-
-            fBound = ->
-                fToBind.apply (if this instanceof fNOP then this else oThis), aArgs.concat(Array::slice.call(arguments))
-
-            if @prototype
-                # Function.prototype doesn't have a prototype property
-                fNOP.prototype = @prototype
-            fBound.prototype = new fNOP()
-            fBound
-
-    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray#Polyfill
-    unless Array.isArray
-        Array.isArray = (arg) ->
-            Object::toString.call(arg) is '[object Array]'
-
-    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys#Polyfill
-    unless Object.keys
-        do ->
-            hasOwnProperty = Object::hasOwnProperty
-            hasDontEnumBug = !{ toString: null }.propertyIsEnumerable('toString')
-            dontEnums = [
-                'toString'
-                'toLocaleString'
-                'valueOf'
-                'hasOwnProperty'
-                'isPrototypeOf'
-                'propertyIsEnumerable'
-                'constructor'
-            ]
-            dontEnumsLength = dontEnums.length
-            Object.keys = (obj) ->
-                if typeof obj isnt 'object' and (typeof obj isnt 'function' or obj == null)
-                    throw new TypeError('Object.keys called on non-object')
-                result = []
-
-                for prop of obj
-                    if hasOwnProperty.call(obj, prop)
-                        result.push prop
-                if hasDontEnumBug
-                    for i in [0...dontEnumsLength] by 1
-                        if hasOwnProperty.call(obj, dontEnums[i])
-                            result.push dontEnums[i]
-                result
-            return
-
-    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/Trim#Polyfill
-    unless String::trim
-        do ->
-            rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g
-            String::trim = ->
-                @replace rtrim, ''
-            return
 
     discard = (element) ->
         # http://jsperf.com/emptying-a-node

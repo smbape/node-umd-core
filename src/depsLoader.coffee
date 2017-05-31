@@ -12,11 +12,33 @@
 ) this, ->
     'use strict'
 
-    isObject = (obj)->
-        return typeof obj is 'object' and obj isnt null
+    objectToString = Object::toString
+    objectTag = '[object Object]'
+    hasProp = Object::hasOwnProperty
+    funcToString = Function::toString
+    objectCtorString = funcToString.call(Object)
+
+
+    isObjectLike = (value)->
+        return typeof value is 'object' and value isnt null
+
+    isPlainObject = (value)->
+        if not isObjectLike(value) or objectToString.call(value) isnt objectTag
+            return false
+
+        proto = Object.getPrototypeOf(value)
+        if proto is null
+            return true
+
+        Ctor = hasProp.call(proto, "constructor") && proto.constructor
+        return "function" is typeof Ctor and Ctor instanceof Ctor and funcToString.call(Ctor) is objectCtorString
+
+    isValidContainer = (value)->
+        # ELEMENT_NODE, DOCUMENT_NODE, DOCUMENT_FRAGMENT_NODE
+        return isObjectLike(value) and value.nodeType in [1, 9, 11] and !isPlainObject(value)
 
     extend = (target, src)->
-        if isObject(src) and isObject(target)
+        if isObjectLike(src) and isObjectLike(target)
             for prop of src
                 target[prop] = src[prop]
         target
@@ -48,7 +70,7 @@
 
     _commonRequireDeps = (require, type, deps, global, libs, errors)->
         for dep in deps
-            if isObject dep
+            if isPlainObject(dep)
                 if Array.isArray type
                     found = null
                     for name in type
@@ -137,7 +159,7 @@
         for dependency, index in deps
             if typeof dependency is 'string'
                 _processAmdDep(global, libs, availables, map, dependency, index + 1)
-            else if isObject dependency
+            else if isPlainObject(dependency)
                 _processAmdDep(global, libs, availables, map, dependency.amd, index + 1)
 
         callback = (require)->
@@ -168,7 +190,7 @@
         for dependency, index in deps
             if typeof dependency is 'string'
                 _processAmdDep(global, libs, availables, map, dependency, index)
-            else if isObject dependency
+            else if isPlainObject(dependency)
                 _processAmdDep(global, libs, availables, map, dependency.amd, index)
 
         if typeof callback isnt 'function' and deps.length is 1
@@ -187,8 +209,6 @@
     exports =
         common: commonSpecDefine
         amd: amdDefine
-
-    hasProp = Object::hasOwnProperty
 
     exports.createNgModule = (angular, name, ngdeps, ngmap, resolvedDeps)->
         toRegister = []
@@ -281,7 +301,14 @@
         # Oh the tragedy, detecting opera. See the usage of isOpera for reason.
         isOpera = typeof opera isnt 'undefined' and opera.toString() is '[object Opera]'
 
-        load = (attributes, callback, errback, completeback)->
+        load = (attributes, container, callback, errback, completeback)->
+            if ("function" is typeof container or !isValidContainer(container)) and arguments.length is 4
+                [ _null, _null, callback, errback, completeback ] = arguments
+                container = null
+
+            if container in [ null, undefined ]
+                container = head
+
             node = document.createElement attributes.tag
             node.charset = 'utf-8'
             node.async = true
@@ -338,8 +365,8 @@
                 node.addEventListener 'load', context.onScriptLoad, false
                 node.addEventListener 'error', context.onScriptError, false
 
-            head.appendChild node
-            return
+            container.appendChild node
+            return node
 
         readyRegExp = /^(?:complete|loaded)$/
 
@@ -403,8 +430,8 @@
 
         exports.load = load
 
-        exports.getScript = getScript = (src)->
-            scripts = head.getElementsByTagName 'script'
+        exports.getScript = getScript = (src, container = head)->
+            scripts = container.getElementsByTagName 'script'
             a = document.createElement 'a'
             a.setAttribute 'href', src
             for script in scripts
@@ -415,8 +442,12 @@
 
             return found
 
-        exports.loadScript = loadScript = (src, attributes, callback, errback, completeback)->
-            if getScript src
+        exports.loadScript = loadScript = (src, attributes, container, callback, errback, completeback)->
+            if ("function" is typeof container or !isValidContainer(container)) and arguments.length is 5
+                [ _null, _null, callback, errback, completeback ] = arguments
+                container = null
+
+            if getScript src, container
                 # console.log 'script already loaded', src
                 callback() if typeof callback is 'function'
                 completeback() if typeof completeback is 'function'
@@ -427,8 +458,8 @@
                 type: 'text/javascript'
                 src: src
             , attributes
-            load attributes, callback, errback, completeback
-            return
+
+            return load attributes, container, callback, errback, completeback
 
     browserExtend exports
     return exports
