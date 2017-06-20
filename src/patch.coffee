@@ -122,19 +122,21 @@ factory = ($)->
                 setRippleStyles = ripple.setRippleStyles
                 ripple.setRippleStyles = (start)->
                     setRippleStyles.call this, start
-                    if this.frameCount_ is 0
-                        $.removeData this.element_, 'ripple'
+                    if this.frameCount_ is -1
+                        setTimeout =>
+                            $.removeData this.element_, 'ripple'
 
-                        this.element_.removeEventListener('mousedown', this.boundDownHandler)
-                        this.element_.removeEventListener('touchstart', this.boundDownHandler)
-                        this.element_.removeEventListener('mouseup', this.boundUpHandler)
-                        this.element_.removeEventListener('mouseleave', this.boundUpHandler)
-                        this.element_.removeEventListener('touchend', this.boundUpHandler)
-                        this.element_.removeEventListener('blur', this.boundUpHandler)
+                            this.element_.removeEventListener('mousedown', this.boundDownHandler)
+                            this.element_.removeEventListener('touchstart', this.boundDownHandler)
+                            this.element_.removeEventListener('mouseup', this.boundUpHandler)
+                            this.element_.removeEventListener('mouseleave', this.boundUpHandler)
+                            this.element_.removeEventListener('touchend', this.boundUpHandler)
+                            this.element_.removeEventListener('blur', this.boundUpHandler)
 
-                        # delete this.element_
-                        for own prop of this
-                            delete this[prop]
+                            for own prop of this
+                                delete this[prop]
+                            return
+                        , 0
                     return
 
             overridedEvt = {}

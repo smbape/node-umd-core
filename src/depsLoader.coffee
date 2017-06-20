@@ -18,7 +18,6 @@
     funcToString = Function::toString
     objectCtorString = funcToString.call(Object)
 
-
     isObjectLike = (value)->
         return typeof value is 'object' and value isnt null
 
@@ -43,20 +42,27 @@
                 target[prop] = src[prop]
         target
 
+    resolveName = (dep)->
+        dep.replace /(?:(?:\\(.))|(\/\*{1,2})$)/g, (match, escape, pack)->
+            return escape if escape
+            return "/package" if pack is "/*"
+            return "/deepack"
+
     _processCommonDep = (require, type, dep, global, libs, errors)->
-        if dep is null or typeof dep is 'undefined'
+        if dep in [null, undefined]
             libs.push null
             return
 
-        switch dep.charAt(0)
+        switch dep[0]
             when '!'
                 # global depency requested
                 throw 'global scope is not defined' if not global
-                libs.push global[dep.substring(1)]
+                libs.push global[dep.slice(1)]
             when '$'
                 # Ignore dependency. To use with angular as an example
                 libs.push null
             else
+                dep = resolveName(dep)
                 if errors
                     try
                         libs.push require dep
@@ -117,30 +123,23 @@
         else if deps.length is 1
             libs[0]
 
-    _processAmdDep = (global, libs, availables, map, dep, index, tries)->
-        if typeof dep is 'undefined'
+    _processAmdDep = (global, libs, availables, map, dep, index)->
+        if dep in [null, undefined]
             availables[index] = null
             return
 
-        if typeof dep is 'string'
-            switch dep.charAt(0)
-                when '!'
-                    # global depency requested
-                    throw 'global scope is not defined' if not global
-                    availables[index] = global[dep.substring(1)]
-                when '$'
-                    # Ignore dependency. To use with angular as an example
-                    availables[index] = null
-                else
-                    if tries
-                        try
-                            availables[index] = require dep
-                        catch ex
-                            map[libs.length] = index
-                            libs.push dep
-                    else
-                        map[libs.length] = index
-                        libs.push dep
+        switch dep[0]
+            when '!'
+                # global depency requested
+                throw 'global scope is not defined' if not global
+                availables[index] = global[dep.slice(1)]
+            when '$'
+                # Ignore dependency. To use with angular as an example
+                availables[index] = null
+            else
+                map[libs.length] = index
+                dep = resolveName(dep)
+                libs.push dep
 
         return
 
