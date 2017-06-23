@@ -14,7 +14,10 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
         constructor: (props)->
             super
-            @state = model: @getNewModel(props)
+            @state = {
+                model: @getNewModel(props)
+                pending: []
+            }
 
         shouldComponentUpdateEvent: (nextProps, nextState)->
             shouldUpdate = super(nextProps, nextState)
@@ -139,24 +142,6 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
 
             return
 
-        onModelChange: (model, collection, options)->
-            options = collection if 'undefined' is typeof options
-            if options?.bubble > 1
-                # ignore bubbled events
-                return false
-
-            collection = @getModel()
-            if model is collection
-                @_updateView()
-            else
-                index = collection.indexOf model
-                childNodeList = @childNodeList()
-                childNodeList[index] = @props.childNode model, index, collection, options
-
-                @_updateView()
-
-            return
-
         childNodeList: ->
             if @_childNodeList
                 return @_childNodeList
@@ -190,6 +175,23 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 
                 @_childNodeList
 
+        onModelChange: (model, collection, options)->
+            options = collection if 'undefined' is typeof options
+            if options?.bubble > 1
+                # ignore bubbled events
+                return false
+
+            collection = @getModel()
+            if model is collection
+                @_updateView()
+            else
+                index = collection.indexOf model
+                @state.pending.push ["change", model, index, collection, options]
+
+                @_updateView()
+
+            return
+
         onAdd: (model, collection, options)->
             if @destroyed or options?.bubble > 1
                 # ignore bubbled events
@@ -198,10 +200,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             index = options.index or collection.indexOf model
             if index is -1
                 index = collection.length
-
-            childNodeList = @childNodeList()
-            childNode = @props.childNode model, index, collection, options
-            childNodeList.splice index, 0, childNode
+            @state.pending.push ["add", model, index, collection, options]
 
             @_updateView() if not options.silentView
             return
@@ -212,10 +211,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 return false
 
             index = options.index
-            childNodeList = @childNodeList()
-
-            childNode = childNodeList[index]
-            childNodeList.splice(index, 1)
+            @state.pending.push ["remove", index]
 
             @_updateView() if not options.silentView
             return
@@ -226,15 +222,38 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
                 return false
 
             {from, index} = options
-
-            childNodeList = @childNodeList()
-
-            childNode = childNodeList[from]
-            childNodeList.splice from, 1
-            childNodeList.splice index, 0, childNode
+            @state.pending.push ["move", from, index]
 
             @_updateView() if not options.silentView
             return
+
+        getChildNodeList: ->
+            childNodeList = @childNodeList()
+            hasUpdate = @state.pending.length
+
+            for args in @state.pending
+                switch args[0]
+                    when "change"
+                        [_UNUSED_, model, index, collection, options] = args
+                        childNodeList[index] = @props.childNode model, index, collection, options
+                    when "add"
+                        [_UNUSED_, model, index, collection, options] = args
+                        childNode = @props.childNode model, index, collection, options
+                        childNodeList.splice index, 0, childNode
+                    when "remove"
+                        [_UNUSED_, index] = args
+                        childNode = childNodeList[index]
+                        childNodeList.splice(index, 1)
+                    when "move"
+                        [_UNUSED_, from, index] = args
+                        childNodeList.splice from, 1
+                        childNodeList.splice index, 0, childNode
+
+            if hasUpdate
+                @state.pending.length = 0
+                childNodeList = childNodeList.slice()
+
+            return childNodeList
 
         onReset: (collection, options)->
             if @destroyed or options?.bubble > 1
@@ -264,7 +283,7 @@ freact = ({_, Backbone}, BackboneCollection, ReactModelView)->
             children  = props.children
             delete props.children
 
-            childNodeList = @childNodeList()
+            childNodeList = @getChildNodeList()
 
             tagName = props.tagName or 'div'
             delete props.tagName

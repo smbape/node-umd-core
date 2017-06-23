@@ -503,7 +503,7 @@
         format: function format(pathObject) {
             if (pathObject === null || typeof pathObject !== "object") {
                 throw new TypeError(
-                    `Parameter "pathObject" must be an object, not ${typeof pathObject}`
+                    "Parameter \"pathObject\" must be an object, not " + typeof pathObject
                 );
             }
             return _format("/", pathObject);

@@ -148,11 +148,12 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
         _.extend i18nOptions, options?.i18n
 
         if options?.i18n?.router is true
+            TITLE_SUFFIX = document.title
             app.router.onRouteChangeSuccess = (rendable, current)->
                 if title = @getRendableTitle rendable
-                    document.title = i18n.t title
+                    document.title = i18n.t(title) + " - " + TITLE_SUFFIX
 
-                appConfig.onRouteChangeSuccess() if 'function' is typeof appConfig.onRouteChangeSuccess
+                options.onRouteChangeSuccess() if 'function' is typeof options.onRouteChangeSuccess
                 return
 
         app.router.on 'routeChangeSuccess', (rendable, {app, pathParams}, options)->

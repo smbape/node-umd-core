@@ -49,7 +49,17 @@ factory = ({ _, Backbone, $ })->
             blocks.push """
             left = a[#{JSON.stringify(attr)}];
             right = b[#{JSON.stringify(attr)}];
-            res = left > right ? #{order} : left < right ? #{-order} : 0;
+
+            if (left === right) {
+                res = 0;
+            } else if (left === undefined) {
+                res = -1;
+            } else if (right === undefined) {
+                res = 1;
+            } else {
+                res = left > right ? #{order} : left < right ? #{-order} : 0;
+            }
+
             if (res !== 0) {
                 return res;
             }
@@ -77,6 +87,9 @@ factory = ({ _, Backbone, $ })->
     binarySearchInsert = (value, models, compare, options)->
         length = high = models.length
         low = 0
+
+        if low is high
+            return low
 
         if options
             { overrides } = options
@@ -184,7 +197,7 @@ factory = ({ _, Backbone, $ })->
         #               <=> 2l + 1 <= l + h // Integer rule
         #               <=> low <= Inf((low + high) / 2)
         # 
-        #   withing loop 
+        #   within loop 
         #       known-in-loop-2: 0 <= low, high <= len
         #       
         #       it is true for step0
@@ -203,7 +216,11 @@ factory = ({ _, Backbone, $ })->
         #               // high-stepn+1 = high-stepn <= len
         # 
         # demonstration:
-        #   all cases: length === 0; compare(value, array[0]) < 0; compare(array[length - 1], value) < 0; all others
+        #   all cases:
+        #       length === 0
+        #       compare(value, array[0]) < 0
+        #       compare(array[length - 1], value) < 0
+        #       all others
         #   
         #   case: length === 0
         #       low = hight = 0
@@ -286,8 +303,8 @@ factory = ({ _, Backbone, $ })->
         #       
         #       the correct index verifies:
         #           if index < length
-        #               compare(value, array[i]) < 0
-        #               <=> compare(array[i], value) > 0
+        #               compare(value, array[index]) < 0
+        #               <=> compare(array[index], value) > 0
         #           if index > 1
         #               compare(array[index - 1], value) <= 0
         #               <=> compare(value, array[index - 1]) => 0
@@ -324,27 +341,27 @@ factory = ({ _, Backbone, $ })->
         #                   <=> compare(array[low - 1], value) <= 0 // second condition OK
         #                   
         #                   if low within array bounds
-        #                   
-        #                   
         #                       => compare(array[low], value) > 0
 
     binarySearch = (value, models, compare, options)->
-        index = binarySearchInsert(value, models, compare, options) - 1
+        index = binarySearchInsert(value, models, compare, options)
 
-        if options
-            { overrides } = options
-
-        if index is -1
-            model = options.model if options
+        { overrides } = options if options
+        if index is 0
+            indexes = [ index ]
+        else if index is models.length
+            indexes = [ index - 1 ]
         else
+            indexes = [ index, index - 1 ]
+
+        for index in indexes
             model = models[index]
 
-        if model
             if overrides and overrides[model.cid]
                 model = overrides[model.cid]
 
-        if index is -1 or compare(model, value) is 0
-            return index
+            if compare(model, value) is 0
+                return index
 
         return -1
 
@@ -356,20 +373,6 @@ factory = ({ _, Backbone, $ })->
         while value isnt array[index] and (mid-- > 0) and compare(array[index], array[mid]) is 0
             index = mid
         return index
-
-    # getSortDirection = (array, compare)->
-    #     end = array.length - 1
-    #     start = 0
-
-    #     direction = compare array[end], array[start]
-
-    #     if direction < 0
-    #         return -1
-
-    #     if direction < 0
-    #         return -1
-
-    #     return 0
 
     _lookup = (attr, model)->
         attr = attr.split '.'
@@ -617,7 +620,6 @@ factory = ({ _, Backbone, $ })->
                 models = @models
 
                 at = binarySearchInsert model, models, compare, options
-
             else
                 at = @indexOf model, options
 
@@ -632,23 +634,17 @@ factory = ({ _, Backbone, $ })->
 
                 if _model = @get model
                     index = binarySearch _model, models, compare, options
-                    if models[index] is _model
+                    if index isnt -1 and models[index] is _model
                         return index
 
                     overrides = {}
                     overrides[model.cid] = model._previousAttributes
                     index = binarySearch model._previousAttributes, models, compare, _.defaults({overrides, model: _model}, options)
-
-                    # if models[index] is _model
-                    #     return index
-
-                    # debugger
-                    # index = binarySearch model._previousAttributes, models, compare, _.defaults({overrides}, options)
-
                     return index
 
-                index = binarySearch model, models, @comparator, options
-                return index
+                # index = binarySearch model, models, @comparator, options
+                # return index
+                return -1
             else
                 super
 
@@ -827,6 +823,9 @@ factory = ({ _, Backbone, $ })->
 
                                     if from < index
                                         index--
+
+                                    if from is index
+                                        return
 
                                     expectedModels = @models.slice()
 

@@ -26,35 +26,35 @@ factory = ({_, $, Backbone}, eachSeries)->
             return
 
         initialize: ->
-            @addInitializer initializer = (options)->
-                if @isFileLocation = appConfig.baseUrl is ''
+            @addInitializer (options)->
+                if @isFileLocation = options.baseUrl is ''
                     @set 'baseUrl', '#'
                     @hasPushState = false
                 else
-                    @set 'baseUrl', appConfig.baseUrl
-                    # addTag 'base', href: appConfig.baseUrl
+                    @set 'baseUrl', options.baseUrl
+                    # addTag 'base', href: options.baseUrl
                     @hasPushState = Modernizr.history
 
-                @set 'build', appConfig.build
+                @set 'build', options.build
 
                 if @hasPushState
                     @getLocation = @_getPathLocation
-                    @_setLocationHash = @_nativeLocationHash
+                    @_setLocationHash = @_setNativeLocationHash
                     @hashChar = '#'
                 else
                     @getLocation = @_getHashLocation
-                    @_setLocationHash = @_customLocationHash
+                    @_setLocationHash = @_setCustomLocationHash
                     @hashChar = '!'
 
                 return
 
-            @addInitializer ieTask = (options)->
+            @addInitializer (options)->
                 # IE special task
                 return if typeof document.documentMode is 'undefined'
 
                 if document.documentMode < 9
-                    depsLoader.loadScript appConfig.baseUrl + 'vendor/html5shiv.js'
-                    depsLoader.loadScript appConfig.baseUrl + 'vendor/respond.src.js'
+                    depsLoader.loadScript options.baseUrl + 'vendor/html5shiv.js'
+                    depsLoader.loadScript options.baseUrl + 'vendor/respond.src.js'
 
                 if document.documentMode < 8
                     # IE < 8 fetch from cache
@@ -69,58 +69,59 @@ factory = ({_, $, Backbone}, eachSeries)->
 
             @addInitializer @initRouter
 
-            @once 'start', initHistory = (options)->
-                location = @_getHashLocation()
-
-                if @hasPushState
-                    # /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
-                    if routeInfo = @router.getRouteInfo location
-                        [engine, pathParams] = routeInfo
-                        window.history.replaceState {}, document.title, appConfig.baseUrl + location.pathname + location.search + '#' + location.hash.substring(1)
-                    else
-                        location.pathname = ''
-
-                else if not @router.getRouteInfo location
-                    #   use route from pathname with partial match
-                    #   preserve hash
-                    #   /context/pathname?query#anchor -> /context/#pathname?query!anchor
-                    url = appConfig.baseUrl + '#' + location.pathname + location.search + location.hash
-                    if url isnt window.location.href
-                        window.location.href = url
-
-                @_listenHrefClick()
-
-                app = @
-                Backbone.history.checkUrl = _.bind (e)->
-                    current = @getFragment()
-
-                    # If the user pressed the back button, the iframe's hash will have
-                    # changed and we should use that for comparison.
-                    if current is @fragment and @iframe
-                        current = @getHash(@iframe.contentWindow)
-
-                    if current is @fragment
-                        app.setLocationHash app.getLocation().hash
-                        return false
-
-                    if @iframe
-                        @navigate current
-
-                    @loadUrl()
-                    return
-                , Backbone.history
-
-                # history.start do not take hash into account, silent it and do loadUrl
-                Backbone.history.start pushState: @hasPushState, silent: true
-
-                if location.pathname is ''
-                    location = window.location
-
-                Backbone.history.loadUrl location.pathname + location.search
-                return
-            , @
+            @once 'start', @_initHistory, @
 
             @init()
+            return
+
+        _initHistory: (options)->
+            location = @_getHashLocation()
+
+            if @hasPushState
+                # /context/.../#pathname?query!anchor -> /context/pathname?query#anchor
+                if routeInfo = @router.getRouteInfo location
+                    [engine, pathParams] = routeInfo
+                    window.history.replaceState {}, document.title, options.baseUrl + location.pathname + location.search + '#' + location.hash.slice(1)
+                else
+                    location.pathname = ''
+
+            else if not @router.getRouteInfo location
+                #   use route from pathname with partial match
+                #   preserve hash
+                #   /context/pathname?query#anchor -> /context/#pathname?query!anchor
+                url = options.baseUrl + '#' + location.pathname + location.search + location.hash
+                if url isnt window.location.href
+                    window.location.href = url
+
+            @_listenHrefClick(options)
+
+            app = @
+            Backbone.history.checkUrl = _.bind (e)->
+                current = @getFragment()
+
+                # If the user pressed the back button, the iframe's hash will have
+                # changed and we should use that for comparison.
+                if current is @fragment and @iframe
+                    current = @getHash(@iframe.contentWindow)
+
+                if current is @fragment
+                    app.setLocationHash app.getLocation().hash
+                    return false
+
+                if @iframe
+                    @navigate current
+
+                @loadUrl()
+                return
+            , Backbone.history
+
+            # history.start do not take hash into account, silent it and do loadUrl
+            Backbone.history.start pushState: @hasPushState, silent: true
+
+            if location.pathname is ''
+                location = window.location
+
+            Backbone.history.loadUrl location.pathname + location.search
             return
 
         init: ->
@@ -130,7 +131,7 @@ factory = ({_, $, Backbone}, eachSeries)->
 
             eachSeries app, app.tasks.map((task)-> [task, options]), ->
                 throw new Error 'a router must be defined' if not app.router
-                app.emit 'start'
+                app.emit 'start', options
                 done() if 'function' is typeof done
                 return
 
@@ -181,14 +182,14 @@ factory = ({_, $, Backbone}, eachSeries)->
             search: split[2] or ''
             hash: split[3] or ''
 
-        _nativeLocationHash: (hash)->
+        _setNativeLocationHash: (hash)->
             location = window.location
             if hash is ''
                 if location.href isnt (location.protocol + '//' + location.host + location.pathname + location.search)
                     window.history.pushState {}, document.title, location.pathname + location.search
                 return
 
-            hash = hash.substring(1)
+            hash = hash.slice(1)
 
             if window.location.hash is '#' + hash
                 element = document.getElementById(hash)
@@ -200,14 +201,14 @@ factory = ({_, $, Backbone}, eachSeries)->
 
             return
 
-        _customLocationHash: (hash)->
+        _setCustomLocationHash: (hash)->
             location = @_getHashLocation()
 
             if hash is ''
                 window.location.hash = '#' + location.pathname + location.search
                 return
 
-            hash = hash.substring(1)
+            hash = hash.slice(1)
 
             location.hash = '!' + hash
             element = document.getElementById(hash)
@@ -218,7 +219,7 @@ factory = ({_, $, Backbone}, eachSeries)->
             window.location.hash = '#' + location.pathname + location.search + location.hash
             return
 
-        _listenHrefClick: ->
+        _listenHrefClick: (options)->
             app = @
             $document = $(document.body)
 
@@ -260,7 +261,7 @@ factory = ({_, $, Backbone}, eachSeries)->
                         app.setLocationHash href
                         return
 
-                    hash = href.substring(1)
+                    hash = href.slice(1)
                     if hash
                         element = document.getElementById(hash)
                         if not element
@@ -272,7 +273,7 @@ factory = ({_, $, Backbone}, eachSeries)->
                             return
 
                 # Get the absolute root path
-                root = window.location.protocol + '//' + window.location.host + appConfig.baseUrl
+                root = window.location.protocol + '//' + window.location.host + options.baseUrl
 
                 # Only care about relative path
                 return if this.href.slice(0, root.length) isnt root

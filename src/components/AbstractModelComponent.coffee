@@ -88,11 +88,34 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
             onChange.derivated.clear()
         return
 
+    MDL_CLASSES = [
+        "mdl-js-button",
+        "mdl-js-checkbox",
+        "mdl-js-icon-toggle",
+        "mdl-js-menu",
+        "mdl-js-progress",
+        "mdl-js-radio",
+        "mdl-js-slider",
+        "mdl-js-snackbar",
+        "mdl-js-spinner",
+        "mdl-js-switch",
+        "mdl-js-tabs",
+        "mdl-js-textfield",
+        "mdl-tooltip",
+        "mdl-js-layout",
+        "mdl-js-data-table",
+        "mdl-js-ripple-effect"
+    ]
+
+    MDL_CLASSES_REG = new RegExp "(?:^|\\s)(?:" + MDL_CLASSES.join("|") + ")(?:\\s|$)"
+    MDL_CLASSES_UPGRADED_SELECTOR = "." + MDL_CLASSES.join("[data-upgraded], .") + "[data-upgraded]"
+    MDL_CLASSES_NOT_UPGRADED_SELECTOR = "." + MDL_CLASSES.join(":not([data-upgraded]), .") + ":not([data-upgraded])"
+
     createElement = React.createElement
     React.createElement = (type, config)->
         args = slice.call arguments
 
-        if componentHandler and config and not config.mdlIgnore and 'string' is typeof type and /(?:^|\s)mdl-/.test config.className
+        if componentHandler and config and not config.mdlIgnore and 'string' is typeof type and MDL_CLASSES_REG.test config.className
             # dynamic mdl component creation
             # TODO: create a hook system to allow more dynamic components creation
             config = _.defaults {tagName: type, mdlIgnore: true}, config
@@ -532,13 +555,28 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
     class MdlComponent extends AbstractModelComponent
         componentDidMount:->
             super
-            componentHandler.upgradeElement @el
-
+            @upgradeElements(@el)
             return
 
         componentWillUnmount: ->
-            componentHandler.downgradeElements [@el]
+            @downgradeElements(@el)
             super
+            return
+
+        upgradeElements: (el)->
+            if MDL_CLASSES_REG.test(el.className) and el.getAttribute("data-upgraded") is null
+                componentHandler.upgradeElement(el)
+
+            for child in el.children
+                @upgradeElements(child)
+            return
+
+        downgradeElements: (el)->
+            for child in el.children
+                @downgradeElements(child)
+
+            if MDL_CLASSES_REG.test(el.className) and el.getAttribute("data-upgraded") isnt null
+                componentHandler.downgradeElements([el])
             return
 
         render:->
