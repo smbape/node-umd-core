@@ -255,6 +255,7 @@ freact = ({_, $})->
                     ref.apply @, arguments
                     return
             when 'string'
+                ref = element.ref
                 __ref = binding.__ref
                 owner = this
                 element.ref = (el)->
