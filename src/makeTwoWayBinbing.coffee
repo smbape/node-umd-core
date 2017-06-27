@@ -230,16 +230,7 @@ freact = ({_, $})->
             onChangeEvent = binding.onChangeEvent
 
             if not onChangeEvent
-                if tagName is 'input'
-                    onInput = config.type isnt 'checkbox'
-                else
-                    onInput = type is 'textarea' or config.contentEditable in ["true", true]
-
-                if onInput
-                    onChangeEvent = 'onInput'
-                else
-                    onChangeEvent = 'onChange'
-
+                onChangeEvent = 'onChange'
                 binding.onChangeEvent = onChangeEvent
 
             if 'function' is typeof props[onChangeEvent]
@@ -264,8 +255,26 @@ freact = ({_, $})->
                     ref.apply @, arguments
                     return
             when 'string'
-                # TODO : find a way to deal with string ref
-                console.error 'string ref is not yet supported with 2 way binding'
+                __ref = binding.__ref
+                owner = this
+                element.ref = (el)->
+                    __ref.apply @, arguments
+
+                    if Object.isFrozen(owner.refs)
+                        isFrozen = true
+                        { refs } = owner
+                        owner.refs = {}
+                        for key, value of refs
+                            owner.refs[key] = value
+                    else if not owner.refs
+                        owner.refs = {}
+
+                    owner.refs[ref] = el
+
+                    if isFrozen
+                        Object.freeze(owner.refs)
+
+                    return
             when 'undefined'
                 element.ref = binding.__ref
             when 'object'

@@ -56,17 +56,15 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
         $(evt.currentTarget).closest('.layout').toggleClass 'layout-open-left'
         return
 
-    START_EV = 'touchstart mousedown MSPointerDown pointerdown'
-    MOVE_EV = 'touchmove mousemove MSPointerMove pointermove'
-    END_EV = 'touchend mouseup MSPointerUp pointerup'
-    CANCEL_EV = 'touchcancel mouseleave MSPointerCancel pointercancel'
+    START_EV = 'touchstart mousedown'
+    MOVE_EV = 'touchmove mousemove'
+    END_EV = 'touchend mouseup'
+    CANCEL_EV = 'touchcancel mouseleave'
     END_EV = [END_EV, CANCEL_EV].join(' ')
 
     START_EV_MAP =
         touchstart: /^touch/
         mousedown: /^mouse/
-        MSPointerDown: /^MSPointer/
-        pointerdown: /^pointer/
 
     $document.on 'click', '.layout > .layout__overlay', closeRightPanel
     $document.on 'click', '.layout > .layout__overlay', closeLeftPanel
