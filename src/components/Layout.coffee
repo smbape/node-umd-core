@@ -311,7 +311,8 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
                 $el = $ el
 
             width = $el.width()
-            if width < 1024
+
+            if width < 768
                 el.setAttribute 'data-width', 'small'
             else if width < 1200
                 el.setAttribute 'data-width', 'large'

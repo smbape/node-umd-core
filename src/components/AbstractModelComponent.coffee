@@ -159,11 +159,16 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
 
             @detachEvents.apply @, @getEventArgs()
 
+            # destroy should occur at the end of render cycle
+            # a method componentDidUnmount will be welcomed
+            setTimeout @destroy, 0
+            return
+
+        destroy: =>
             # remove every references
             for own prop of @
-                switch prop
-                    when expando, 'id', 'props', 'refs', '_reactInternalInstance'
-                        continue
+                if prop in [ expando, 'id', 'props', 'refs', '_reactInternalInstance' ]
+                    continue
 
                 delete @[prop]
 
