@@ -161,6 +161,8 @@ factory = ($)->
                     # shows for tap events, which seem to trigger a mouseup too soon after
                     # mousedown.
                     setTimeout (->
+                        return if this.destroyed
+
                         this.rippleElement_.classList.remove @CssClasses_.IS_VISIBLE
                         $.removeData this.element_, 'ripple'
                         this.element_.removeEventListener('mousedown', this.boundDownHandler)

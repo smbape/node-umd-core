@@ -498,32 +498,37 @@ factory = ({ _, Backbone, $ })->
             return
 
         _indexModel: (model, name)->
-            if model instanceof Backbone.Model
-                if not name
-                    for name of @_keymap
-                        @_indexModel model, name
+            if not (model instanceof Backbone.Model)
+                return
+
+            if not name
+                for name of @_keymap
+                    @_indexModel model, name
+                return
+
+            attrs = @_keymap[name]
+            if typeof attrs.condition is "function" and not attrs.condition(model, name)
+                return
+
+            chain = []
+            for attr in attrs
+                value = _lookup attr, model
+                if value is undefined
                     return
+                chain.push value
 
-                attrs = @_keymap[name]
-                chain = []
-                for attr in attrs
-                    value = _lookup attr, model
-                    if 'undefined' is typeof value
-                        return
-                    chain.push value
+            key = @_keys[name]
 
-                key = @_keys[name]
+            length = chain.length
+            for value, index in chain
+                if index is length - 1
+                    break
+                if hasProp.call key, value
+                    key = key[value]
+                else
+                    key = key[value] = {}
 
-                length = chain.length
-                for value, index in chain
-                    if index is length - 1
-                        break
-                    if hasProp.call key, value
-                        key = key[value]
-                    else
-                        key = key[value] = {}
-
-                key[value] = model
+            key[value] = model
 
             return
 
@@ -545,7 +550,7 @@ factory = ({ _, Backbone, $ })->
                 for attr in attrs
                     # value = model.get attr
                     value = _lookup attr, model
-                    if 'undefined' is typeof value
+                    if value is undefined
                         return
                     chain.push value
 
@@ -899,11 +904,13 @@ factory = ({ _, Backbone, $ })->
             if @destroyed
                 return
 
-            if (event is 'add' or event is 'remove') and collection isnt @
+            if event in ['add', 'remove'] and collection isnt @
                 return
+
             if event is 'destroy'
                 @remove model, options
-            if event is 'change'
+
+            else if event is 'change'
                 prevId = @modelId(model.previousAttributes())
                 id = @modelId(model.attributes)
                 if prevId isnt id
@@ -912,13 +919,18 @@ factory = ({ _, Backbone, $ })->
                     if id isnt null
                         @_byId[id] = model
 
-            if 'undefined' is typeof options
+            if arguments.length is 3
                 options = _.extend {bubble: 1}, collection
             else
+                options = arguments[arguments.length - 1]
                 options = _.extend {bubble: 0}, options
                 ++options.bubble
 
-            @trigger event, model, @, options
+            if event in ['sync', 'request']
+                this.trigger event, model, collection, this, options
+            else
+                this.trigger event, model, this, options
+
             return
 
     _.extend BackboneCollection, {byAttribute, byAttributes, reverse}

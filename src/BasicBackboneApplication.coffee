@@ -40,10 +40,12 @@ factory = ({_, $, Backbone}, eachSeries)->
                 if @hasPushState
                     @getLocation = @_getPathLocation
                     @_setLocationHash = @_setNativeLocationHash
+                    @getWindowHash = @_getWindowNativeHash
                     @hashChar = '#'
                 else
                     @getLocation = @_getHashLocation
                     @_setLocationHash = @_setCustomLocationHash
+                    @getWindowHash = @_getWindowCustomHash
                     @hashChar = '!'
 
                 return
@@ -184,40 +186,51 @@ factory = ({_, $, Backbone}, eachSeries)->
 
         _setNativeLocationHash: (hash)->
             location = window.location
-            if hash is ''
+            if not hash
                 if location.href isnt (location.protocol + '//' + location.host + location.pathname + location.search)
                     window.history.pushState {}, document.title, location.pathname + location.search
                 return
 
+            windowHash = @_getWindowNativeHash(hash)
             hash = hash.slice(1)
 
-            if window.location.hash is '#' + hash
+            if window.location.hash is windowHash
                 element = document.getElementById(hash)
-                if not element and hash
+                if not element
                     element = $("[name=#{ hash.replace(/([^\w\-])/g, '\\$1') }]")[0]
                     element.scrollIntoView() if element
             else
-                window.location.hash = '#' + hash
+                window.location.hash = windowHash
 
             return
 
-        _setCustomLocationHash: (hash)->
-            location = @_getHashLocation()
+        _getWindowNativeHash: (hash)->
+            if not hash
+                return window.location.hash
 
-            if hash is ''
-                window.location.hash = '#' + location.pathname + location.search
-                return
+            return '#' + hash.slice(1)
+
+        _setCustomLocationHash: (hash)->
+            windowHash = @_getWindowCustomHash(hash)
+            window.location.hash = windowHash
+
+            if hash
+                hash = hash.slice(1)
+                element = document.getElementById(hash)
+                if not element
+                    element = $("[name=#{ hash.replace(/([^\w\-])/g, '\\$1') }]")[0]
+                element.scrollIntoView() if element
+            return
+
+        _getWindowCustomHash: (hash)->
+            location = @_getHashLocation()
+            if not hash
+                return '#' + location.pathname + location.search
 
             hash = hash.slice(1)
 
             location.hash = '!' + hash
-            element = document.getElementById(hash)
-            if not element and hash
-                element = $("[name=#{ hash.replace(/([^\w\-])/g, '\\$1') }]")[0]
-            element.scrollIntoView() if element
-
-            window.location.hash = '#' + location.pathname + location.search + location.hash
-            return
+            return '#' + location.pathname + location.search + location.hash
 
         _listenHrefClick: (options)->
             app = @
