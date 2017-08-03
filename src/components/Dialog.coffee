@@ -84,10 +84,6 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
                 el.close()
             return
 
-        _createDialog: (args)->
-            @addClass args[1], 'mdl-dialog'
-            return React.createElement.apply React, args
-
         render: ->
             props = _.clone @props
             children = props.children
@@ -104,7 +100,8 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill)->
             else
                 args = ['dialog', props]
 
-            return @_createDialog args
+            @addClass props, 'mdl-dialog'
+            return React.createElement.apply React, args
 
     Dialog.getBinding = (binding)-> binding
 

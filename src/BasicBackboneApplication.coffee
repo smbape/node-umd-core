@@ -128,12 +128,13 @@ factory = ({_, $, Backbone}, eachSeries)->
 
         init: ->
 
-        start: (options, done)->
+        start: (config, done)->
             app = @
+            app.config = config
 
-            eachSeries app, app.tasks.map((task)-> [task, options]), ->
+            eachSeries app, app.tasks.map((task)-> [task, config]), ->
                 throw new Error 'a router must be defined' if not app.router
-                app.emit 'start', options
+                app.emit 'start', config
                 done() if 'function' is typeof done
                 return
 

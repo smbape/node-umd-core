@@ -6,15 +6,10 @@ factory = ({ _, Backbone, $ })->
     hasProp = Object::hasOwnProperty
     slice = Array::slice
 
-    compareAttr = (attr, order)->
-        """
-            left = a[#{JSON.stringify(attr)}];
-            right = b[#{JSON.stringify(attr)}];
-            res = left > right ? #{order} : left < right ? #{-order} : 0;
-        """
+    attrSplitter = /(?:\\(.)|\.)/g
 
     byAttribute = byAttributes = (attrs, order)->
-        # way faster comparator function
+        # eval comparator function is faster than scoped comparator function
         order = if order < 0 or order is true then -1 else 1
 
         if 'string' is typeof attrs
@@ -27,7 +22,7 @@ factory = ({ _, Backbone, $ })->
                 else
                     [attr, order]
         else if _.isObject attrs
-            attrs = _.map attrs, (attr, order)->
+            attrs = _.map attrs, (order, attr)->
                 [attr, if order < 0 then -1 else 1]
         else
             return -> true
@@ -46,30 +41,43 @@ factory = ({ _, Backbone, $ })->
         """]
 
         for [attr, order] in attrs
+            parts = []
+            attrSplitter.lastIndex = 0
+            lastIndex = attrSplitter.lastIndex
+
+            while match = attrSplitter.exec(attr)
+                if match[0] is "."
+                    parts.push attr.slice(lastIndex, match.index).replace(/\\/g, "")
+                    lastIndex = attrSplitter.lastIndex
+
+            if lastIndex < attr.length
+                parts.push attr.slice(lastIndex).replace(/\\/g, "")
+
+            attr = parts.map((attr)-> JSON.stringify(attr)).join("][")
+
             blocks.push """
-            left = a[#{JSON.stringify(attr)}];
-            right = b[#{JSON.stringify(attr)}];
+                left = a[#{ attr }];
+                right = b[#{ attr }];
 
-            if (left === right) {
-                res = 0;
-            } else if (left === undefined) {
-                res = -1;
-            } else if (right === undefined) {
-                res = 1;
-            } else {
-                res = left > right ? #{order} : left < right ? #{-order} : 0;
-            }
+                if (left === right) {
+                    res = 0;
+                } else if (left === undefined) {
+                    res = -1;
+                } else if (right === undefined) {
+                    res = 1;
+                } else {
+                    res = left > right ? #{order} : left < right ? #{-order} : 0;
+                }
 
-            if (res !== 0) {
-                return res;
-            }
+                if (res !== 0) {
+                    return res;
+                }
             """
 
         blocks.push "return res;"
 
-        ### jshint evil: true ###
-        return new Function('a', 'b', blocks.join('\n\n'))
-        ### jshint evil: false ###
+        fn = new Function('Backbone', 'a', 'b', blocks.join('\n\n'))
+        return fn.bind(null, Backbone)
 
     reverse = (compare)->
         return compare.original if compare.reverse and compare.original
@@ -396,14 +404,14 @@ factory = ({ _, Backbone, $ })->
                 options.comparator = byAttribute options.comparator
 
             for own opt of options
-                if opt.charAt(0) isnt '_' and opt of @
-                    @[opt] = options[opt]
+                if opt.charAt(0) isnt '_' and opt of this
+                    this[opt] = options[opt]
 
             if options.subset
-                @isSubset = true
-                @matches = {}
+                this.isSubset = true
+                this.matches = {}
 
-            collection = @
+            collection = this
 
             if 'function' is typeof options.selector
                 collection.selector = options.selector
@@ -426,64 +434,66 @@ factory = ({ _, Backbone, $ })->
                 return
 
             if not options.subset
-                collection.on 'change', @_onChange
+                collection.on 'change', this._onChange
 
-            @_uid = _.uniqueId 'BackboneCollection_'
+            this._uid = _.uniqueId 'BackboneCollection_'
             super(models, options)
 
         unsetAttribute: (name)->
-            @_modelAttributes.unset name
+            this._modelAttributes.unset name
             return
         getAttribute: (name)->
-            @_modelAttributes.get name
+            this._modelAttributes.get name
         setAttribute: ->
-            @_modelAttributes.set.call @_modelAttributes, arguments
+            this._modelAttributes.set.call this._modelAttributes, arguments
             return
         attrToJSON: ->
-            @_modelAttributes.toJSON()
+            this._modelAttributes.toJSON()
 
         addIndex: (name, attrs)->
             if 'string' is typeof attrs
                 attrs = [attrs]
 
             if Array.isArray attrs
-                @_keymap[name] = attrs.slice()
-                @_keys[name] = {}
+                this._keymap[name] = _.clone attrs
+                if attrs.condition
+                    this._keymap[name].condition = attrs.condition
+                this._keys[name] = {}
 
-                if @models
-                    for model in @models
-                        @_indexModel model, name
+                if this.models
+                    for model in this.models
+                        this._indexModel model, name
 
                 return true
 
             return false
 
         get: (obj)->
-            @byIndex obj
+            this.byIndex obj
 
         byIndex: (model, indexName)->
             if null is model or 'object' isnt typeof model
-                return BackboneCollection.__super__.get.call @, model
+                return BackboneCollection.__super__.get.call this, model
 
             if model instanceof Backbone.Model
-                found = BackboneCollection.__super__.get.call @, model
+                found = BackboneCollection.__super__.get.call this, model
                 return found if found
                 model = model.toJSON()
 
-            id = model[@model::idAttribute]
-            found = BackboneCollection.__super__.get.call @, id
+            id = model[this.model::idAttribute]
+            found = BackboneCollection.__super__.get.call this, id
             return found if found
 
             if not indexName
-                for indexName of @_keymap
-                    found = @byIndex model, indexName
+                for indexName of this._keymap
+                    found = this.byIndex model, indexName
                     break if found
                 return found
 
-            return if not hasProp.call @_keymap, indexName
+            return if not hasProp.call this._keymap, indexName
 
-            ref = @_keymap[indexName]
-            key = @_keys[indexName]
+            ref = this._keymap[indexName]
+            key = this._keys[indexName]
             for attr, index in ref
                 value = _lookup attr, model
                 key = key[value]
@@ -494,7 +504,7 @@ factory = ({ _, Backbone, $ })->
 
         _addReference: (model, options)->
             super
-            @_indexModel model
+            this._indexModel model
             return
 
         _indexModel: (model, name)->
@@ -502,11 +512,11 @@ factory = ({ _, Backbone, $ })->
                 return
 
             if not name
-                for name of @_keymap
-                    @_indexModel model, name
+                for name of this._keymap
+                    this._indexModel model, name
                 return
 
-            attrs = @_keymap[name]
+            attrs = this._keymap[name]
             if typeof attrs.condition is "function" and not attrs.condition(model, name)
                 return
 
@@ -517,7 +527,7 @@ factory = ({ _, Backbone, $ })->
                     return
                 chain.push value
 
-            key = @_keys[name]
+            key = this._keys[name]
 
             length = chain.length
             for value, index in chain
@@ -533,41 +543,51 @@ factory = ({ _, Backbone, $ })->
             return
 
         _removeReference: (model, options)->
-            @_removeIndex model
+            this._removeIndex model
             super
             return
 
         _removeIndex: (model, name)->
             if model instanceof Backbone.Model
                 if not name
-                    for name of @_keymap
-                        @_removeIndex model, name
+                    for name of this._keymap
+                        this._removeIndex model, name
                     return
 
-                # @_keys[name][prop1][prop2] = model
-                attrs = @_keymap[name]
-                chain = []
-                for attr in attrs
+                # this._keys[name][prop1][prop2] = model
+                attrs = this._keymap[name]
+                len = attrs.length
+
+                valueChain = new Array(len)
+                for attr, i in attrs
                     # value = model.get attr
                     value = _lookup attr, model
                     if value is undefined
                         return
-                    chain.push value
+                    valueChain[i] = value
 
-                key = @_keys[name]
+                key = this._keys[name]
 
-                length = chain.length
-                for value, index in chain
-                    if not key or index is length - 1
+
+                keyChain = new Array(len - 1)
+
+                for value, i in valueChain
+                    if not key or i is len - 1
                         break
+                    keyChain[i] = [ key, value ]
                     key = key[value]
 
-                delete key[value] if key
+                if key
+                    delete key[value]
+                    for i in [(len - 2)..0] by -1
+                        [ obj, key ] = keyChain[i]
+                        if Object.keys(obj[key]).length is 0
+                            delete obj[key]
 
             return
 
         _getClone: (model)->
-            _model = @get model
+            _model = this.get model
             if _model
                 _model = new _model.constructor _model.attributes
                 if model instanceof Backbone.Model
@@ -577,23 +597,23 @@ factory = ({ _, Backbone, $ })->
             _model
 
         _onChange: (model, collection, options)->
-            if model isnt @
-                @_ensureEntegrity model, options
+            if model isnt this
+                this._ensureEntegrity model, options
             return
 
         _ensureEntegrity: (model, options)->
             # maintain filter
-            if @selector and not (match = @selector model)
-                if @isSubset
-                    delete @matches[model.cid]
-                index = @indexOf model
-                @remove model, _.defaults {bubble: 0, sort: false}, options
+            if this.selector and not (match = this.selector model)
+                if this.isSubset
+                    delete this.matches[model.cid]
+                index = this.indexOf model
+                this.remove model, _.defaults {bubble: 0, sort: false}, options
                 return {remove: index}
 
             # maintain order
-            if @comparator
-                at = @insertIndexOf model
-                index = @indexOf model
+            if this.comparator
+                at = this.insertIndexOf model
+                index = this.indexOf model
 
                 if index isnt -1
                     if at > index
@@ -601,43 +621,43 @@ factory = ({ _, Backbone, $ })->
                         at--
 
                 if at isnt index
-                    if @isSubset
-                        delete @matches[model.cid]
+                    if this.isSubset
+                        delete this.matches[model.cid]
 
                     if index isnt -1
-                        @remove model, _.defaults {bubble: 0, sort: false}, options
+                        this.remove model, _.defaults {bubble: 0, sort: false}, options
 
-                    if @isSubset
-                        @matches[model.cid] = match
-                    @add model, _.defaults {bubble: 0, sort: false, match}, options
+                    if this.isSubset
+                        this.matches[model.cid] = match
+                    this.add model, _.defaults {bubble: 0, sort: false, match}, options
                     return {remove: index, add: at, match}
 
             return
 
         insertIndexOf: (model, options)->
-            size = @length
+            size = this.length
             return size if not size
 
-            if compare = @comparator
-                if _model = @get model
+            if compare = this.comparator
+                if _model = this.get model
                     model = _model
 
-                models = @models
+                models = this.models
 
                 at = binarySearchInsert model, models, compare, options
             else
-                at = @indexOf model, options
+                at = this.indexOf model, options
 
             if at is -1 then size else at
 
         indexOf: (model, options)->
-            size = @length
+            size = this.length
             return -1 if not size
 
-            if compare = @comparator
-                models = @models
+            if compare = this.comparator
+                models = this.models
 
-                if _model = @get model
+                if _model = this.get model
                     index = binarySearch _model, models, compare, options
                     if index isnt -1 and models[index] is _model
                         return index
@@ -647,19 +667,19 @@ factory = ({ _, Backbone, $ })->
                     index = binarySearch model._previousAttributes, models, compare, _.defaults({overrides, model: _model}, options)
                     return index
 
-                # index = binarySearch model, models, @comparator, options
+                # index = binarySearch model, models, this.comparator, options
                 # return index
                 return -1
             else
                 super
 
         contains: (model, options)->
-            !!@get(model) or -1 isnt @indexOf model, options
+            !!this.get(model) or -1 isnt this.indexOf model, options
 
         set: (models, options)->
             return if not models
 
-            if not @selector and not @comparator
+            if not this.selector and not this.comparator
                 return super
 
             options = _.defaults({}, options, setOptions);
@@ -671,14 +691,14 @@ factory = ({ _, Backbone, $ })->
             actions = []
 
             if remove
-                toRemove = @clone()
+                toRemove = this.clone()
 
             for model in models
-                if existing = @get model
+                if existing = this.get model
                     hasChanged = false
 
                     if merge and model isnt existing
-                        attrs = if @_isModel(model) then model.attributes else model
+                        attrs = if this._isModel(model) then model.attributes else model
                         if options.parse
                             attrs = existing.parse(attrs, options)
                         existing.set attrs, options
@@ -686,7 +706,7 @@ factory = ({ _, Backbone, $ })->
                         hasChanged = not _.isEmpty existing.changed
 
                     if hasChanged
-                        opts = @_ensureEntegrity existing, _.defaults {silent: true}, options
+                        opts = this._ensureEntegrity existing, _.defaults {silent: true}, options
 
                         if opts
                             if hasProp.call opts, 'add'
@@ -704,127 +724,127 @@ factory = ({ _, Backbone, $ })->
 
                 continue if not add
 
-                if not model = @_prepareModel model, opts
+                if not model = this._prepareModel model, opts
                     continue
 
                 # maintain filter
-                if @selector and not (match = @selector model)
+                if this.selector and not (match = this.selector model)
                     continue
 
-                at = @length
+                at = this.length
 
                 # maintain order
-                if @comparator and options.sort isnt false
-                    at = @insertIndexOf model
+                if this.comparator and options.sort isnt false
+                    at = this.insertIndexOf model
 
-                @_addReference model, _.defaults({at}, options)
-                @models.splice at, 0, model
-                @length++
+                this._addReference model, _.defaults({at}, options)
+                this.models.splice at, 0, model
+                this.length++
 
                 res.push model
                 actions.push ['add', model, at, null, match]
-                if @isSubset
-                    @matches[model.cid] = match
+                if this.isSubset
+                    this.matches[model.cid] = match
 
             if toRemove
                 toRemove.remove res
-                @_removeModels toRemove.models, options
+                this._removeModels toRemove.models, options
 
             if not silent and actions.length
                 for [name, model, index, from, match] in actions
-                    model.trigger name, model, @, _.defaults {index, from, match}, options
+                    model.trigger name, model, this, _.defaults {index, from, match}, options
 
-                @trigger 'update', @, options
+                this.trigger 'update', this, options
 
             return if singular then res[0] else res
 
         clone: ->
-            new @constructor @models,
-                model: @model
-                comparator: @comparator
-                selector: @selector
+            new this.constructor this.models,
+                model: this.model
+                comparator: this.comparator
+                selector: this.selector
 
         getSubSet: (options = {})->
             if not options.comparator and not options.selector
-                return @
+                return this
 
             if options.models is false
                 models = []
             else
-                models = @models
+                models = this.models
 
-            subSet = new @constructor models, _.extend {
-                model: @model
-                comparator: @comparator
-                selector: @selector
+            subSet = new this.constructor models, _.extend {
+                model: this.model
+                comparator: this.comparator
+                selector: this.selector
                 subset: true
             }, options
-            proto = @constructor.prototype
+            proto = this.constructor.prototype
 
             for method in ['add', 'remove', 'reset']
                 do (method)->
                     subSet[method] = (models, options)->
                         if not options?.sub
                             throw new Error method + ' is not allowed on a subSet'
-                        proto[method].call @, models, options
+                        proto[method].call this, models, options
                     return
 
             # subSet.add = (models, options)->
             #     if not options?.reset
             #         throw new Error 'add is not allowed on a subSet'
 
-            #     proto.add.call @, models, options
+            #     proto.add.call this, models, options
 
-            subSet.parent = @
+            subSet.parent = this
 
             subSet.populate = ->
-                proto.reset.call @, @parent.models, _.extend({sub: true, silent: true}, options)
+                proto.reset.call this, this.parent.models, _.extend({sub: true, silent: true}, options)
                 return
 
             subSet.attachEvents = ->
-                @parent.on 'change', @._onChange = (model, collection, options)->
-                    if not @destroyed
+                this.parent.on 'change', this._onChange = (model, collection, options)->
+                    if not this.destroyed
                         if not options
                             options = collection
 
-                        if model is @parent
+                        if model is this.parent
                             attributes = model.changed
-                            @set attributes, options
+                            this.set attributes, options
                         else if options.bubble is 1
                             # maintain filter
-                            if not @parent.contains(model)
-                                if @contains(model)
-                                    proto.remove.call @, model
-                            else if @selector and not @selector model
-                                proto.remove.call @, model
+                            if not this.parent.contains(model)
+                                if this.contains(model)
+                                    proto.remove.call this, model
+                            else if this.selector and not this.selector model
+                                proto.remove.call this, model
 
-                            else if @contains(model)
+                            else if this.contains(model)
                                 # avoid circular event change
                                 #   set -> _ensureEntegrity -> add -> set -> _ensureIntegrity -> add -> set
-                                # @set model, _.defaults {bubble: 0, sub: true}, options
+                                # this.set model, _.defaults {bubble: 0, sub: true}, options
 
                                 silent = options.silent
-                                match = @selector and @selector model
+                                match = this.selector and this.selector model
 
                                 # maintain order
-                                if @comparator
-                                    compare = @comparator
-                                    from = @indexOf model
+                                if this.comparator
+                                    compare = this.comparator
+                                    from = this.indexOf model
 
                                     if from isnt 0
                                         # check if current model is at correct index
-                                        overrides = compare(@models[from - 1], model) > 0
+                                        overrides = compare(this.models[from - 1], model) > 0
 
-                                    if not overrides and from isnt @length - 1
+                                    if not overrides and from isnt this.length - 1
                                         # check if current model is at correct index
-                                        overrides = compare(model, @models[from + 1]) > 0
+                                        overrides = compare(model, this.models[from + 1]) > 0
 
                                     if not overrides
                                         return
 
                                     overrides = {}
                                     overrides[model.cid] = model._previousAttributes
-                                    index = @insertIndexOf model, _.defaults({overrides}, options)
+                                    index = this.insertIndexOf model, _.defaults({overrides}, options)
 
                                     if from < index
                                         index--
@@ -832,67 +852,61 @@ factory = ({ _, Backbone, $ })->
                                     if from is index
                                         return
 
-                                    expectedModels = @models.slice()
+                                    expectedModels = this.models.slice()
 
                                     expectedModels.splice(from, 1)
-                                    @remove model, _.defaults {bubble: 0, sub: true, silent: true}, options
-
-                                    # if not _.isEqual(expectedModels, @models)
-                                    #     debugger
+                                    this.remove model, _.defaults {bubble: 0, sub: true, silent: true}, options
 
                                     expectedModels.splice(index, 0, model)
-                                    @add model, _.defaults {bubble: 0, match, sub: true, silent: true}, options
-
-                                    # if not _.isEqual(expectedModels, @models)
-                                    #     debugger
+                                    this.add model, _.defaults {bubble: 0, match, sub: true, silent: true}, options
 
                                     if not silent
-                                        model.trigger 'move', model, @, _.defaults {index, from, match, bubble: 0}, options
+                                        model.trigger 'move', model, this, _.defaults {index, from, match, bubble: 0}, options
 
                             else
-                                proto.add.call @, model
+                                proto.add.call this, model
                     return
-                , @
+                , this
 
-                @parent.on 'add', @._onAdd = (model, collection, options)->
-                    if not @destroyed and collection is @parent
-                        proto.add.call @, model, _.defaults {bubble: 0, sort: true}, options
+                this.parent.on 'add', this._onAdd = (model, collection, options)->
+                    if not this.destroyed and collection is this.parent
+                        proto.add.call this, model, _.defaults {bubble: 0, sort: true}, options
                     return
-                , @
+                , this
 
-                @parent.on 'remove', @._onRemove = (model, collection, options)->
-                    if not @destroyed and collection is @parent
-                        proto.remove.call @, model, _.defaults {bubble: 0}, options
+                this.parent.on 'remove', this._onRemove = (model, collection, options)->
+                    if not this.destroyed and collection is this.parent
+                        proto.remove.call this, model, _.defaults {bubble: 0}, options
                     return
-                , @
+                , this
 
-                @parent.on 'reset', @._onReset = (collection, options)->
-                    if not @destroyed and collection is @parent
-                        proto.reset.call @, collection.models, _.defaults {bubble: 0, sub: true}, options
+                this.parent.on 'reset', this._onReset = (collection, options)->
+                    if not this.destroyed and collection is this.parent
+                        proto.reset.call this, collection.models, _.defaults {bubble: 0, sub: true}, options
                     return
-                , @
+                , this
 
                 return
 
             subSet.detachEvents = ->
-                parent = @parent
-                parent.off 'change', @_onChange, @
-                parent.off 'add', @_onAdd, @
-                parent.off 'remove', @_onRemove, @
-                parent.off 'reset', @_onReset, @
+                parent = this.parent
+                parent.off 'change', this._onChange, this
+                parent.off 'add', this._onAdd, this
+                parent.off 'remove', this._onRemove, this
+                parent.off 'reset', this._onReset, this
                 return
 
             subSet.destroy = ->
-                @detachEvents()
+                this.detachEvents()
 
-                for own prop of @
+                for own prop of this
                     if prop isnt '_uid'
-                        delete @[prop]
+                        delete this[prop]
 
                 # may be destroyed was executed during an event handling
                 # therefore, callbacks will still be processed
-                # @destroyed helps skipping callback if needed
-                @destroyed = true
+                # this.destroyed helps skipping callback if needed
+                this.destroyed = true
                 return
             
             if options.models isnt false
@@ -901,23 +915,23 @@ factory = ({ _, Backbone, $ })->
             subSet
 
         _onModelEvent: (event, model, collection, options) ->
-            if @destroyed
+            if this.destroyed
                 return
 
-            if event in ['add', 'remove'] and collection isnt @
+            if event in ['add', 'remove'] and collection isnt this
                 return
 
             if event is 'destroy'
-                @remove model, options
+                this.remove model, options
 
             else if event is 'change'
-                prevId = @modelId(model.previousAttributes())
-                id = @modelId(model.attributes)
+                prevId = this.modelId(model.previousAttributes())
+                id = this.modelId(model.attributes)
                 if prevId isnt id
                     if prevId isnt null
-                        delete @_byId[prevId]
+                        delete this._byId[prevId]
                     if id isnt null
-                        @_byId[id] = model
+                        this._byId[id] = model
 
             if arguments.length is 3
                 options = _.extend {bubble: 1}, collection
@@ -932,6 +946,40 @@ factory = ({ _, Backbone, $ })->
                 this.trigger event, model, this, options
 
             return
+
+        _removeModels: (models, options)->
+            removed = []
+
+            i = 0
+            len = models.length
+
+            while i < len
+                model = this.get(models[i])
+                if !model
+                    i++
+                    continue
+
+                index = this.indexOf(model)
+                this.models.splice index, 1
+                this.length--
+
+                # Remove references before triggering 'remove' event to prevent an
+                # infinite loop. #3693
+                delete this._byId[model.cid]
+                this._removeIndex(model)
+
+                id = this.modelId(model.attributes)
+                if id not in [ null, undefined ]
+                    delete this._byId[id]
+
+                if !options.silent
+                    options.index = index
+                    model.trigger 'remove', model, this, options
+
+                removed.push model
+                this._removeReference model, options
+                i++
+            return removed
 
     _.extend BackboneCollection, {byAttribute, byAttributes, reverse}
 
