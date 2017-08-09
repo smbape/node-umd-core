@@ -5,6 +5,7 @@ deps = [
 factory = ({ _, Backbone, $ })->
     hasProp = Object::hasOwnProperty
     slice = Array::slice
+    push = Array::push
 
     attrSplitter = /(?:\\(.)|\.)/g
 
@@ -471,7 +472,7 @@ factory = ({ _, Backbone, $ })->
         get: (obj)->
             this.byIndex obj
 
-        byIndex: (model, indexName)->
+        byIndex: (model, indexName, options)->
             if null is model or 'object' isnt typeof model
                 return BackboneCollection.__super__.get.call this, model
 
@@ -491,16 +492,38 @@ factory = ({ _, Backbone, $ })->
                 return found
 
             return if not hasProp.call this._keymap, indexName
+            partial = options and options.partial
 
             ref = this._keymap[indexName]
-            key = this._keys[indexName]
+            obj = this._keys[indexName]
             for attr, index in ref
                 value = _lookup attr, model
-                key = key[value]
-                if 'undefined' is typeof key
-                    break
 
-            key
+                if typeof value is "undefined" or typeof obj[value] is "undefined"
+                    if partial and partial is index
+                        return this._getMatchingPartial(obj, index, ref)
+                    return
+
+                obj = obj[value]
+            obj
+
+        _getMatchingPartial: (obj, index, ref)->
+            res = []
+
+            count = ref.length - index
+            stack = [[obj, count]]
+            while item = stack.pop()
+                [obj, count] = item
+                if count is 1
+                    push.apply res, Object.keys(obj).map (key)-> obj[key]
+                else
+                    count--
+                    stack.push Object.keys(obj).map (key)-> [ obj[key], count ]
+
+            if this.comparator
+                res.sort(this.comparator)
+
+            return res
 
         _addReference: (model, options)->
             super
