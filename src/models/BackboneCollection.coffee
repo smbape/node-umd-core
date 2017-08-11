@@ -518,7 +518,7 @@ factory = ({ _, Backbone, $ })->
                     push.apply res, Object.keys(obj).map (key)-> obj[key]
                 else
                     count--
-                    stack.push Object.keys(obj).map (key)-> [ obj[key], count ]
+                    push.apply stack, Object.keys(obj).map (key)-> [ obj[key], count ]
 
             if this.comparator
                 res.sort(this.comparator)
