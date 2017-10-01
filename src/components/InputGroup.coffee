@@ -118,8 +118,15 @@ freact = ({_, $}, makeTwoWayBinbing, AbstractModelComponent)->
             @setValue @props.value
             return
 
+        handleChange: (evt)=>
+            evt.ref = this
+            { onChange } = this.props
+            onChange.apply(null, arguments) if "function" is typeof onChange
+            return
+
         render: ->
             props = _.clone @props
+            props.onChange = this.handleChange
 
             for prop in ['type']
                 delete props[prop]

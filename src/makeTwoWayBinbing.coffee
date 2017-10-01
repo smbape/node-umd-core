@@ -5,22 +5,53 @@ deps = [
 freact = ({_, $})->
     hasOwn = {}.hasOwnProperty
     _expressionCache = {}
-    uid = '_makeTwoWayBinbing:' + Math.random().toString(36).slice(2)
+    uid = '_makeTwoWayBinbing_' + Math.random().toString(36).slice(2)
+    HIDDEN_BINDING_KEY = uid + "_binding"
     AbstractModelComponent = null
 
-    emptyObject = (obj)->
-        for own prop of obj
-            obj[prop] = null
-            delete obj[prop]
+    # http://www.w3schools.com/tags/att_input_type.asp
+    inputTypesWithEditableValue = {
+        "color": true,
+        "date": true,
+        "datetime": true,
+        "datetime-local": true,
+        "email": true,
+        "month": true,
+        "number": true,
+        "password": true,
+        "range": true,
+        "search": true,
+        "tel": true,
+        "text": true,
+        "time": true,
+        "url": true,
+        "week": true
+    }
 
+    hasEditableValue = (type, props)->
+        switch type
+            when "textarea", "select"
+                return true
+            when "input"
+                return props.type in [null, undefined] or hasProp.call(inputTypesWithEditableValue, props.type)
+            else
+                return false
+
+    emptyObject = (binding)->
+        for own prop of binding
+            binding[prop] = null
+            delete binding[prop]
+        return
+
+    handleTargetChange = (evt)->
+        ref = evt.ref or evt.target
+        binding = ref[HIDDEN_BINDING_KEY]
+        binding.__onChange.apply(this, arguments) if binding
         return
 
     _makeTwoWayBinbing = (type, config, element)->
         if not config or not (this instanceof AbstractModelComponent)
             return
-
-        # this._handleBinding(type, config, element)
-        # return
 
         {spModel: model, validate} = config
 
@@ -95,6 +126,8 @@ freact = ({_, $})->
 
                 delete binding.owner._bindexists[binding.id]
                 emptyObject binding
+                if ReactDOM.vrdom is ReactDOM and binding._ref
+                    delete binding._ref[HIDDEN_BINDING_KEY]
                 return
 
             _onModelChange: (model, value, options)->
@@ -112,14 +145,27 @@ freact = ({_, $})->
 
                 return
 
-            __ref: (ref)->
+            __ref: (ref, status)->
                 return if not ref
 
-                # TODO: Find a way to make it part of componentDidMount/componentDidUpdate
-
-                node = ReactDOM.findDOMNode(ref)
-                binding = @
+                binding = this
                 owner = binding.owner
+
+                if ReactDOM.vrdom is ReactDOM
+                    if status isnt "mount"
+                        if existing = ref.binding
+                            prevBinding = owner._bindexists[existing]
+                            prevBinding.onChange = binding.onChange if prevBinding
+                        emptyObject(binding)
+                        binding = null
+                        return
+
+                    Object.defineProperty ref, HIDDEN_BINDING_KEY, {
+                        configurable: true,
+                        enumerable: false,
+                        writable: true,
+                        value: this
+                    }
 
                 if not (existing = ref.binding)
                     existing = ref.binding = binding.id
@@ -138,6 +184,7 @@ freact = ({_, $})->
                         emptyObject binding
 
                         # onChange is always a new function, make sure it uses the correct binding object
+                        prevBinding.onChange = binding.onChange
                         binding = prevBinding
 
                     for i in [index...owner._bindings.length] by 1
@@ -145,7 +192,7 @@ freact = ({_, $})->
                     return
 
                 binding._ref = ref
-                binding._node = node
+                binding._node = ReactDOM.findDOMNode(ref)
                 binding._attach binding
                 return
 
@@ -154,55 +201,66 @@ freact = ({_, $})->
         else
             tagName = type
 
+        props = element.props
+
         if property
-            defaultValue = undefined
-            valueProp = undefined
-            initTagBinding = (type)->
-                switch type
-                    when 'input'
-                        if config.type is 'checkbox'
-                            valueProp = 'checked'
-                            defaultValue = false
-                            binding.get = (binding, evt)-> evt.target.checked
-                        else
-                            valueProp = 'value'
-                            binding.get = (binding, evt)-> evt.target.value
-                    when 'textarea', 'select', 'option', 'button', 'datalist', 'output'
+            link = if this.getValueLinkProps then this.getValueLinkProps(type, props, property, model) else null
+
+            if link
+                # to ease testing
+                props['data-bind-model'] = model.cid
+                props['data-bind-attr'] = property
+
+                _.extend(props, link)
+            else
+                defaultValue = undefined
+                valueProp = undefined
+
+                initTagBinding = (type)->
+                    if type is "input" and props.type in ["checkbox", "radio"]
+                        valueProp = 'checked'
+                        defaultValue = false
+                        binding.get = (binding, evt)-> evt.target.checked
+                    else if hasEditableValue(type, props)
                         valueProp = 'value'
                         binding.get = (binding, evt)-> evt.target.value
-                    else
-                        if config.contentEditable in ["true", true]
-                            valueProp = 'innerHTML'
-                            binding.get = (binding, evt)-> evt.target.innerHTML
-                return
-
-            switch typeof type
-                when 'function'
-                    if type is AbstractModelComponent.MdlComponent
-                        initTagBinding(tagName)
-                    else if 'function' is typeof type.getBinding
+                    else if type in ['option', 'button', 'datalist', 'output']
                         valueProp = 'value'
-                        binding = type.getBinding binding, config
-                when 'string'
-                    initTagBinding(type)
+                        binding.get = (binding, evt)-> evt.target.value
+                    else if config.contentEditable in ["true", true]
+                        valueProp = 'innerHTML'
+                        binding.get = (binding, evt)-> evt.target.innerHTML
+                    return
 
-        binding.index = @_bindings.length
-        binding.__ref = binding.__ref.bind binding
-        @_bindings.push binding
+                switch typeof type
+                    when 'function'
+                        if type is AbstractModelComponent.MdlComponent
+                            initTagBinding(tagName)
+                        else if 'function' is typeof type.getBinding
+                            binding = type.getBinding binding, config
+                            valueProp = binding.valueProp or 'value'
+                    when 'string'
+                        initTagBinding(type)
 
         if valueProp
-            props = element.props
 
             # to ease testing
             props['data-bind-model'] = model.cid
             props['data-bind-attr'] = property
 
-            # TODO : Find a way to avoid new props.onChange function
-            # if model+events didn't change
-
             __onChange = (evt)->
-                binding.model.set property, binding.get(binding, evt), {dom: true, validate: binding.validate}
-                return
+                if binding.onChange
+                    res = binding.onChange.apply(null, arguments)
+
+                binding.model.set property, binding.get(binding, evt), {
+                    dom: true,
+                    validate: binding.validate
+                }
+                return res
+
+            if ReactDOM.vrdom is ReactDOM
+                binding.__onChange = __onChange
+                __onChange = handleTargetChange
 
             # make sure created native component will have the correct initial value
             value = model.attributes[property]
@@ -212,6 +270,8 @@ freact = ({_, $})->
                         delete props.dangerouslySetInnerHTML
                     else if typeof defaultValue isnt 'undefined'
                         props[valueProp] = defaultValue
+                    else if valueProp is 'value'
+                        props[valueProp] = ''
                     else
                         delete props[valueProp]
 
@@ -234,15 +294,14 @@ freact = ({_, $})->
                 binding.onChangeEvent = onChangeEvent
 
             if 'function' is typeof props[onChangeEvent]
-                onChange = props[onChangeEvent]
-                props[onChangeEvent] = ->
-                    res = onChange.apply @, arguments
-                    __onChange.apply @, arguments
-                    return res
-            else
-                props[onChangeEvent] = __onChange
+                binding.onChange = props[onChangeEvent]
 
-        # TODO : Find a way to avoid new element.ref function if model+events didn't change
+            props[onChangeEvent] = __onChange
+
+        binding.index = @_bindings.length
+        binding.__ref = binding.__ref.bind binding
+        @_bindings.push binding
+
         if element.preactCompatNormalized
             element = element.attributes
 

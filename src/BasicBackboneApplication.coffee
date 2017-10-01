@@ -54,14 +54,6 @@ factory = ({_, $, Backbone}, eachSeries)->
                 # IE special task
                 return if typeof document.documentMode is 'undefined'
 
-                if document.documentMode < 9
-                    depsLoader.loadScript options.baseUrl + 'vendor/html5shiv.js'
-                    depsLoader.loadScript options.baseUrl + 'vendor/respond.src.js'
-
-                if document.documentMode < 8
-                    # IE < 8 fetch from cache
-                    $.ajaxSetup cache: false
-
                 # Add IE-MODE-xx to body. For css
                 if typeof document.body.className is 'string' and document.body.className.length > 0
                     document.body.className += ' '

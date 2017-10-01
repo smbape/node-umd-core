@@ -418,7 +418,7 @@ factory = ({ _, Backbone, $ })->
                 collection.selector = options.selector
 
             collection._keymap = {}
-            collection._keys = {}
+            collection._byIndex = {}
 
             indexes = options.indexes or collection.indexes
             if _.isObject indexes
@@ -451,19 +451,20 @@ factory = ({ _, Backbone, $ })->
         attrToJSON: ->
             this._modelAttributes.toJSON()
 
-        addIndex: (name, attrs)->
+        addIndex: (indexName, attrs)->
             if 'string' is typeof attrs
                 attrs = [attrs]
 
             if Array.isArray attrs
-                this._keymap[name] = _.clone attrs
+                this._keymap[indexName] = _.clone attrs
                 if attrs.condition
-                    this._keymap[name].condition = attrs.condition
-                this._keys[name] = {}
+                    this._keymap[indexName].condition = attrs.condition
+                this._byIndex[indexName] = {}
 
                 if this.models
+                    options = {}
                     for model in this.models
-                        this._indexModel model, name
+                        this._indexModel model, indexName, options
 
                 return true
 
@@ -495,7 +496,7 @@ factory = ({ _, Backbone, $ })->
             partial = options and options.partial
 
             ref = this._keymap[indexName]
-            obj = this._keys[indexName]
+            obj = this._byIndex[indexName]
             for attr, index in ref
                 value = _lookup attr, model
 
@@ -527,20 +528,20 @@ factory = ({ _, Backbone, $ })->
 
         _addReference: (model, options)->
             super
-            this._indexModel model
+            this._indexModel model, null, options
             return
 
-        _indexModel: (model, name)->
+        _indexModel: (model, indexName, options)->
             if not (model instanceof Backbone.Model)
                 return
 
-            if not name
-                for name of this._keymap
-                    this._indexModel model, name
+            if not indexName
+                for indexName of this._keymap
+                    this._indexModel model, indexName, options
                 return
 
-            attrs = this._keymap[name]
-            if typeof attrs.condition is "function" and not attrs.condition(model, name)
+            attrs = this._keymap[indexName]
+            if typeof attrs.condition is "function" and not attrs.condition(model, indexName)
                 return
 
             chain = []
@@ -550,7 +551,7 @@ factory = ({ _, Backbone, $ })->
                     return
                 chain.push value
 
-            key = this._keys[name]
+            key = this._byIndex[indexName]
 
             length = chain.length
             for value, index in chain
@@ -570,15 +571,14 @@ factory = ({ _, Backbone, $ })->
             super
             return
 
-        _removeIndex: (model, name)->
+        _removeIndex: (model, indexName)->
             if model instanceof Backbone.Model
-                if not name
-                    for name of this._keymap
-                        this._removeIndex model, name
+                if not indexName
+                    for indexName of this._keymap
+                        this._removeIndex model, indexName
                     return
 
-                # this._keys[name][prop1][prop2] = model
-                attrs = this._keymap[name]
+                attrs = this._keymap[indexName]
                 len = attrs.length
 
                 valueChain = new Array(len)
@@ -589,8 +589,7 @@ factory = ({ _, Backbone, $ })->
                         return
                     valueChain[i] = value
 
-                key = this._keys[name]
-
+                key = this._byIndex[indexName]
 
                 keyChain = new Array(len - 1)
 

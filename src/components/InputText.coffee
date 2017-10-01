@@ -31,7 +31,6 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
             @props.binding?.instance = @
             @classList = ['input']
             super
-
             return
 
         componentDidMount: ->
@@ -42,6 +41,12 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
         componentDidUpdate: (prevProps, prevState)->
             super(prevProps, prevState)
             @_updateClass()
+            return
+
+        handleChange: (evt)=>
+            evt.ref = this
+            { onChange } = this.props
+            onChange.apply(null, arguments) if "function" is typeof onChange
             return
 
         onFocus: (evt)=>
@@ -56,7 +61,8 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
             props = _.clone @props
 
             id = props.id or @id
-            {children, className, spModel, input, style, disabled, onFocus, onBlur, onChange} = props
+            {children, className, spModel, input, style, disabled, onFocus, onBlur} = props
+            {handleChange: onChange} = this
 
             for prop in ['children', 'className', 'spModel', 'input', 'style', 'disabled', 'onFocus', 'onBlur', 'onChange']
                 delete props[prop]
@@ -110,15 +116,11 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                     when 'string'
                         type = input
                         inputType = 'text'
-                        if not props.defaultValue
-                            value = ''
                     when 'function'
                         type = input
                     else
                         type = 'input'
                         inputType = 'text'
-                        if not props.defaultValue
-                            value = ''
 
                 inputProps = _.defaults({
                     ref: 'input'
@@ -132,7 +134,6 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                     label: null
                 }, props, {
                     type: inputType
-                    value: value
                 })
 
                 delete inputProps.charCount
@@ -198,6 +199,7 @@ freact = ({_, $}, {throttle, mergeFunctions}, AbstractModelComponent)->
                 instance = binding._ref
                 input = instance._getInput()
                 return getInputValue input
+
         return binding
 
 

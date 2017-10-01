@@ -55,8 +55,6 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
         element = createElement.apply React, args
 
         binding = makeTwoWayBinbing element, type, config
-        if binding and 'string' isnt typeof type
-            element.props.binding = binding
 
         return element
 
@@ -314,8 +312,15 @@ freact = ({_, $, Backbone}, makeTwoWayBinbing, componentHandler)->
                 componentHandler.downgradeElements([el])
             return
 
+        handleChange: (evt)=>
+            evt.ref = this
+            { onChange } = this.props
+            onChange.apply(null, arguments) if "function" is typeof onChange
+            return
+
         render:->
             props = _.clone @props
+            props.onChange = this.handleChange
             tagName = props.tagName or 'span'
             delete props.tagName
             React.createElement tagName, props

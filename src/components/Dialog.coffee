@@ -11,7 +11,7 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill, getMatchingCssStyle)->
     transformJSPropertyName = if 'transform' of testElementStyle then 'transform' else 'webkitTransform'
     transitionJSPropertyName = if 'transition' of testElementStyle then 'transition' else 'webkitTransition'
     testElementStyle = null
-    CSSMatrix = window.WebKitCSSMatrix or window.MSCSSMatrix
+    CSSMatrix = window.WebKitCSSMatrix
 
     class Dialog extends AbstractModelComponent
         componentDidMount: ->
@@ -32,19 +32,18 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill, getMatchingCssStyle)->
                     body = el.ownerDocument.body
 
                     if not value
-                        if CSSMatrix
-                            parentNode = el.parentNode
-                            while parentNode and parentNode isnt body
-                                transform = getMatchingCssStyle(parentNode, "transform")
-                                if transform
-                                    if parentNode.hasAttribute("data-original-zIndex")
-                                        zIndex = parentNode.getAttribute("data-original-zIndex")
-                                        parentNode.removeAttribute("data-original-zIndex")
-                                        parentNode.style.zIndex = zIndex
-                                    else
-                                        parentNode.style.zIndex = ""
+                        parentNode = el.parentNode
+                        while parentNode and parentNode isnt body
+                            transform = getMatchingCssStyle(parentNode, "transform")
+                            if transform
+                                if parentNode.hasAttribute("data-original-zIndex")
+                                    zIndex = parentNode.getAttribute("data-original-zIndex")
+                                    parentNode.removeAttribute("data-original-zIndex")
+                                    parentNode.style.zIndex = zIndex
+                                else
+                                    parentNode.style.zIndex = ""
 
-                                parentNode = parentNode.parentNode
+                            parentNode = parentNode.parentNode
 
                         for prop in widthAttributes
                             if el.hasAttribute("data-original-" + prop)
@@ -80,33 +79,26 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill, getMatchingCssStyle)->
                     offsetLeft = 0
                     zIndex = this.backdrop_.style.zIndex
 
-                    if CSSMatrix
-                        parentNode = el.parentNode
-                        while parentNode and parentNode isnt body
-                            transform = getMatchingCssStyle(parentNode, "transform")
-                            if transform
+                    parentNode = el.parentNode
+                    while parentNode and parentNode isnt body
+                        transform = getMatchingCssStyle(parentNode, "transform")
+                        if transform
+                            if CSSMatrix
                                 matrix = new CSSMatrix transform
                                 offsetLeft -= parentNode.offsetLeft + matrix.m41
                                 offsetTop -= parentNode.offsetTop + matrix.m42
 
-                                if not polyfilled and parentNode.style
-                                    parentNode.setAttribute("data-original-zIndex", parentNode.style.zIndex)
-                                parentNode.style.zIndex = zIndex
+                            if not polyfilled and parentNode.style
+                                parentNode.setAttribute("data-original-zIndex", parentNode.style.zIndex)
+                            parentNode.style.zIndex = zIndex
 
-                            parentNode = parentNode.parentNode
+                        parentNode = parentNode.parentNode
 
                     windowHeight = window.innerHeight
                     dialogHeight = el.clientHeight
                     el.style.position = "fixed"
                     el.style.top = "#{offsetTop + (windowHeight - dialogHeight) / 2}px"
                     el.style.left = offsetLeft + "px"
-
-                    # this.backdrop_.style.top = offsetTop + "px"
-                    # this.backdrop_.style.left = offsetLeft + "px"
-                    # this.backdrop_.style.bottom = "" # offsetTop + "px"
-                    # this.backdrop_.style.right = "" # offsetLeft + "px"
-                    # this.backdrop_.style.width =  window.innerWidth + "px"
-                    # this.backdrop_.style.height =  window.innerHeight + "px"
                     return
 
             if @props.onCancel
@@ -137,7 +129,7 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill, getMatchingCssStyle)->
                 sx = target.clientWidth / (el.clientWidth or window.innerWidth)
                 sy = target.clientHeight / (el.clientHeight or window.innerHeight)
                 el.style[transitionJSPropertyName] = 'initial'
-                el.style.opacity = 0
+                el.style.opacity = 0.5
                 @transform = el.style[transformJSPropertyName] = "translate3d( #{tx}px, #{ty}px, 0 ) scale( #{sx}, #{sy} )"
 
             el.showModal()
@@ -166,9 +158,16 @@ freact = ({_}, AbstractModelComponent, dialogPolyfill, getMatchingCssStyle)->
                 el.close()
             return
 
+        handleChange: (evt)=>
+            evt.ref = this
+            { onChange } = this.props
+            onChange.apply(null, arguments) if "function" is typeof onChange
+            return
+
         render: ->
             props = _.clone @props
             children = props.children
+            props.onChange = this.handleChange
 
             delete props.children
             delete props.spModel

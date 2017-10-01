@@ -223,7 +223,6 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
                 timerInit: new Date().getTime()
             }
 
-            @_moveState.target.style.transition = 'none'
             @_inMove = false
             @_inVScroll = false
 
@@ -266,7 +265,10 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
                     @onTouchEnd evt, true
                     return
 
-                @_inMove = true
+                if not @_inMove
+                    @_moveState.target.style.transition = 'none'
+                    @_inMove = true
+
                 if isLeft
                     @_moveState.diffX = -diffX
                     if diffX > MAX_TEAR
@@ -291,12 +293,13 @@ freact = ({_, $}, AbstractModelComponent, throttle)->
             removeTouchEventListeners()
 
             if @_inMove
+                target.style.transition = ''
+                target.style[transformJSPropertyName] = ''
                 timerDiff = new Date().getTime() - timerInit
                 if (timerDiff < 200 and diffX > 0) or diffX > $(target).width() / 3
                     @$el.removeClass('layout-open-left layout-open-right')
+
             scrollContainer.style.overflow = '' if scrollContainer
-            target.style.transition = ''
-            target.style[transformJSPropertyName] = ''
             @_moveState.target = null
             @_moveState.scrollContainer = null
             @_moveState = null

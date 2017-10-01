@@ -161,8 +161,15 @@ freact = ({_, $, Backbone}, AbstractModelComponent)->
                 delete props[key]
             props
 
+        handleChange: (evt)=>
+            evt.ref = this
+            { onChange } = this.props
+            onChange.apply(null, arguments) if "function" is typeof onChange
+            return
+
         render: ->
             props = @_getProps()
+            props.onChange = this.handleChange
             children  = props.children
             delete props.children
 

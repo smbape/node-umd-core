@@ -1,9 +1,5 @@
 deps = [
     {amd: 'jquery', common: 'jquery', brunch: '!jQuery'}
-    "../lib/Polyfill/Array/isArray"
-    "../lib/Polyfill/Function/bind"
-    "../lib/Polyfill/Object/keys"
-    "../lib/Polyfill/String/trim"
 ]
 
 factory = ($)->
