@@ -239,6 +239,7 @@ freact = ({_, $})->
                         else if 'function' is typeof type.getBinding
                             binding = type.getBinding binding, config
                             valueProp = binding.valueProp or 'value'
+                            defaultValue = type.getDefaultValue(binding, config) if type.getDefaultValue
                     when 'string'
                         initTagBinding(type)
 
