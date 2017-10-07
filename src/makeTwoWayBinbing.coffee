@@ -156,7 +156,12 @@ freact = ({_, $})->
                         if existing = ref.binding
                             prevBinding = owner._bindexists[existing]
                             prevBinding.onChange = binding.onChange if prevBinding
+
+                        index = binding.index
+                        owner._bindings.splice index, 1
                         emptyObject(binding)
+                        for i in [index...owner._bindings.length] by 1
+                            owner._bindings[i].index--
                         binding = null
                         return
 
