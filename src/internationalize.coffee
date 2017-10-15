@@ -7,7 +7,7 @@ deps = [
 ]
 
 factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
-    hasOwn = {}.hasOwnProperty
+    { hasOwnProperty: hasProp } = Object.prototype
 
     # Add choice handler
     ###
@@ -84,7 +84,12 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
             escapeValue: false
             unescapeSuffix: 'HTML'
         returnedObjectHandler: (key, value, options)->
-            if not hasOwn.call(options, 'choice') or 'number' isnt typeof options.choice or not hasOwn.call(value, 'choice') or 'object' isnt typeof value.choice
+            if (
+                !hasProp.call(options, 'choice') or
+                'number' isnt typeof options.choice or
+                !hasProp.call(value, 'choice') or
+                'object' isnt typeof value.choice
+            )
                 return "key '#{@ns[0]}:#{key} (#{@lng})' returned an object instead of string."
 
             keys = Object.keys(value.choice).sort(intComparator)
@@ -126,7 +131,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
         changeLanguage: (language)->
             locales = @getLocales()
 
-            if hasOwn.call locales, language
+            if hasProp.call locales, language
                 return if locales[language] is i18n.language
             else
                 return
@@ -135,7 +140,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
             @set 'language', language
 
             {location, pathParams} = @router.current
-            if hasOwn.call pathParams, 'language'
+            if hasProp.call pathParams, 'language'
                 pathParams.language = language
                 url = @router.current.engine.getUrl(pathParams) + location.search + location.hash
                 Backbone.history.navigate url, trigger: true, replace: true
@@ -170,7 +175,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
                         engine.defaults.language = language
 
         location = app.getLocation()
-        routeInfo = app.router.getRouteInfo location
+        routeInfo = app.router.getRouteInfo location, { partial: true }
         if routeInfo
             [engine, pathParams] = routeInfo
 
@@ -178,7 +183,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
 
         locales = app.getLocales()
 
-        if not hasOwn.call locales, language
+        if not hasProp.call locales, language
             language = 'en'
 
         app.set 'language', language

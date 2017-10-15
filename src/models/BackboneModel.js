@@ -41,6 +41,7 @@ function factory(com, inherits) {
             }
 
             // Extract attributes and options.
+            const isEqual = options.isEqual || _.isEqual;
             const unset = options.unset;
             const silent = options.silent;
             const changes = [];
@@ -84,12 +85,12 @@ function factory(com, inherits) {
                 }
 
                 hasChanged = false;
-                if (!_.isEqual(currentVal, val)) {
+                if (!isEqual(currentVal, val)) {
                     hasChanged = true;
                     changes.push(attr);
                 }
 
-                if (!_.isEqual(prev[attr], val)) {
+                if (!isEqual(prev[attr], val)) {
                     changed[attr] = val;
                 } else {
                     delete changed[attr];

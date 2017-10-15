@@ -6,8 +6,8 @@ deps = [
 factory = (require, _, GenericUtil, qs)->
     # TODO : perf
 
-    hasOwn = {}.hasOwnProperty
-    push = [].push
+    { hasOwnProperty: hasProp } = Object.prototype
+    { push } = Array.prototype
 
     splitPathReg = /^(.*?)([^\/]+?|)(\.[^.\/]*|)$/
     splitPath = (filename) ->
@@ -36,7 +36,7 @@ factory = (require, _, GenericUtil, qs)->
         pattern is target or (
             length < target.length and
             pattern is target.substring(0, length) and
-            (pattern is '' or target.charAt(length) is '/')
+            (pattern is '' or target[length] is '/')
         )
 
     # Class that matches and generates url based on a patter
@@ -55,7 +55,7 @@ factory = (require, _, GenericUtil, qs)->
         constructor: (options = {})->
             @defaults = {}
             for prop in RouterEngine::validOptions
-                if hasOwn.call options, prop
+                if hasProp.call options, prop
                     method = 'set' + GenericUtil.StringUtil.firstUpper prop
                     if typeof @[method] is 'function'
                         @[method] options[prop]
@@ -109,7 +109,7 @@ factory = (require, _, GenericUtil, qs)->
             regex = []
             inRegExp = false
             inVariable = false
-            _variable = null
+            varname = null
 
             map =
                 '*': '[^/]*'
@@ -126,18 +126,17 @@ factory = (require, _, GenericUtil, qs)->
                         throw new Error('Unexpted token ' + match + ' at index ' + index)
                     else
                         inVariable = true
-                        # str[i] is not supported in IE8
-                        if variable.charAt(variable.length - 1) is ':'
+                        if variable[variable.length - 1] is ':'
                             inRegExp = true
-                            _variable = variable.substring(0, variable.length - 1).trim()
+                            varname = variable.substring(0, variable.length - 1).trim()
                         else
-                            _variable = variable.trim()
+                            varname = variable.trim()
                     return ''
                 else if match is '}'
                     if inVariable
-                        if ~variables.indexOf _variable
-                            throw new Error('Duplicate variable name ' + _variable)
-                        variables.push _variable
+                        if variables.indexOf(varname) isnt -1
+                            throw new Error('Duplicate variable name ' + varname)
+                        variables.push varname
                         inVariable = false
                         if inRegExp
                             match = regex.join('').trim()
@@ -145,7 +144,7 @@ factory = (require, _, GenericUtil, qs)->
                             inRegExp = false
                         else
                             match = '([^/]+)'
-                    sanitized.push '{' + _variable + '}'
+                    sanitized.push '{' + varname + '}'
                 else if expr
                     sanitized.push match
                     match = map[match] or match
@@ -169,7 +168,7 @@ factory = (require, _, GenericUtil, qs)->
             if baseUrl is '#'
                 @baseUrl = baseUrl
             else if 'string' is typeof baseUrl
-                if baseUrl is '' or baseUrl.charAt(baseUrl.length - 1) is '/'
+                if baseUrl is '' or baseUrl[baseUrl.length - 1] is '/'
                     @baseUrl = baseUrl
                 else
                     @baseUrl = baseUrl + '/'
@@ -179,7 +178,7 @@ factory = (require, _, GenericUtil, qs)->
         # @param [String] url url to match
         # @return [Object] Object of matches
         getParams: (url, options = {}) ->
-            strict = if hasOwn.call options, 'strict'
+            strict = if hasProp.call options, 'strict'
                 options.strict
             else
                 @strict
@@ -209,7 +208,7 @@ factory = (require, _, GenericUtil, qs)->
             _length = variables.length
             noMatch = true
 
-            url.replace @replacer, (match) =>
+            replace = (match) =>
                 noMatch = false
                 for i in [0...variables.length] by 1
                     params[variables[i]] = @decode arguments[i + 1]
@@ -222,6 +221,17 @@ factory = (require, _, GenericUtil, qs)->
                         params[parts[i]] = @decode parts[i + 1]
 
                 return
+
+            url.replace @replacer, replace
+
+            if noMatch and options.partial
+                # replace missing parts with default url parts
+                if !defaultUrl
+                    defaultUrl = _removeLeadTrail @getDefaultUrl()
+                parts = defaultUrl.split(/\//g)
+                for part, i in url.split(/\//g)
+                    parts[i] = part
+                parts.join("/").replace @replacer, replace
 
             if noMatch
                 if options.throws is false
@@ -239,14 +249,14 @@ factory = (require, _, GenericUtil, qs)->
 
             params = _.clone params
             for key of @defaults
-                if not hasOwn.call params, key
+                if not hasProp.call params, key
                     params[key] = _.result @defaults, key
 
             for own key of params
                 params[key] = _.result params, key
 
             url = self.sanitized.replace /\{(\w+)\}/g, (match, variable) ->
-                if hasOwn.call params, variable
+                if hasProp.call params, variable
                     match = self.encode params[variable]
                     delete params[variable]
                 match
@@ -290,7 +300,7 @@ factory = (require, _, GenericUtil, qs)->
             url.filename = @prefix + url.filename if @prefix
             url.filename += @suffix if @suffix
             if typeof @basePath is 'string' and @basePath.length > 0
-                sep = @basePath.charAt @basePath.length - 1
+                sep = @basePath[@basePath.length - 1]
                 if not /[\\/]/.test sep
                     sep = '/'
                 url.dirname = @basePath + sep + url.dirname
