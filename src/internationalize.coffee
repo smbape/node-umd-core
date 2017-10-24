@@ -167,7 +167,7 @@ factory = ({_, Backbone}, i18n, BasicRouter, RouterEngine, resources)->
             return
 
         if app.router instanceof BasicRouter
-            language = -> app.get('language')
+            language = -> app.get('language') or (navigator.browserLanguage or navigator.language).slice(0, 2)
             for route, {engine} of app.router.engines
                 if engine instanceof RouterEngine
                     variables = engine.getVariables()
