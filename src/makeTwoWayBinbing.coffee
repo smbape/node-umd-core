@@ -3,7 +3,7 @@ deps = [
 ]
 
 freact = ({_, $})->
-    hasOwn = {}.hasOwnProperty
+    hasProp = {}.hasOwnProperty
     _expressionCache = {}
     uid = '_makeTwoWayBinbing_' + Math.random().toString(36).slice(2)
     HIDDEN_BINDING_KEY = uid + "_binding"
