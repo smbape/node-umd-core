@@ -22,10 +22,10 @@
   ],
   "dependencies": {
     "backbone": "^1.2.3",
-    "i18next": "^3.4.1",
-    "jquery": "^3.1.0",
-    "lodash": "^4.13.1",
-    "qs": "git+https://github.com/hapijs/qs#^6.2.1"
+    "i18next": "^10.0.7",
+    "jquery": "^3.2.1",
+    "lodash": "^4.17.1",
+    "qs": "git+https://github.com/hapijs/qs#^6.5.1"
   },
   "overrides": {
     "backbone": {
