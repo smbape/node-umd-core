@@ -1,40 +1,39 @@
-function factory() {
-    var hasProp = Object.prototype.hasOwnProperty;
+const hasProp = Object.prototype.hasOwnProperty;
 
-    return function throttle(fn, delay, options) {
-        var waiting = false;
-        var leading = options && hasProp.call(options, "leading") ? options.leading : true;
-        var trailing = options && hasProp.call(options, "trailing") ? options.trailing : true;
-        var lastExecution = leading ? new Date().getTime() - delay : 0;
+module.exports = function throttle(fn, delay, options) {
+    let waiting = false;
+    const leading = options && hasProp.call(options, "leading") ? options.leading : true;
+    const trailing = options && hasProp.call(options, "trailing") ? options.trailing : true;
+    let lastExecution = leading ? new Date().getTime() - delay : 0;
 
-        function throttled() {
-            var now = new Date().getTime();
-            var wait = lastExecution ? lastExecution + delay - now : delay;
+    function throttled() {
+        const now = new Date().getTime();
+        const wait = lastExecution ? lastExecution + delay - now : delay;
 
-            if (wait <= 0) {
-                waiting = false;
-                lastExecution = leading ? now : 0;
-                return fn.apply(this, arguments);
-            }
-
-            if (waiting || !trailing) {
-                return;
-            }
-
-            if (!leading) {
-                lastExecution = now;
-            }
-
-            waiting = setTimeout(throttled, wait);
+        if (wait <= 0) {
+            waiting = false;
+            lastExecution = leading ? now : 0;
+            fn(...arguments);
+            return;
         }
 
-        throttled.cancel = function() {
-            if (waiting) {
-                clearTimeout(waiting);
-                waiting = false;
-            }
-        };
+        if (waiting || !trailing) {
+            return;
+        }
 
-        return throttled;
+        if (!leading) {
+            lastExecution = now;
+        }
+
+        waiting = setTimeout(throttled, wait);
+    }
+
+    throttled.cancel = function() {
+        if (waiting) {
+            clearTimeout(waiting);
+            waiting = false;
+        }
     };
-}
+
+    return throttled;
+};
