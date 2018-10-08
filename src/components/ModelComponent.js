@@ -4,6 +4,7 @@ import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}"
 import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import React from "%{ amd: 'react', common: '!React' }";
 import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
+import isEqual from "../../lib/fast-deep-equal";
 
 const randomString = () => Math.random().toString(36).slice(2);
 const hasProp = Object.prototype.hasOwnProperty;
@@ -65,7 +66,7 @@ Object.assign(ModelComponent.prototype, {
     componentWillReceiveProps(nextProps) {},
 
     shouldComponentUpdate(nextProps, nextState) {
-        this.shouldUpdate = this.shouldUpdate || !_.isEqual(this.state, nextState) || !_.isEqual(this.props, nextProps);
+        this.shouldUpdate = this.shouldUpdate || !isEqual(this.state, nextState) || !isEqual(this.props, nextProps);
         this.shouldUpdateEvent = this.shouldUpdateEvent || this.shouldComponentUpdateEvent(nextProps, nextState);
         return this.shouldUpdate || this.shouldUpdateEvent;
     },
@@ -73,7 +74,7 @@ Object.assign(ModelComponent.prototype, {
     shouldComponentUpdateEvent(nextProps, nextState) {
         const nextEventArgs = this[typeof this.getNewEventArgs === "function" ? "getNewEventArgs" : "getEventArgs"](nextProps, nextState);
         const prevEventArgs = this.getEventArgs();
-        return !_.isEqual(nextEventArgs, prevEventArgs);
+        return !isEqual(nextEventArgs, prevEventArgs);
     },
 
     componentWillUpdate(nextProps, nextState) {

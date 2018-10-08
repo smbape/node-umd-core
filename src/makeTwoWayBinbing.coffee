@@ -3,7 +3,8 @@ import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}"
 import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import i18n from "%{amd: 'i18next', common: 'i18next', brunch: '!i18next'}";
 import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
-import AbstractModelComponent from "./components/ModelComponent"
+import AbstractModelComponent from "./components/ModelComponent";
+import isEqual from "../lib/fast-deep-equal";
 `
 
 hasProp = Object::hasOwnProperty
@@ -186,7 +187,7 @@ _makeTwoWayBinbing = (type, config, element)->
             if (prevBinding = owner._bindexists[existing]) and prevBinding isnt binding
                 index = binding.index
 
-                if !_.isEqual(prevBinding.model, binding.model) or !_.isEqual(prevBinding.events, binding.events)
+                if !isEqual(prevBinding.model, binding.model) or !isEqual(prevBinding.events, binding.events)
                     # use the new binding
                     hasChangedModel = true
                     index = prevBinding.index

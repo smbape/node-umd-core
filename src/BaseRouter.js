@@ -5,8 +5,9 @@ import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone'
 import RouterEngine from "./RouterEngine";
 import qs from "./QueryString";
 import eachOfLimit from "./functions/eachOfLimit";
+import isEqual from "../lib/fast-deep-equal";
 
-const { isEqual, pick } = _;
+const { pick } = _;
 
 const WAIT_TIME = 1000;
 const hasProp = Object.prototype.hasOwnProperty;

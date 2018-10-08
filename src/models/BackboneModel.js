@@ -1,9 +1,8 @@
 import inherits from "../functions/inherits";
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
 import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
+import _isEqual from "../../lib/fast-deep-equal";
 
 const hasProp = Object.prototype.hasOwnProperty;
-const {isEqual: _isEqual} = _;
 
 function BackboneModel() {
     return BackboneModel.__super__.constructor.apply(this, arguments);

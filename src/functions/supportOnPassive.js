@@ -2,61 +2,66 @@ const emptyFn = Function.prototype;
 const hasProp = Object.prototype.hasOwnProperty;
 
 // https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
-const supportsPassive = (function() {
-    let _supportsPassive = false;
+const isPassiveEventListenerSupported = () => {
+    let supportsPassive = false;
 
     try {
         window.addEventListener("test", null, Object.defineProperty({}, "passive", {
             // eslint-disable-next-line getter-return
             get() {
-                _supportsPassive = true;
+                supportsPassive = true;
             }
         }));
     } catch ( error ) {
-        //
+        /* Nothing to do */
     }
 
-    return _supportsPassive;
-})();
+    return supportsPassive;
+};
 
-const captureOptions = supportsPassive ? {
+const captureOptions = isPassiveEventListenerSupported() ? {
     passive: true
 } : false;
 
-
-const supportOnPassive = (jQuery, name) => {
+const supportOnPassive = ($, name) => {
     if (!captureOptions) {
+        // passive event listener is not supported
         return emptyFn;
     }
 
     if (/\s/.test(name)) {
         const names = name.split(/\s+/g);
+        let destroyers = [];
+        const len = names.length;
 
-        let destroyers = new Array(names.length);
-
-        names.forEach((_name, i) => {
-            destroyers[i] = supportOnPassive(jQuery, _name);
-        });
+        for (let j = 0; j < len; j++) {
+            name = names[j];
+            destroyers.push(supportOnPassive($, name));
+        }
 
         return () => {
-            for (let i = destroyers.length - 1; i >= 0; i--) {
+            let i = destroyers.length - 1;
+
+            while (i !== -1) {
                 destroyers[i]();
+                i--;
             }
 
             destroyers = null;
         };
     }
 
-    let special = jQuery.event.special;
+    let special = $.event.special;
     let hasSpecial = false;
-    let preSetup, hasPrevSetup;
+    let prevSetup, hasPrevSetup;
 
     if (hasProp.call(special, name)) {
         hasSpecial = true;
         if (hasProp.call(special[name], "setup")) {
-            preSetup = special[name].setup;
+            prevSetup = special[name].setup;
 
-            if (preSetup.passiveSupported) {
+            if (prevSetup.passiveSupported) {
+                // passive event listener with $.fn.on is already enabled
                 return emptyFn;
             }
 
@@ -66,17 +71,20 @@ const supportOnPassive = (jQuery, name) => {
         special[name] = {};
     }
 
-    special[name].setup = function(data, namespaces, eventHandle) {
+    const setup = function(data, namespaces, eventHandle) {
+        // eslint-disable-next-line no-invalid-this
         this.addEventListener(name, eventHandle, captureOptions);
     };
 
-    const setup = special[name].setup;
     setup.passiveSupported = true;
 
+    special[name].setup = setup;
+
+    // restore original $.fn.on behaviour
     return () => {
         if (hasPrevSetup) {
-            special[name].setup = preSetup;
-            preSetup = null;
+            special[name].setup = prevSetup;
+            prevSetup = null;
         } else if (hasSpecial) {
             delete special[name].setup;
         } else {
@@ -86,7 +94,7 @@ const supportOnPassive = (jQuery, name) => {
 
         name = null;
         special = null;
-        jQuery = null;
+        $ = null;
     };
 };
 
