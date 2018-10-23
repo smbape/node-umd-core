@@ -7,6 +7,7 @@ import AbstractModelComponent from "./AbstractModelComponent";
 const {escape: _escape} = _;
 
 function AutogrowTextarea() {
+    this._updateHeight = this._updateHeight.bind(this);
     AutogrowTextarea.__super__.constructor.apply(this, arguments);
 }
 

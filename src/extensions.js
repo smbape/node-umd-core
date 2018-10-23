@@ -6,7 +6,7 @@ import supportOnPassive from "./functions/supportOnPassive";
 const hasProp = Object.prototype.hasOwnProperty;
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
-if (typeof Object.assign === "function") {
+if (typeof Object.assign !== "function") {
     Object.assign = function(target) {
         "use strict";
         if (target == null) { // TypeError if undefined or null
@@ -218,4 +218,4 @@ if (!requestAnimationFrame) {
     restore();
 })(window.MaterialRipple);
 
-module.exports = Symbol("extensions");
+// module.exports = Symbol("extensions");
