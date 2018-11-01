@@ -129,7 +129,9 @@ Object.assign(Recaptcha.prototype, {
 
             if ("function" === typeof onChange) {
                 options.callback = response => {
-                    onChange(null, response);
+                    onChange({
+                        ref: this
+                    }, response);
                 };
             }
 
