@@ -32,6 +32,23 @@ if (typeof Object.assign !== "function") {
     };
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/startsWith#Polyfill
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position) {
+        return this.substr(!position || position < 0 ? 0 : +position, searchString.length) === searchString;
+    };
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/endsWith#Polyfill
+if (!String.prototype.endsWith) {
+    String.prototype.endsWith = function(searchString, length) {
+        if (length === undefined || length > this.length) {
+            length = this.length;
+        }
+        return this.substring(length - searchString.length, length) === searchString;
+    };
+}
+
 $.fn.destroy = function(selector) {
     const el = this.remove();
 
@@ -61,7 +78,7 @@ $.fn.insertAt = function(index, elements) {
             this.appendChild(elem);
         }
     });
-    /* eslint-enable no-invalid-this */
+/* eslint-enable no-invalid-this */
 };
 
 let {requestAnimationFrame} = window;

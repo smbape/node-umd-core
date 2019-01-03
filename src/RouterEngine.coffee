@@ -6,6 +6,7 @@ import StringUtil from './util/StringUtil';
 
 # TODO : perf
 
+{ firstUpper, toCapitalCamelDash } = StringUtil
 { hasOwnProperty: hasProp } = Object.prototype
 { push } = Array.prototype
 
@@ -22,7 +23,7 @@ NoMatch = (msg)->
     error.code = 'NO_MATCH'
     error
 
-_removeLeadTrail = do ->
+_removeLeadTail = do ->
     chars = '[#\\/\\s\\uFEFF\\xA0]+'
     rchars = new RegExp "^#{chars}|#{chars}$", 'g'
     (url)->
@@ -45,23 +46,8 @@ _substringMatch = (pattern, target)->
 #
 class RouterEngine
     strict: true
-    removeLeadTrail: _removeLeadTrail
+    removeLeadTail: _removeLeadTail
     validOptions: ['name', 'strict', 'route', 'baseUrl', 'prefix', 'suffix', 'camel', 'defaults']
-
-    # Construct a new RouterEngine.
-    # @param [Object] options the router engine options
-    # @option defaults [Object] @see {RouterEngine#setDefaults}
-    # @option route [String] @see {RouterEngine#setRoute}
-    constructor: (options = {})->
-        @defaults = {}
-        for prop in RouterEngine::validOptions
-            if hasProp.call options, prop
-                method = 'set' + StringUtil.firstUpper prop
-                if typeof @[method] is 'function'
-                    @[method] options[prop]
-                else
-                    @[prop] = options[prop]
-        return
 
     # Method used to encode url parts
     # @param [String] str String to encode
@@ -72,6 +58,21 @@ class RouterEngine
     decode: decodeURIComponent
 
     baseUrl: ''
+
+    # Construct a new RouterEngine.
+    # @param [Object] options the router engine options
+    # @option defaults [Object] @see {RouterEngine#setDefaults}
+    # @option route [String] @see {RouterEngine#setRoute}
+    constructor: (options = {})->
+        @defaults = {}
+        for prop in RouterEngine::validOptions
+            if hasProp.call options, prop
+                method = 'set' + firstUpper prop
+                if typeof @[method] is 'function'
+                    @[method] options[prop]
+                else
+                    @[prop] = options[prop]
+        return
 
     setName: (@name)->
 
@@ -121,7 +122,8 @@ class RouterEngine
             if match isnt '}' and inRegExp
                 regex.push match
                 return ''
-            else if variable
+
+            if variable
                 if inVariable
                     throw new Error('Unexpted token ' + match + ' at index ' + index)
                 else
@@ -132,7 +134,8 @@ class RouterEngine
                     else
                         varname = variable.trim()
                 return ''
-            else if match is '}'
+
+            if match is '}'
                 if inVariable
                     if variables.indexOf(varname) isnt -1
                         throw new Error('Duplicate variable name ' + varname)
@@ -158,8 +161,8 @@ class RouterEngine
                 sanitized.push match
             match
 
-        replacer = @pattern.replace /(?:(?:\{\s*(\w+\s*:?)\s*)|(\/\*?\*$)|(\/?\*\*|[\}\/])|([\\^$.|?*+()\[\]{}])|(.))/g, tokenizer
-        @replacer = new RegExp('^' + replacer + '$')
+        matcher = @pattern.replace /(?:(?:\{\s*(\w+\s*:?)\s*)|(\/\*?\*$)|(\/?\*\*|[\}\/])|([\\^$.|?*+()\[\]{}])|(.))/g, tokenizer
+        @matcher = new RegExp('^' + matcher + '$')
         @sanitized = sanitized.join('')
 
         return @
@@ -183,19 +186,19 @@ class RouterEngine
         else
             @strict
 
-        url = _removeLeadTrail url
+        url = _removeLeadTail url
 
         if not strict
             if url.length is 0
-                url = _removeLeadTrail @getDefaultUrl()
+                url = _removeLeadTail @getDefaultUrl()
 
             # Partial match defaultUrl
-            defaultUrl = _removeLeadTrail @getDefaultUrl()
+            defaultUrl = _removeLeadTail @getDefaultUrl()
             if _substringMatch url, defaultUrl
                 url = defaultUrl
 
         # Test matching against base url
-        baseUrl = _removeLeadTrail @baseUrl
+        baseUrl = _removeLeadTail @baseUrl
         if not _substringMatch baseUrl, url
             throw NoMatch 'Base url does not match'
 
@@ -204,34 +207,35 @@ class RouterEngine
             url = url.substring baseUrl.length + 1
 
         variables = @variables
-        params = {}
+        pathParams = {}
+        wildParams = {}
         _length = variables.length
         noMatch = true
 
         replace = (match) =>
             noMatch = false
             for i in [0...variables.length] by 1
-                params[variables[i]] = @decode arguments[i + 1]
+                pathParams[variables[i]] = @decode arguments[i + 1]
 
             # wildcard
-            rest = arguments[variables.length + 1]
-            if rest and rest.length isnt 0
-                parts = rest.split('/')
+            remaining = arguments[variables.length + 1]
+            if remaining and remaining.length isnt 0
+                parts = remaining.split('/')
                 for i in [0...parts.length] by 2
-                    params[parts[i]] = @decode parts[i + 1]
+                    wildParams[parts[i]] = @decode parts[i + 1]
 
             return
 
-        url.replace @replacer, replace
+        url.replace @matcher, replace
 
         if noMatch and options.partial
             # replace missing parts with default url parts
             if !defaultUrl
-                defaultUrl = _removeLeadTrail @getDefaultUrl()
+                defaultUrl = _removeLeadTail @getDefaultUrl()
             parts = defaultUrl.split(/\//g)
             for part, i in url.split(/\//g)
                 parts[i] = part
-            parts.join("/").replace @replacer, replace
+            parts.join("/").replace @matcher, replace
 
         if noMatch
             if options.throws is false
@@ -239,7 +243,10 @@ class RouterEngine
             else
                 throw NoMatch 'No matching'
 
-        params
+        if (options.separate)
+            return { pathParams, wildParams }
+
+        return Object.assign(pathParams, wildParams)
 
     # Generate url from params using url template
     # @param [Object] params
@@ -264,12 +271,12 @@ class RouterEngine
         url = [url]
 
         if @wildcard
-            extra = []
+            remaining = []
             for own key of params
                 if params[key]
-                    extra.push.call extra, key, @encode params[key]
+                    remaining.push key, @encode params[key]
 
-            push.call url, '/', extra.join '/' if extra.length > 0
+            push.call url, '/', remaining.join '/' if remaining.length > 0
 
         baseUrl = @baseUrl
 
@@ -288,15 +295,13 @@ class RouterEngine
                 hashChar = options.hashChar or '#'
                 push.call url, hashChar, hash
 
-        url.unshift baseUrl
-
-        return url.join ''
+        return baseUrl + url.join('')
 
     getFilePath: (params, options)->
         url = @getUrl params, _.defaults {noBase: true}, options
         return if not url
         url = splitPath url.toLowerCase()
-        url.filename = StringUtil.toCapitalCamelDash url.filename if @camel
+        url.filename = toCapitalCamelDash url.filename if @camel
         url.filename = @prefix + url.filename if @prefix
         url.filename += @suffix if @suffix
         if typeof @basePath is 'string' and @basePath.length > 0

@@ -313,12 +313,12 @@ Object.assign(Layout.prototype, {
         }
 
         const width = $el.width();
-        if (width < 768) {
-            el.setAttribute("data-width", "small");
-        } else if (width < 1200) {
+        if (width >= 1280) {
+            el.setAttribute("data-width", "extra-large");
+        } else if (width >= 1024) {
             el.setAttribute("data-width", "large");
         } else {
-            el.setAttribute("data-width", "extra-large");
+            el.setAttribute("data-width", "small");
         }
     },
 

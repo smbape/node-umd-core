@@ -52,7 +52,7 @@ MdlComponent.prototype.upgradeElements = function(el) {
     }
 
     const children = el.children;
-    const len = children.length;
+    const len = children ? children.length : 0;
 
     for (let i = 0, child; i < len; i++) {
         child = children[i];
@@ -66,7 +66,7 @@ MdlComponent.prototype.downgradeElements = function(el) {
     }
 
     const children = el.children;
-    const len = children.length;
+    const len = children ? children.length : 0;
 
     for (let i = 0, child; i < len; i++) {
         child = children[i];
