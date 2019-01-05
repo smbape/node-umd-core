@@ -4,10 +4,10 @@ module.exports = function throttle(fn, delay, options) {
     let waiting = false;
     const leading = options && hasProp.call(options, "leading") ? options.leading : true;
     const trailing = options && hasProp.call(options, "trailing") ? options.trailing : true;
-    let lastExecution = leading ? new Date().getTime() - delay : 0;
+    let lastExecution = leading ? Date.now() - delay : 0;
 
     function throttled() {
-        const now = new Date().getTime();
+        const now = Date.now();
         const wait = lastExecution ? lastExecution + delay - now : delay;
 
         if (wait <= 0) {

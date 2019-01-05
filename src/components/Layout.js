@@ -9,66 +9,182 @@ import AbstractModelComponent from "./AbstractModelComponent";
 const ceil = Math.ceil;
 const $document = $(document);
 
-const closeRightPanel = function(evt) {
+const testElementStyle = document.createElement("div").style;
+const transformJSPropertyName = "transform" in testElementStyle ? "transform" : "webkitTransform";
+// const userSelectJSPropertyName = "userSelect" in testElementStyle ? "userSelect" : "webkitUserSelect";
+
+// manually setting transform properties to fixed values
+// gives way smoother animation than adding/removing a className
+// because adding/removing a className causes "Recalculate Style"
+
+const openRightPanel = el => {
+    const wattr = el.attr("data-umd-layout-width");
+    if (wattr !== "small" && wattr !== "large") {
+        return;
+    }
+
+    const width = el.attr("data-umd-layout-width-value");
+    const overlay = {
+        opacity: 0.5
+    };
+    overlay[transformJSPropertyName] = `translate3d(-${ width }px, 0px, 0px)`;
+    el.find("> .layout__overlay-left").css(overlay);
+
+    el.find("> .layout__right").css(transformJSPropertyName, `translate3d(-${ el.attr("data-umd-layout-right-width") }, 0px, 0px)`);
+
+    el[0].setAttribute("data-layout-open-right", "");
+};
+
+const closeRightPanel = el => {
+    const wattr = el.attr("data-umd-layout-width");
+    if (wattr !== "small" && wattr !== "large") {
+        const overlay = el.find("> .layout__overlay-left")[0];
+        overlay.style.opacity = "";
+        overlay.style[transformJSPropertyName] = "";
+        el.find("> .layout__right")[0].style[transformJSPropertyName] = "";
+        return;
+    }
+
+    if (wattr) {
+        const overlay = {
+            opacity: 0
+        };
+        overlay[transformJSPropertyName] = "translate3d(0px, 0px, 0px)";
+        el.find("> .layout__overlay-left").css(overlay);
+        el.find("> .layout__right").css(transformJSPropertyName, "translate3d(0px, 0px, 0px)");
+    }
+
+    el[0].removeAttribute("data-layout-open-right");
+};
+
+const toggleRightPanel = el => {
+    if (el[0].hasAttribute("data-layout-open-right")) {
+        closeRightPanel(el);
+    } else {
+        openRightPanel(el);
+    }
+};
+
+const openLeftPanel = el => {
+    const wattr = el.attr("data-umd-layout-width");
+    if (wattr !== "small") {
+        return;
+    }
+
+    const overlay = {
+        opacity: 0.5
+    };
+    overlay[transformJSPropertyName] = "translate3d(0px, 0px, 0px)";
+    el.find("> .layout__overlay-center").css(overlay);
+
+    el.find("> .layout__left").css(transformJSPropertyName, "translate3d(0px, 0px, 0px)");
+
+    el[0].setAttribute("data-layout-open-left", "");
+};
+
+const closeLeftPanel = el => {
+    const wattr = el.attr("data-umd-layout-width");
+    if (wattr !== "small") {
+        const overlay = el.find("> .layout__overlay-center")[0];
+        overlay.style.opacity = "";
+        overlay.style[transformJSPropertyName] = "";
+        el.find("> .layout__left")[0].style[transformJSPropertyName] = "";
+        return;
+    }
+
+    const width = el.attr("data-umd-layout-width-value");
+    const overlay = {
+        opacity: 0
+    };
+    overlay[transformJSPropertyName] = `translate3d(-${ width }px, 0px, 0px)`;
+    el.find("> .layout__overlay-center").css(overlay);
+
+    el.find("> .layout__left").css(transformJSPropertyName, `translate3d(-${ el.attr("data-umd-layout-left-width") }, 0px, 0px)`);
+
+    el[0].removeAttribute("data-layout-open-left");
+};
+
+const toggleLeftPanel = el => {
+    if (el[0].hasAttribute("data-layout-open-left")) {
+        closeLeftPanel(el);
+    } else {
+        openLeftPanel(el);
+    }
+};
+
+const handleOpenRightPanel = evt => {
+    const data = evt.originalEvent || evt;
+    if (data.openHandled) {
+        return;
+    }
+
+    data.openHandled = true;
+    openRightPanel($(evt.currentTarget).closest(".layout"));
+};
+
+const handleCloseRightPanel = evt => {
     const data = evt.originalEvent || evt;
     if (data.closeRightPanelHandled) {
         return;
     }
 
     data.closeRightPanelHandled = true;
-    $(evt.currentTarget).closest(".layout").removeClass("layout-open-right");
+    closeRightPanel($(evt.currentTarget).closest(".layout"));
 };
 
+const handleOpenLeftPanel = evt => {
+    const data = evt.originalEvent || evt;
+    if (data.openHandled) {
+        return;
+    }
 
-const closeLeftPanel = function(evt) {
+    data.openHandled = true;
+    openLeftPanel($(evt.currentTarget).closest(".layout"));
+};
+
+const handleCloseLeftPanel = evt => {
     const data = evt.originalEvent || evt;
     if (data.closeLeftPanelHandled) {
         return;
     }
 
     data.closeLeftPanelHandled = true;
-    $(evt.currentTarget).closest(".layout").removeClass("layout-open-left");
+    closeLeftPanel($(evt.currentTarget).closest(".layout"));
 };
 
-const openRightPanel = function(evt) {
-    const data = evt.originalEvent || evt;
-    if (data.openHandled) {
-        return;
-    }
-
-    data.openHandled = true;
-    $(evt.currentTarget).closest(".layout").addClass("layout-open-right");
-};
-
-const openLeftPanel = function(evt) {
-    const data = evt.originalEvent || evt;
-    if (data.openHandled) {
-        return;
-    }
-
-    data.openHandled = true;
-    $(evt.currentTarget).closest(".layout").addClass("layout-open-left");
-};
-
-const toggleRightPanel = function(evt) {
+const handleToggleRightPanel = evt => {
     const data = evt.originalEvent || evt;
     if (data.toggleHandled) {
         return;
     }
 
     data.toggleHandled = true;
-    $(evt.currentTarget).closest(".layout").toggleClass("layout-open-right");
+    toggleRightPanel($(evt.currentTarget).closest(".layout"));
 };
 
-const toggleLeftPanel = function(evt) {
+const handleToggleLeftPanel = evt => {
     const data = evt.originalEvent || evt;
     if (data.toggleHandled) {
         return;
     }
 
     data.toggleHandled = true;
-    $(evt.currentTarget).closest(".layout").toggleClass("layout-open-left");
+    toggleLeftPanel($(evt.currentTarget).closest(".layout"));
 };
+
+// passive click event listening for relevant selectors
+(() => {
+    const restore = supportOnPassive($, "click");
+    $document.on("click", ".layout > .layout__overlay", handleCloseRightPanel);
+    $document.on("click", ".layout > .layout__overlay", handleCloseLeftPanel);
+    $document.on("click", ".layout .layout-action-close-right", handleCloseRightPanel);
+    $document.on("click", ".layout .layout-action-close-left", handleCloseLeftPanel);
+    $document.on("click", ".layout .layout-action-open-right", handleOpenRightPanel);
+    $document.on("click", ".layout .layout-action-open-left", handleOpenLeftPanel);
+    $document.on("click", ".layout .layout-action-toggle-right", handleToggleRightPanel);
+    $document.on("click", ".layout .layout-action-toggle-left", handleToggleLeftPanel);
+    restore();
+})();
 
 const START_EV = "touchstart mousedown";
 const MOVE_EV = "touchmove mousemove";
@@ -80,21 +196,31 @@ const START_EV_MAP = {
     mousedown: /^mouse/
 };
 
-$document.on("click", ".layout > .layout__overlay", closeRightPanel);
-$document.on("click", ".layout > .layout__overlay", closeLeftPanel);
-$document.on("click", ".layout .layout-action-close-right", closeRightPanel);
-$document.on("click", ".layout .layout-action-close-left", closeLeftPanel);
-$document.on("click", ".layout .layout-action-open-right", openRightPanel);
-$document.on("click", ".layout .layout-action-open-left", openLeftPanel);
-$document.on("click", ".layout .layout-action-toggle-right", toggleRightPanel);
-$document.on("click", ".layout .layout-action-toggle-left", toggleLeftPanel);
-
-const testElementStyle = document.createElement("div").style;
-const transformJSPropertyName = "transform" in testElementStyle ? "transform" : "webkitTransform";
-// const userSelectJSPropertyName = "userSelect" in testElementStyle ? "userSelect" : "webkitUserSelect";
-
 const MAX_TAN = Math.tan(45 * Math.PI / 180);
 const MAX_TEAR = 5;
+
+// https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+const isPassiveEventListenerSupported = () => {
+    let supportsPassive = false;
+
+    try {
+        window.addEventListener("test", null, Object.defineProperty({}, "passive", {
+            // eslint-disable-next-line getter-return
+            get() {
+                supportsPassive = true;
+            }
+        }));
+    } catch ( error ) {
+        /* Nothing to do */
+    }
+
+    return supportsPassive;
+};
+
+const captureOptions = isPassiveEventListenerSupported() ? {
+    capture: true,
+    passive: true,
+} : true;
 
 function Layout() {
     this._updateWidth = this._updateWidth.bind(this);
@@ -119,7 +245,7 @@ Object.assign(Layout.prototype, {
     },
 
     attachEvents() {
-        window.addEventListener("resize", this._updateWidth, true);
+        window.addEventListener("resize", this._updateWidth, captureOptions);
         if (this.$el) {
             const restore = supportOnPassive($, START_EV);
             this.$el.on(START_EV, "> .layout__left, > .layout__right", this.onTouchStart);
@@ -140,7 +266,7 @@ Object.assign(Layout.prototype, {
             this._updateWidth.cancel();
         }
 
-        window.removeEventListener("resize", this._updateWidth, true);
+        window.removeEventListener("resize", this._updateWidth, captureOptions);
     },
 
     _getCurrentTarget(evt) {
@@ -230,7 +356,7 @@ Object.assign(Layout.prototype, {
             return;
         }
 
-        if (!this._inVScroll && this.el.getAttribute("data-width") === "small") {
+        if (!this._inVScroll && this.el.getAttribute("data-umd-layout-width") === "small") {
             const {x: startX, y: startY, isLeft, target, scrollContainer} = this._moveState;
             const {x, y} = this.getPosition(evt);
 
@@ -288,7 +414,8 @@ Object.assign(Layout.prototype, {
 
             const timerDiff = Date.now() - timerInit;
             if ((timerDiff < 200 && diffX > 0) || diffX > $(target).width() / 3) {
-                this.$el.removeClass("layout-open-left layout-open-right");
+                closeLeftPanel(this.$el);
+                closeRightPanel(this.$el);
             }
         }
 
@@ -313,12 +440,33 @@ Object.assign(Layout.prototype, {
         }
 
         const width = $el.width();
+
+        el.setAttribute("data-umd-layout-width-value", String(width));
+
         if (width >= 1280) {
-            el.setAttribute("data-width", "extra-large");
+            el.setAttribute("data-umd-layout-width", "extra-large");
         } else if (width >= 1024) {
-            el.setAttribute("data-width", "large");
+            el.setAttribute("data-umd-layout-width", "large");
         } else {
-            el.setAttribute("data-width", "small");
+            el.setAttribute("data-umd-layout-width", "small");
+        }
+
+        const isLeftPanelOpened = el.hasAttribute("data-layout-open-left");
+        const isRightPanelOpened = el.hasAttribute("data-layout-open-right");
+
+        // remove all setted css
+        closeLeftPanel($el);
+        closeRightPanel($el);
+
+        el.setAttribute("data-umd-layout-right-width", $el.find("> .layout__right").css("width"));
+        el.setAttribute("data-umd-layout-left-width", $el.find("> .layout__left").css("width"));
+
+        if (isLeftPanelOpened) {
+            openLeftPanel($el);
+        }
+
+        if (isRightPanelOpened) {
+            openRightPanel($el);
         }
     },
 
@@ -390,12 +538,12 @@ Object.assign(Layout.prototype, {
             }
 
             _children.push(item.content);
-            _children.push(<div className="layout__overlay layout__overlay-center" />);
+            _children.push(<div ref="layout__overlay-center" className="layout__overlay layout__overlay-center" />);
 
             if (item.left) {
                 _className.push("layout-has-left");
                 _children.push(item.left);
-                _children.push(<div className="layout__overlay layout__overlay-left" />);
+                _children.push(<div ref="layout__overlay-left" className="layout__overlay layout__overlay-left" />);
             } else {
                 _children.push(undefined);
                 _children.push(undefined);
