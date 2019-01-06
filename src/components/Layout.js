@@ -451,22 +451,19 @@ Object.assign(Layout.prototype, {
             el.setAttribute("data-umd-layout-width", "small");
         }
 
-        const isLeftPanelOpened = el.hasAttribute("data-layout-open-left");
-        const isRightPanelOpened = el.hasAttribute("data-layout-open-right");
-
-        // remove all setted css
-        closeLeftPanel($el);
-        closeRightPanel($el);
-
         el.setAttribute("data-umd-layout-right-width", $el.find("> .layout__right").css("width"));
         el.setAttribute("data-umd-layout-left-width", $el.find("> .layout__left").css("width"));
 
-        if (isLeftPanelOpened) {
+        if (el.hasAttribute("data-layout-open-left")) {
             openLeftPanel($el);
+        } else {
+            closeLeftPanel($el);
         }
 
-        if (isRightPanelOpened) {
+        if (el.hasAttribute("data-layout-open-right")) {
             openRightPanel($el);
+        } else {
+            closeRightPanel($el);
         }
     },
 
