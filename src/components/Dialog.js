@@ -99,6 +99,39 @@ const EVENTS = [
     "wheel",
 ];
 
+// Includes all common event props including KeyEvent and MouseEvent specific props
+const COMMON_EVENT_PROPS = [
+    "altKey",
+    "bubbles",
+    "cancelable",
+    "changedTouches",
+    "ctrlKey",
+    "detail",
+    "eventPhase",
+    "metaKey",
+    "pageX",
+    "pageY",
+    "shiftKey",
+    "view",
+    "char",
+    "charCode",
+    "key",
+    "keyCode",
+    "button",
+    "buttons",
+    "clientX",
+    "clientY",
+    "offsetX",
+    "offsetY",
+    "pointerId",
+    "pointerType",
+    "screenX",
+    "screenY",
+    "targetTouches",
+    "toElement",
+    "touches",
+];
+
 const createDialog = props => {
     props = Object.assign({}, props);
     const children = props.children;
@@ -235,8 +268,14 @@ Object.assign(Dialog.prototype, {
     },
 
     _dispatchEvent(currentTarget, evt) {
+        const props = { ref: this, target: evt.target };
+        COMMON_EVENT_PROPS.forEach(prop => {
+            if (prop in evt) {
+                props[prop] = evt[prop];
+            }
+        });
         const Ctor = evt.constructor;
-        const event = new Ctor(evt.type, { ref: this, target: evt.target });
+        const event = new Ctor(evt.type, props);
         currentTarget.dispatchEvent(event);
     },
 
