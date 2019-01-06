@@ -410,12 +410,22 @@ Object.assign(Layout.prototype, {
 
         if (this._inMove) {
             target.style.transition = "";
-            target.style[transformJSPropertyName] = "";
-
             const timerDiff = Date.now() - timerInit;
+            const isLeft = /(?:^|\s)layout__left(?:\s|$)/.test(target.className);
+            const isRight = /(?:^|\s)layout__right(?:\s|$)/.test(target.className);
+
             if ((timerDiff < 200 && diffX > 0) || diffX > $(target).width() / 3) {
-                closeLeftPanel(this.$el);
-                closeRightPanel(this.$el);
+                if (isLeft) {
+                    closeLeftPanel(this.$el);
+                } else if (isRight) {
+                    closeRightPanel(this.$el);
+                }
+            } else {
+                if (isLeft) {
+                    openLeftPanel(this.$el);
+                } else if (isRight) {
+                    openRightPanel(this.$el);
+                }
             }
         }
 
