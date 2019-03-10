@@ -1,14 +1,13 @@
+import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
 import inherits from "./functions/inherits";
-import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
 import { discard } from "./util/DOMUtil";
 import supportOnPassive from "./functions/supportOnPassive";
 
-const hasProp = Object.prototype.hasOwnProperty;
+const {hasOwnProperty: hasProp} = Object.prototype;
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
 if (typeof Object.assign !== "function") {
     Object.assign = function(target) {
-        "use strict";
         if (target == null) { // TypeError if undefined or null
             throw new TypeError("Cannot convert undefined or null to object");
         }
@@ -32,8 +31,85 @@ if (typeof Object.assign !== "function") {
     };
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/repeat#Polyfill
+// https://www.rosettacode.org/wiki/Ethiopian_multiplication#JavaScript
+if (!String.prototype.repeat) {
+    // eslint-disable-next-line no-extend-native
+    String.prototype.repeat = function(count) {
+        // known faster way to convert to number particularly on IE11 and Firefox
+        // https://jsperf.com/parse-vs-plus/10
+        count |= 0;
+
+        if (count < 0) {
+            throw new RangeError("Invalid count value");
+        }
+
+        let str = '' + this;
+        const len = str.length;
+
+        // avoid unecessary computation when string is empty
+        if (len === 0 || count === 0) {
+            return "";
+        }
+
+        // tests on chrome 72 throw this error if total lengh exceeds 0x4FFFFFFF
+        if (len * count >= 0x4FFFFFFF) { // eslint-disable-line no-magic-numbers
+            throw new RangeError("Invalid string length");
+        }
+
+        let res = "";
+
+        while (count > 1) {
+            if (count & 1) {
+                res += str; // 3. integer odd/even? (bit-wise and 1)
+            }
+            count >>>= 1;   // 1. integer halved (by right-shift)
+            str += str;     // 2. integer doubled (addition to self)
+        }
+
+        return res + str;
+    };
+}
+
+// https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart#Polyfill
+if (!String.prototype.padStart) {
+    // eslint-disable-next-line no-extend-native
+    String.prototype.padStart = function padStart(targetLength, padString) {
+        targetLength >>= 0; //truncate if number, or convert non-number to 0;
+        padString = "" + (typeof padString !== "undefined" ? padString : " ");
+        if (this.length >= targetLength) {
+            return "" + this;
+        }
+        targetLength -= this.length;
+        if (targetLength > padString.length) {
+            padString += padString.repeat(targetLength / padString.length); //append to original to ensure we are longer than needed
+        }
+        return padString.slice(0, targetLength) + this;
+    };
+}
+
+// https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padEnd#Polyfill
+if (!String.prototype.padEnd) {
+    // eslint-disable-next-line no-extend-native
+    String.prototype.padEnd = function padEnd(targetLength, padString) {
+        targetLength >>= 0; //floor if number or convert non-number to 0;
+        padString = "" + (typeof padString !== "undefined" ? padString : " ");
+        if (this.length > targetLength) {
+            return "" + this;
+        }
+        targetLength -= this.length;
+        if (targetLength > padString.length) {
+            padString += padString.repeat(targetLength / padString.length); //append to original to ensure we are longer than needed
+        }
+        return this + padString.slice(0, targetLength);
+    };
+}
+
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/startsWith#Polyfill
 if (!String.prototype.startsWith) {
+    // eslint-disable-next-line no-extend-native
     String.prototype.startsWith = function(searchString, position) {
         return this.substr(!position || position < 0 ? 0 : +position, searchString.length) === searchString;
     };
@@ -41,6 +117,7 @@ if (!String.prototype.startsWith) {
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/endsWith#Polyfill
 if (!String.prototype.endsWith) {
+    // eslint-disable-next-line no-extend-native
     String.prototype.endsWith = function(searchString, length) {
         if (length === undefined || length > this.length) {
             length = this.length;

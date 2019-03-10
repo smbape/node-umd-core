@@ -22,10 +22,10 @@
   ],
   "peerDependencies": {
     "backbone" : "git+https://github.com/jashkenas/backbone#^1.3.3",
-    "i18next" : "git+https://github.com/i18next/i18next#^10.4.1",
-    "qs": "git+https://github.com/hapijs/qs#^6.5.1",
+    "i18next" : "git+https://github.com/i18next/i18next#^15.0.4",
     "jquery" : "git+https://github.com/jquery/jquery-dist#^3.3.1",
-    "lodash" : "git+https://github.com/lodash/lodash#^4.17.5",
+    "lodash" : "git+https://github.com/lodash/lodash#^4.17.11",
+    "qs" : "git+https://github.com/hapijs/qs#^6.6.0",
     "react": "https://unpkg.com/react@16/umd/react.production.min.js",
     "react-dom": "https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"
   },

@@ -1,5 +1,5 @@
 `
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
+import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
 `
 
 makeError = (error, options = {}, config)->

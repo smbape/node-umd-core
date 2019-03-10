@@ -1,8 +1,8 @@
 /* globals Modernizr */
 
+import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 import inherits from "./functions/inherits";
-import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import eachOfLimit from "./functions/eachOfLimit";
 import "./extensions";
 
@@ -32,14 +32,12 @@ Object.assign(BaseApplication.prototype, {
 
     initialize() {
         this.addInitializer(options => {
-            this.isFileLocation = options.baseUrl === "";
-
-            if (this.isFileLocation) {
-                this.set("baseUrl", "#");
-                this.hasPushState = false;
-            } else {
+            if (options.baseUrl) {
                 this.set("baseUrl", options.baseUrl);
                 this.hasPushState = Modernizr.history;
+            } else {
+                this.set("baseUrl", "#");
+                this.hasPushState = false;
             }
 
             this.set("build", options.build);
@@ -51,8 +49,8 @@ Object.assign(BaseApplication.prototype, {
                 this.hashChar = "#";
             } else {
                 this.getLocation = this._getHashLocation;
-                this._setLocationHash = this._setCustomLocationHash;
-                this.getWindowHash = this._getWindowCustomHash;
+                this._setLocationHash = this._setBangLocationHash;
+                this.getWindowHash = this._getWindowBangHash;
                 this.hashChar = "!";
             }
         });
@@ -190,26 +188,28 @@ Object.assign(BaseApplication.prototype, {
     },
 
     _getPathLocation(url) {
-        if (url) {
-            const split = PATH_SPLIT_REG.exec(url);
-            if (!split) {
-                return {
-                    pathname: "",
-                    search: "",
-                    hash: ""
-                };
-            }
+        if (!url) {
+            return {
+                pathname: window.location.pathname,
+                search: window.location.search,
+                hash: window.location.hash
+            };
+        }
+
+        const split = PATH_SPLIT_REG.exec(url);
+        if (split) {
             return {
                 pathname: split[1] || "",
                 search: split[2] || "",
                 hash: split[3] || ""
             };
         }
-            return {
-                pathname: window.location.pathname,
-                search: window.location.search,
-                hash: window.location.hash
-            };
+
+        return {
+            pathname: "",
+            search: "",
+            hash: ""
+        };
     },
 
     _getHashLocation(url) {
@@ -262,14 +262,11 @@ Object.assign(BaseApplication.prototype, {
     },
 
     _getWindowNativeHash(hash) {
-        if (!hash) {
-            return window.location.hash;
-        }
-        return `#${ hash.slice(1) }`;
+        return hash ? `#${ hash.slice(1) }` : window.location.hash;
     },
 
-    _setCustomLocationHash(hash) {
-        const windowHash = this._getWindowCustomHash(hash);
+    _setBangLocationHash(hash) {
+        const windowHash = this._getWindowBangHash(hash);
         window.location.hash = windowHash;
 
         if (hash) {
@@ -286,7 +283,7 @@ Object.assign(BaseApplication.prototype, {
         }
     },
 
-    _getWindowCustomHash(hash) {
+    _getWindowBangHash(hash) {
         const location = this._getHashLocation();
 
         if (!hash) {

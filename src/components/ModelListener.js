@@ -1,6 +1,6 @@
-import inherits from "../functions/inherits";
-import React from "%{ amd: 'react', common: '!React' }";
+import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import ReactModelView from "../views/ReactModelView";
+import inherits from "../functions/inherits";
 
 function ModelListener() {
     ModelListener.__super__.constructor.apply(this, arguments);

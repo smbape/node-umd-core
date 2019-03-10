@@ -1,5 +1,5 @@
+import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import inherits from "../functions/inherits";
-import React from "%{ amd: 'react', common: '!React' }";
 import AbstractModelComponent from "./AbstractModelComponent";
 import InputText from "./InputText";
 

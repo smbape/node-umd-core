@@ -100,7 +100,7 @@ const CHECKBOX_CONFIG = {
 
             if (Array.isArray(component.props.value)) {
                 value = component.props.value.map(element => {
-                    return String(element);
+                    return "" + element;
                 });
 
                 component.$el.find("input[type=\"checkbox\"]").each((index, element) => {

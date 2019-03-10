@@ -13,12 +13,12 @@ const isPlainObject = value => {
         return false;
     }
 
-    var proto = Object.getPrototypeOf(value);
+    const proto = Object.getPrototypeOf(value);
     if (proto === null) {
         return true;
     }
 
-    var Ctor = hasProp.call(proto, "constructor") && proto.constructor;
+    const Ctor = hasProp.call(proto, "constructor") && proto.constructor;
     return "function" === typeof Ctor && Ctor instanceof Ctor && funcToString.call(Ctor) === objectCtorString;
 };
 

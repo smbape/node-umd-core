@@ -1,5 +1,5 @@
 import inherits from "./functions/inherits";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 
 const hasProp = Object.prototype.hasOwnProperty;
 

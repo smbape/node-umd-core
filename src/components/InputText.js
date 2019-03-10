@@ -7,30 +7,11 @@ import AbstractModelComponent from "./AbstractModelComponent";
 
 const {defaults} = _;
 
-const length = value => {
+const getLength = value => {
     if (value) {
         return value.length;
     }
     return 0;
-};
-
-const getInputValue = input => {
-    switch (input.nodeName) {
-        case "INPUT":
-            if (input.type === "checkbox") {
-                return input.checked;
-            }
-            return input.value;
-        case "TEXTAREA":
-        case "SELECT":
-        case "OPTION":
-        case "BUTTON":
-        case "DATALIST":
-        case "OUTPUT":
-            return input.value;
-        default:
-            return input.innerHTML;
-    }
 };
 
 function InputText() {
@@ -65,11 +46,11 @@ Object.assign(InputText.prototype, {
         this._updateClass();
     },
 
-    handleChange(evt) {
-        evt.ref = this;
+    handleChange(evt, ...args) {
         const onChange = this.props.onChange;
         if ("function" === typeof onChange) {
-            onChange(...arguments);
+            evt.ref = this;
+            onChange(evt, ...args);
         }
     },
 
@@ -81,18 +62,15 @@ Object.assign(InputText.prototype, {
         this._removeClass("input--focused", this.$el, this.classList);
     },
 
-    _getInput() {
+    getInput() {
         const input = this.refs.input;
-        if (typeof input.getInput === "function") {
-            return input.getInput();
-        }
-        return input;
+        return typeof input.getInput === "function" ? input.getInput() : input;
     },
 
     _updateClass() {
-        const el = this._getInput();
+        const el = this.getInput();
 
-        if (/^\s*$/.test(getInputValue(el))) {
+        if (/^\s*$/.test(InputText.getInputValue(el))) {
             this._removeClass("input--has-value", this.$el, this.classList);
         } else {
             this._addClass("input--has-value", this.$el, this.classList);
@@ -228,7 +206,7 @@ Object.assign(InputText.prototype, {
 
         if (props.charCount) {
             args.push(<div className="char-count">
-                 { length(spModel[0].get(spModel[1])) }/
+                 { getLength(spModel[0].get(spModel[1])) }/
                  { props.charCount }
              </div>);
         } else {
@@ -253,13 +231,32 @@ Object.assign(InputText.prototype, {
     }
 });
 
+InputText.getInputValue = input => {
+    switch (input.nodeName) {
+        case "INPUT":
+            if (input.type === "checkbox") {
+                return input.checked;
+            }
+            return input.value;
+        case "TEXTAREA":
+        case "SELECT":
+        case "OPTION":
+        case "BUTTON":
+        case "DATALIST":
+        case "OUTPUT":
+            return input.value;
+        default:
+            return input.innerHTML;
+    }
+};
+
 // 2 way binbing is done on input, not on this component
 InputText.getBinding = function(_binding, config) {
-    _binding.get = function(binding) {
-        if (binding._ref instanceof InputText) {
-            const instance = binding._ref;
-            const input = instance._getInput();
-            return getInputValue(input);
+    const Constructor = this;
+
+    _binding.get = binding => {
+        if (binding._ref instanceof Constructor) {
+            return Constructor.getInputValue(binding._ref.getInput());
         }
 
         return undefined;

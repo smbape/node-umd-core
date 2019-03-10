@@ -1,10 +1,10 @@
+import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
+import ReactDOM from "%{ amd: 'react-dom', brunch: '!ReactDOM', common: 'react-dom' }";
+import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
+import AbstractModelComponent from "./AbstractModelComponent";
 import inherits from "../functions/inherits";
 import throttle from "../functions/throttle";
 import supportOnPassive from "../functions/supportOnPassive";
-import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
-import React from "%{ amd: 'react', common: '!React' }";
-import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
-import AbstractModelComponent from "./AbstractModelComponent";
 
 const ceil = Math.ceil;
 const $document = $(document);
@@ -420,12 +420,10 @@ Object.assign(Layout.prototype, {
                 } else if (isRight) {
                     closeRightPanel(this.$el);
                 }
-            } else {
-                if (isLeft) {
-                    openLeftPanel(this.$el);
-                } else if (isRight) {
-                    openRightPanel(this.$el);
-                }
+            } else if (isLeft) {
+                openLeftPanel(this.$el);
+            } else if (isRight) {
+                openRightPanel(this.$el);
             }
         }
 
@@ -451,7 +449,7 @@ Object.assign(Layout.prototype, {
 
         const width = $el.width();
 
-        el.setAttribute("data-umd-layout-width-value", String(width));
+        el.setAttribute("data-umd-layout-width-value", `${ width }`);
 
         if (width >= 1280) {
             el.setAttribute("data-umd-layout-width", "extra-large");

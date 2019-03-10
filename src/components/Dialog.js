@@ -3,12 +3,10 @@ import React from "%{ amd: 'react', common: '!React' }";
 import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
 import AbstractModelComponent from "./AbstractModelComponent";
 import dialogPolyfill from "../../lib/dialog-polyfill";
-import getMatchingCssStyle from "../functions/getMatchingCssStyle";
 
 const testElementStyle = document.createElement("div").style;
 const transformJSPropertyName = "transform" in testElementStyle ? "transform" : "webkitTransform";
 const transitionJSPropertyName = "transition" in testElementStyle ? "transition" : "webkitTransition";
-const CSSMatrix = window.WebKitCSSMatrix;
 const { addClass } = AbstractModelComponent.prototype;
 const hasProp = Object.prototype.hasOwnProperty;
 
@@ -159,7 +157,7 @@ const shouldPolyfill = !document.createElement("dialog").showModal;
 
 function Dialog() {
     Dialog.__super__.constructor.apply(this, arguments);
-    this.hidden_prop = Math.random().toString(16).slice(2)
+    this.hidden_prop = Math.random().toString(16).slice(2);
 }
 
 inherits(Dialog, AbstractModelComponent);
@@ -220,7 +218,7 @@ Object.assign(Dialog.prototype, {
     componentWillUnmout() {
         EVENTS.forEach(type => {
             if (shouldPolyfill) {
-                el.removeEventListener(type, this.dispatchEvent);
+                this.el.removeEventListener(type, this.dispatchEvent);
             }
 
             const prop = `on${ type[0].toUpperCase() }${ type.slice(1) }`;
@@ -251,7 +249,7 @@ Object.assign(Dialog.prototype, {
             writable: true,
             value: evt => {
                 evt.ref = this;
-                handler.call(null, evt);
+                handler(evt);
             }
         });
 
@@ -295,9 +293,9 @@ Object.assign(Dialog.prototype, {
             const height = `${ Math.max(body.scrollHeight, documentElement.scrollHeight) }px`;
 
             if (value) {
-                [container, this.backdrop_, dialogPolyfill.dm.overlay].forEach(el => {
-                    el.style.width = width;
-                    el.style.height = height;
+                [container, this.backdrop_, dialogPolyfill.dm.overlay].forEach(_el => {
+                    _el.style.width = width;
+                    _el.style.height = height;
                 });
             }
 

@@ -1,7 +1,7 @@
+import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
+import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 import inherits from "./functions/inherits";
-import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import RouterEngine from "./RouterEngine";
 import qs from "./QueryString";
 import eachOfLimit from "./functions/eachOfLimit";

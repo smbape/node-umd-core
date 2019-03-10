@@ -1,4 +1,4 @@
-import React from "%{ amd: 'react', common: '!React' }";
+import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 
 module.exports = (element, overrides) => {
     if (!React.isValidElement(element)) {

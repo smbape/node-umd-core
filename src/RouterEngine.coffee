@@ -1,5 +1,5 @@
 `
-import _ from "%{amd: 'lodash', common: 'lodash', node: 'lodash', brunch: '!_'}";
+import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
 import qs from './QueryString';
 import StringUtil from './util/StringUtil';
 `
@@ -103,9 +103,10 @@ class RouterEngine
     # @param [String] pattern url pattern template
     #
     setRoute: (pattern)->
-        @pattern = pattern
-        @wildcard = false
-        variables = @variables = []
+        engine = this
+        engine.pattern = pattern
+        engine.wildcard = false
+        variables = engine.variables = []
         sanitized = []
         regex = []
         inRegExp = false
@@ -118,7 +119,7 @@ class RouterEngine
             '**': '.*?'
             '/**': '(?:\\/.*?|)'
 
-        tokenizer = (match, variable, wildcard, expr, special, character, index, str) =>
+        tokenizer = (match, variable, wildcard, expr, special, character, index, str) ->
             if match isnt '}' and inRegExp
                 regex.push match
                 return ''
@@ -155,17 +156,17 @@ class RouterEngine
                 sanitized.push match
                 match = map[match] or '\\' + match
             else if wildcard
-                @wildcard = true
+                engine.wildcard = true
                 match = '(?:/(.*)|$)'
             else
                 sanitized.push match
             match
 
-        matcher = @pattern.replace /(?:(?:\{\s*(\w+\s*:?)\s*)|(\/\*?\*$)|(\/?\*\*|[\}\/])|([\\^$.|?*+()\[\]{}])|(.))/g, tokenizer
-        @matcher = new RegExp('^' + matcher + '$')
-        @sanitized = sanitized.join('')
+        matcher = engine.pattern.replace /(?:(?:\{\s*(\w+\s*:?)\s*)|(\/\*?\*$)|(\/?\*\*|[\}\/])|([\\^$.|?*+()\[\]{}])|(.))/g, tokenizer
+        engine.matcher = new RegExp('^' + matcher + '$')
+        engine.sanitized = sanitized.join('')
 
-        return @
+        return engine
 
     setBaseUrl: (baseUrl)->
         if baseUrl is '#'
@@ -181,24 +182,26 @@ class RouterEngine
     # @param [String] url url to match
     # @return [Object] Object of matches
     getParams: (url, options = {}) ->
+        engine = this
+
         strict = if hasProp.call options, 'strict'
             options.strict
         else
-            @strict
+            engine.strict
 
         url = _removeLeadTail url
 
         if not strict
             if url.length is 0
-                url = _removeLeadTail @getDefaultUrl()
+                url = _removeLeadTail engine.getDefaultUrl()
 
             # Partial match defaultUrl
-            defaultUrl = _removeLeadTail @getDefaultUrl()
+            defaultUrl = _removeLeadTail engine.getDefaultUrl()
             if _substringMatch url, defaultUrl
                 url = defaultUrl
 
         # Test matching against base url
-        baseUrl = _removeLeadTail @baseUrl
+        baseUrl = _removeLeadTail engine.baseUrl
         if not _substringMatch baseUrl, url
             throw NoMatch 'Base url does not match'
 
@@ -206,36 +209,36 @@ class RouterEngine
         if baseUrl.length > 0
             url = url.substring baseUrl.length + 1
 
-        variables = @variables
+        variables = engine.variables
         pathParams = {}
         wildParams = {}
         _length = variables.length
         noMatch = true
 
-        replace = (match) =>
+        replace = (match) ->
             noMatch = false
             for i in [0...variables.length] by 1
-                pathParams[variables[i]] = @decode arguments[i + 1]
+                pathParams[variables[i]] = engine.decode arguments[i + 1]
 
             # wildcard
             remaining = arguments[variables.length + 1]
             if remaining and remaining.length isnt 0
                 parts = remaining.split('/')
                 for i in [0...parts.length] by 2
-                    wildParams[parts[i]] = @decode parts[i + 1]
+                    wildParams[parts[i]] = engine.decode parts[i + 1]
 
             return
 
-        url.replace @matcher, replace
+        url.replace engine.matcher, replace
 
         if noMatch and options.partial
             # replace missing parts with default url parts
             if !defaultUrl
-                defaultUrl = _removeLeadTail @getDefaultUrl()
+                defaultUrl = _removeLeadTail engine.getDefaultUrl()
             parts = defaultUrl.split(/\//g)
             for part, i in url.split(/\//g)
                 parts[i] = part
-            parts.join("/").replace @matcher, replace
+            parts.join("/").replace engine.matcher, replace
 
         if noMatch
             if options.throws is false

@@ -1,5 +1,5 @@
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 import inherits from "../functions/inherits";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import _isEqual from "../../lib/fast-deep-equal";
 
 const hasProp = Object.prototype.hasOwnProperty;

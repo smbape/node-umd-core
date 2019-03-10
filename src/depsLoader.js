@@ -1,5 +1,4 @@
 (function(root, factory) {
-    "use strict";
     if (typeof exports !== "undefined") {
         // Node/CommonJS
         module.exports = factory();
@@ -216,8 +215,8 @@
                 availables[map[i]] = arguments[i];
             }
 
-            var localRequire = function(deps, callback, errback, options) {
-                return amdRequire(require, deps, callback, errback, options, _global);
+            var localRequire = function(_deps, _callback, errback, options) {
+                return amdRequire(require, _deps, _callback, errback, options, _global);
             };
 
             availables[0] = localRequire;
@@ -270,11 +269,6 @@
             return callback.apply(_global, availables);
         }, errback);
     }
-
-    var exports = {
-        common: commonSpecDefine,
-        amd: amdDefine
-    };
 
     function browserExtend(exports) {
         if (typeof window === "undefined" || typeof window.window !== "object" || window.window.window !== window.window) {
@@ -496,6 +490,11 @@
             getScript: getScript
         });
     }
+
+    var exports = {
+        common: commonSpecDefine,
+        amd: amdDefine
+    };
 
     browserExtend(exports);
 

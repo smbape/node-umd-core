@@ -1,6 +1,6 @@
 `
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
+import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 import resources from './resources';
 import "../../lib/backbone-validation"
 `

@@ -1,8 +1,8 @@
+import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
+import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
+import componentHandler from "!componentHandler";
 import inherits from "../functions/inherits";
 import AbstractModelComponent from "./ModelComponent";
-import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
-import React from "%{ amd: 'react', common: '!React' }";
-import componentHandler from "!componentHandler";
 
 const MDL_CLASSES = [
     "mdl-js-button",

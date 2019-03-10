@@ -49,9 +49,9 @@
 }(require('application'), require('i18next')));
  */
 
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
-import i18n from "%{amd: 'i18next', common: 'i18next', brunch: '!i18next'}";
+import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
+import i18n from "%{amd: 'i18next', brunch: '!i18next', common: 'i18next', node: 'i18next'}";
 import BaseRouter from "./BaseRouter";
 import RouterEngine from "./RouterEngine";
 import resources from "./resources";

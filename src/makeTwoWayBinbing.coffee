@@ -1,8 +1,8 @@
 `
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
-import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
-import i18n from "%{amd: 'i18next', common: 'i18next', brunch: '!i18next'}";
-import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
+import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash'}";
+import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone'}";
+import i18n from "%{amd: 'i18next', brunch: '!i18next', common: 'i18next'}";
+import ReactDOM from "%{ amd: 'react-dom', brunch: '!ReactDOM', common: 'react-dom' }";
 import AbstractModelComponent from "./components/ModelComponent";
 import isEqual from "../lib/fast-deep-equal";
 `
