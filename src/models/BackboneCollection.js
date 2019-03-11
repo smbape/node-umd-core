@@ -80,9 +80,9 @@ const byAttribute = (attrs, topOrder) => {
                 return res;
             }
         `.trim().replace(/ {12}/mg, ""));
-
-        blocks.push("return res;");
     });
+
+    blocks.push("return 0;");
 
     // eslint-disable-next-line no-new-func
     const fn = new Function("Backbone", "a", "b", blocks.join("\n\n"));
