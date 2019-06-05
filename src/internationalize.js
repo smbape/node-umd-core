@@ -197,14 +197,13 @@ module.exports = function(options, done) {
     });
 
     if (BaseRouter.isRouter(app.router)) {
-        const language = function() {
+        const language = () => {
             return app.get("language") || (navigator.browserLanguage || navigator.language).slice(0, 2);
         };
 
         const engines = app.router.engines;
 
-        // eslint-disable-next-line guard-for-in
-        for (const route in engines) {
+        for (const route in engines) { // eslint-disable-line guard-for-in
             const engine = engines[route].engine;
 
             if (engine instanceof RouterEngine) {

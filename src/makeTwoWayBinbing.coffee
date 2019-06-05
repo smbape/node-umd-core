@@ -1,4 +1,6 @@
 `
+/* eslint no-shadow: ["error", { "allow": ["hasEditableValue", "emptyObject", "handleTargetChange", "_makeTwoWayBinbing", "getChangedState", "makeTwoWayBinbing", "initTagBinding", "__onChange", "getChangedState"] }] */
+
 import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash'}";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone'}";
 import i18n from "%{amd: 'i18next', brunch: '!i18next', common: 'i18next'}";

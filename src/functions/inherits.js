@@ -7,13 +7,13 @@ module.exports = function inherits(child, parent) {
         }
     }
 
-    /** @this ctor */
-    function ctor() {
+    /** @this Ctor */
+    function Ctor() {
         this.constructor = child;
     }
 
-    ctor.prototype = parent.prototype;
-    child.prototype = new ctor();
+    Ctor.prototype = parent.prototype;
+    child.prototype = new Ctor();
     child.__super__ = parent.prototype;
 
     return child;

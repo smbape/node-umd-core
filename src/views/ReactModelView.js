@@ -1,3 +1,5 @@
+/* eslint no-shadow: ["error", { "allow": ["Element"] }] */
+
 import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import ReactDOM from "%{ amd: 'react-dom', brunch: '!ReactDOM', common: 'react-dom' }";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";

@@ -1,3 +1,5 @@
+/* eslint-disable no-void */
+
 const hasProp = Object.prototype.hasOwnProperty;
 
 module.exports = function throttle(fn, delay, options) {

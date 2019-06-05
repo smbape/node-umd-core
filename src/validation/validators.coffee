@@ -1,4 +1,6 @@
 `
+/* eslint no-shadow: ["error", { "allow": ["makeError", "hasValue", "fn"] }] */
+
 import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
 `
 

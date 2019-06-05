@@ -47,8 +47,8 @@ Object.assign(InputText.prototype, {
     },
 
     handleChange(evt, ...args) {
-        const onChange = this.props.onChange;
-        if ("function" === typeof onChange) {
+        const {onChange} = this.props;
+        if (typeof onChange === "function") {
             evt.ref = this;
             onChange(evt, ...args);
         }

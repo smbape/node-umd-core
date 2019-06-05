@@ -1,4 +1,6 @@
 `
+/* eslint no-shadow: ["error", { "allow": ["getValidatedAttrs", "getOptionsAttrs", "notifyValidationChange"] }] */
+
 import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 import resources from './resources';
@@ -22,7 +24,7 @@ getOptionsAttrs = (options, view) ->
     attrs = options?.attributes
     Array.isArray(attrs) and attrs
 
-module.exports = (options)->
+module.exports = (opts)->
     if 'function' is typeof @updateResources
         @updateResources resources
 
@@ -54,7 +56,6 @@ module.exports = (options)->
         validate: (attrs, options)->
             model = @
             validateAll = !attrs
-            validAttrs = []
             validateAttrs = getValidatedAttrs model, getOptionsAttrs(options)
             return if _.isEmpty validateAttrs
 
@@ -78,7 +79,7 @@ module.exports = (options)->
                 else
                     model.invalidAttrs = invalidAttrs or {}
 
-            vstate = ->
+            notifyValidationChange = ->
                 if invalidAttrs
                     for attr of validateAttrs
                         if hasProp.call(invalidAttrs, attr)
@@ -100,13 +101,13 @@ module.exports = (options)->
                 return
 
             if options.forceUpdate is false
-                vstate() if not opts.silent
+                notifyValidationChange() if not opts.silent
                 return invalidAttrs
             else if opts.validate and not opts.silent
                 # Trigger validated events.
                 # Need to defer this so the model is actually updated before
                 # the event is triggered.
-                model.once 'change', vstate
+                model.once 'change', notifyValidationChange
                 return
 
     }, mixin

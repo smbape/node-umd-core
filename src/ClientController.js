@@ -35,14 +35,11 @@ Object.assign(ClientController.prototype, {
     },
 
     render(View, options, done) {
-        let view;
-
         switch (arguments.length) {
             case 0:
                 return;
             case 1:
                 done = View;
-                view = this.view;
                 break;
             case 2:
                 done = options;
@@ -51,8 +48,7 @@ Object.assign(ClientController.prototype, {
                     controller: this
                 };
 
-                // eslint-disable-next-line no-multi-assign
-                view = this.view = View.createElement(options);
+                this.view = View.createElement(options);
                 break;
             default:
                 options = Object.assign({}, options, {
@@ -60,9 +56,10 @@ Object.assign(ClientController.prototype, {
                     controller: this
                 });
 
-                // eslint-disable-next-line no-multi-assign
-                view = this.view = View.createElement(options);
+                this.view = View.createElement(options);
         }
+
+        const {view} = this;
 
         if ("function" !== typeof view.render || view.render.length > 1) {
             done(new Error("invalid render method. It should be a function expectingat most ine argument"));

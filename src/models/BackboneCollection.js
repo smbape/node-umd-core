@@ -385,8 +385,7 @@ Object.assign(BackboneCollection.prototype, {
             return [obj[key], count];
         };
 
-        // eslint-disable-next-line no-cond-assign
-        while (item = stack.pop()) {
+        while (item = stack.pop()) { // eslint-disable-line no-cond-assign
             [obj, count] = item;
 
             if (count === 1) {

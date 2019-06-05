@@ -1,4 +1,6 @@
 `
+/* eslint no-shadow: ["error", { "allow": ["RouterEngine", "splitPath", "createNoMatchError", "_removeLeadTail", "_substringMatch", "tokenizer", "replace"] }] */
+
 import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
 import qs from './QueryString';
 import StringUtil from './util/StringUtil';
@@ -18,7 +20,7 @@ splitPath = (filename) ->
     filename: split[2]
     extname: split[3]
 
-NoMatch = (msg)->
+createNoMatchError = (msg)->
     error = new Error msg
     error.code = 'NO_MATCH'
     error
@@ -203,7 +205,7 @@ class RouterEngine
         # Test matching against base url
         baseUrl = _removeLeadTail engine.baseUrl
         if not _substringMatch baseUrl, url
-            throw NoMatch 'Base url does not match'
+            throw createNoMatchError 'Base url does not match'
 
         # remove base url form url
         if baseUrl.length > 0
@@ -244,7 +246,7 @@ class RouterEngine
             if options.throws is false
                 return false
             else
-                throw NoMatch 'No matching'
+                throw createNoMatchError 'No matching'
 
         if (options.separate)
             return { pathParams, wildParams }

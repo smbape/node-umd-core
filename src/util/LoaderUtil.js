@@ -1,3 +1,5 @@
+/* global opera:false */
+
 const objectToString = Object.prototype.toString;
 const objectTag = "[object Object]";
 const hasProp = Object.prototype.hasOwnProperty;
@@ -49,8 +51,7 @@ function load(attributes, container, callback, errback, completeback) {
 
     let value;
 
-    // eslint-disable-next-line guard-for-in
-    for (const attr in attributes) {
+    for (const attr in attributes) { // eslint-disable-line guard-for-in
         value = attributes[attr];
         if (attr !== "tag" && node[attr] !== value) {
             node.setAttribute(attr, value);

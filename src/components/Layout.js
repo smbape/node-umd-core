@@ -17,56 +17,64 @@ const transformJSPropertyName = "transform" in testElementStyle ? "transform" : 
 // gives way smoother animation than adding/removing a className
 // because adding/removing a className causes "Recalculate Style"
 
-const openRightPanel = el => {
-    const wattr = el.attr("data-umd-layout-width");
+const openRightPanel = $el => {
+    const wattr = $el.attr("data-umd-layout-width");
     if (wattr !== "small" && wattr !== "large") {
         return;
     }
 
-    const width = el.attr("data-umd-layout-width-value");
+    const width = $el.attr("data-umd-layout-width-value");
     const overlay = {
         opacity: 0.5
     };
     overlay[transformJSPropertyName] = `translate3d(-${ width }px, 0px, 0px)`;
-    el.find("> .layout__overlay-left").css(overlay);
+    $el.find("> .layout__overlay-left").css(overlay);
 
-    el.find("> .layout__right").css(transformJSPropertyName, `translate3d(-${ el.attr("data-umd-layout-right-width") }, 0px, 0px)`);
+    $el.find("> .layout__right").css(transformJSPropertyName, `translate3d(-${ $el.attr("data-umd-layout-right-width") }, 0px, 0px)`);
 
-    el[0].setAttribute("data-layout-open-right", "");
+    $el[0].setAttribute("data-layout-open-right", "");
 };
 
-const closeRightPanel = el => {
-    const wattr = el.attr("data-umd-layout-width");
+const closeRightPanel = $el => {
+    const $rightPanel = $el.find("> .layout__right");
+    if ($rightPanel.length === 0) {
+        return;
+    }
+
+    const wattr = $el.attr("data-umd-layout-width");
+
     if (wattr !== "small" && wattr !== "large") {
-        const overlay = el.find("> .layout__overlay-left")[0];
-        overlay.style.opacity = "";
-        overlay.style[transformJSPropertyName] = "";
-        el.find("> .layout__right")[0].style[transformJSPropertyName] = "";
+        const overlay = $el.find("> .layout__overlay-left")[0];
+        if (overlay) {
+            overlay.style.opacity = "";
+            overlay.style[transformJSPropertyName] = "";
+        }
+        $rightPanel[0].style[transformJSPropertyName] = "";
         return;
     }
 
     if (wattr) {
-        const overlay = {
+        const overlayCSS = {
             opacity: 0
         };
-        overlay[transformJSPropertyName] = "translate3d(0px, 0px, 0px)";
-        el.find("> .layout__overlay-left").css(overlay);
-        el.find("> .layout__right").css(transformJSPropertyName, "translate3d(0px, 0px, 0px)");
+        overlayCSS[transformJSPropertyName] = "translate3d(0px, 0px, 0px)";
+        $el.find("> .layout__overlay-left").css(overlayCSS);
+        $rightPanel.css(transformJSPropertyName, "translate3d(0px, 0px, 0px)");
     }
 
-    el[0].removeAttribute("data-layout-open-right");
+    $el[0].removeAttribute("data-layout-open-right");
 };
 
-const toggleRightPanel = el => {
-    if (el[0].hasAttribute("data-layout-open-right")) {
-        closeRightPanel(el);
+const toggleRightPanel = $el => {
+    if ($el[0].hasAttribute("data-layout-open-right")) {
+        closeRightPanel($el);
     } else {
-        openRightPanel(el);
+        openRightPanel($el);
     }
 };
 
-const openLeftPanel = el => {
-    const wattr = el.attr("data-umd-layout-width");
+const openLeftPanel = $el => {
+    const wattr = $el.attr("data-umd-layout-width");
     if (wattr !== "small") {
         return;
     }
@@ -75,40 +83,40 @@ const openLeftPanel = el => {
         opacity: 0.5
     };
     overlay[transformJSPropertyName] = "translate3d(0px, 0px, 0px)";
-    el.find("> .layout__overlay-center").css(overlay);
+    $el.find("> .layout__overlay-center").css(overlay);
 
-    el.find("> .layout__left").css(transformJSPropertyName, "translate3d(0px, 0px, 0px)");
+    $el.find("> .layout__left").css(transformJSPropertyName, "translate3d(0px, 0px, 0px)");
 
-    el[0].setAttribute("data-layout-open-left", "");
+    $el[0].setAttribute("data-layout-open-left", "");
 };
 
-const closeLeftPanel = el => {
-    const wattr = el.attr("data-umd-layout-width");
+const closeLeftPanel = $el => {
+    const wattr = $el.attr("data-umd-layout-width");
     if (wattr !== "small") {
-        const overlay = el.find("> .layout__overlay-center")[0];
+        const overlay = $el.find("> .layout__overlay-center")[0];
         overlay.style.opacity = "";
         overlay.style[transformJSPropertyName] = "";
-        el.find("> .layout__left")[0].style[transformJSPropertyName] = "";
+        $el.find("> .layout__left")[0].style[transformJSPropertyName] = "";
         return;
     }
 
-    const width = el.attr("data-umd-layout-width-value");
+    const width = $el.attr("data-umd-layout-width-value");
     const overlay = {
         opacity: 0
     };
     overlay[transformJSPropertyName] = `translate3d(-${ width }px, 0px, 0px)`;
-    el.find("> .layout__overlay-center").css(overlay);
+    $el.find("> .layout__overlay-center").css(overlay);
 
-    el.find("> .layout__left").css(transformJSPropertyName, `translate3d(-${ el.attr("data-umd-layout-left-width") }, 0px, 0px)`);
+    $el.find("> .layout__left").css(transformJSPropertyName, `translate3d(-${ $el.attr("data-umd-layout-left-width") }, 0px, 0px)`);
 
-    el[0].removeAttribute("data-layout-open-left");
+    $el[0].removeAttribute("data-layout-open-left");
 };
 
-const toggleLeftPanel = el => {
-    if (el[0].hasAttribute("data-layout-open-left")) {
-        closeLeftPanel(el);
+const toggleLeftPanel = $el => {
+    if ($el[0].hasAttribute("data-layout-open-left")) {
+        closeLeftPanel($el);
     } else {
-        openLeftPanel(el);
+        openLeftPanel($el);
     }
 };
 
@@ -570,7 +578,15 @@ Object.assign(Layout.prototype, {
     render() {
         return React.createElement("div", this.getProps());
     }
+});
 
+Object.assign(Layout, {
+    openLeftPanel,
+    closeLeftPanel,
+    toggleLeftPanel,
+    openRightPanel,
+    closeRightPanel,
+    toggleRightPanel,
 });
 
 module.exports = Layout;

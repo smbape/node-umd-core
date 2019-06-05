@@ -5,10 +5,10 @@ import ReactModelView from "./ReactModelView";
 const {byAttribute, reverse} = BackboneCollection;
 
 class ReactCollectionView extends ReactModelView {
-    constructor(props, ...args) {
-        super(props, ...args);
+    constructor() {
+        super(...arguments);
         this.state = {
-            model: this.getNewModel(props),
+            model: this.getNewModel(arguments[0]),
             pending: []
         };
     }
@@ -21,8 +21,8 @@ class ReactCollectionView extends ReactModelView {
         return shouldComponentUpdateEvent;
     }
 
-    getModel(props = this.props, state = this.state) {
-        return this.state ? this.state.model : undefined;
+    getModel(props, state = this.state) {
+        return state ? state.model : undefined;
     }
 
     getNewModel(props) {
@@ -229,6 +229,8 @@ class ReactCollectionView extends ReactModelView {
             this.state.pending.push(["change", model, index, collection, options]);
             this._updateView();
         }
+
+        return true;
     }
 
     // eslint-disable-next-line consistent-return
@@ -247,6 +249,8 @@ class ReactCollectionView extends ReactModelView {
         if (!options.silentView) {
             this._updateView();
         }
+
+        return true;
     }
 
     // eslint-disable-next-line consistent-return
@@ -261,6 +265,8 @@ class ReactCollectionView extends ReactModelView {
         if (!options.silentView) {
             this._updateView();
         }
+
+        return true;
     }
 
     // eslint-disable-next-line consistent-return
@@ -275,6 +281,8 @@ class ReactCollectionView extends ReactModelView {
         if (!options.silentView) {
             this._updateView();
         }
+
+        return true;
     }
 
     // eslint-disable-next-line consistent-return
@@ -285,6 +293,7 @@ class ReactCollectionView extends ReactModelView {
         }
 
         this.reRender();
+        return true;
     }
 
     // eslint-disable-next-line consistent-return
@@ -295,6 +304,7 @@ class ReactCollectionView extends ReactModelView {
         }
 
         this.reRender();
+        return true;
     }
 
     getChildNodeList() {

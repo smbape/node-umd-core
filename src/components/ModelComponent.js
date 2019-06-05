@@ -80,11 +80,11 @@ Object.assign(ModelComponent.prototype, {
     componentWillUpdate(nextProps, nextState) {
         if (this.shouldUpdateEvent) {
             const prevEventArgs = this.getEventArgs();
-            prevEventArgs.push(...[nextProps, nextState]);
+            prevEventArgs.push(nextProps, nextState);
             this.detachEvents(...prevEventArgs);
 
             const nextEventArgs = this[typeof this.getNewEventArgs === "function" ? "getNewEventArgs" : "getEventArgs"](nextProps, nextState);
-            nextEventArgs.push(...[nextProps, nextState]);
+            nextEventArgs.push(nextProps, nextState);
             this.attachEvents(...nextEventArgs);
         }
 
@@ -226,7 +226,7 @@ Object.assign(ModelComponent.prototype, {
 
             const reg = new RegExp(query.replace(/([\\/^$.|?*+()[\]{}])/g, "\\$1"), "i");
 
-            const fn = model => {
+            this.filterCache[query] = model => {
                 const attrs = model instanceof Backbone.Model ? model.attributes : model;
 
                 return Object.keys(attrs).some(key => {
@@ -234,9 +234,7 @@ Object.assign(ModelComponent.prototype, {
                 });
             };
 
-            this.filterCache[query] = fn;
-
-            return fn;
+            return this.filterCache[query];
         }
 
         return null;

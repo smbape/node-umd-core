@@ -123,8 +123,8 @@
             deps = [];
         }
 
-        var localRequire = function(deps, callback, errback, options) {
-            return commonSpecRequire(require, type, deps, callback, errback, options, _global);
+        var localRequire = function(_deps, callback, errback, options) {
+            return commonSpecRequire(require, type, _deps, callback, errback, options, _global);
         };
 
         var libs = [localRequire];

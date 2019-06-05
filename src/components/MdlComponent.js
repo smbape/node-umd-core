@@ -80,8 +80,8 @@ MdlComponent.prototype.downgradeElements = function(el) {
 
 MdlComponent.prototype.handleChange = function(evt) {
     evt.ref = this;
-    const onChange = this.props.onChange;
-    if ("function" === typeof onChange) {
+    const {onChange} = this.props;
+    if (typeof onChange === "function") {
         onChange(...arguments);
     }
 };

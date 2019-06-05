@@ -51,7 +51,7 @@ Object.assign(ArrayComponent.prototype, {
 
             const regexp = new RegExp(query.replace(/([\\/^$.|?*+()[\]{}])/g, "\\$1"), "i");
 
-            const fn = attributes => {
+            this.filterCache[query] = attributes => {
                 for (const prop in attributes) {
                     if (!hasProp.call(attributes, prop)) {
                         continue;
@@ -66,8 +66,7 @@ Object.assign(ArrayComponent.prototype, {
                 return false;
             };
 
-            // eslint-disable-next-line no-return-assign
-            return this.filterCache[query] = fn;
+            return this.filterCache[query];
         }
 
         return null;
@@ -215,9 +214,8 @@ Object.assign(ArrayComponent.prototype, {
 
     handleChange(evt) {
         evt.ref = this;
-        const onChange = this.props.onChange;
-
-        if ("function" === typeof onChange) {
+        const {onChange} = this.props;
+        if (typeof onChange === "function") {
             onChange(...arguments);
         }
     },

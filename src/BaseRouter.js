@@ -189,8 +189,7 @@ Object.assign(BaseRouter.prototype, {
         const {engines} = this;
         let pathParams, routeConfig, engine, handlers;
 
-        // eslint-disable-next-line guard-for-in
-        for (const route in engines) {
+        for (const route in engines) { // eslint-disable-line guard-for-in
             routeConfig = engines[route];
             engine = routeConfig.engine;
             handlers = routeConfig.handlers;
@@ -273,8 +272,7 @@ Object.assign(BaseRouter.prototype, {
             callback.called = true;
             app.give();
 
-            // eslint-disable-next-line no-multi-assign
-            app.current = router.current = handlerOptions;
+            app.current = router.current = handlerOptions; // eslint-disable-line no-multi-assign
 
             let rendable;
             if (res != null && typeof res === "object" && "function" === typeof res.destroy) {
@@ -467,8 +465,7 @@ Object.assign(BaseRouter.prototype, {
             options.baseUrl = baseUrl;
             options.route = route;
 
-            // eslint-disable-next-line no-multi-assign
-            const routeConfig = engines[route] = {
+            const routeConfig = engines[route] = { // eslint-disable-line no-multi-assign
                 engine: new RouterEngine(options)
             };
 
@@ -483,8 +480,7 @@ Object.assign(BaseRouter.prototype, {
                 throw new Error(`Error in route '${ route }': handlers options must an Array`);
             }
 
-            // eslint-disable-next-line no-multi-assign
-            const handlers = routeConfig.handlers = [];
+            const handlers = routeConfig.handlers = []; // eslint-disable-line no-multi-assign
 
             config.handlers.forEach((handler, index) => {
                 let fn;

@@ -192,8 +192,7 @@ if (!requestAnimationFrame) {
         }
 
         if (!HANDLED_EVENT) {
-            // eslint-disable-next-line guard-for-in
-            for (const name in HANDLED_EVENTS) {
+            for (const name in HANDLED_EVENTS) { // eslint-disable-line guard-for-in
                 const reg = HANDLED_EVENTS[name];
                 if (reg.test(type)) {
                     HANDLED_EVENT = reg;
@@ -294,8 +293,7 @@ if (!requestAnimationFrame) {
 
         const overridedEvt = {};
 
-        // eslint-disable-next-line guard-for-in
-        for (const prop in evt.originalEvent) {
+        for (const prop in evt.originalEvent) { // eslint-disable-line guard-for-in
             overridedEvt[prop] = evt.originalEvent[prop];
         }
 

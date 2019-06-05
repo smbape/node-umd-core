@@ -46,16 +46,16 @@ Object.assign(ConfirmDialog.prototype, {
         this.getRef("dialog").close();
         this.inline.clear();
 
-        const close = this.inline.get("close");
-        if ("function" === typeof (close)) {
-            close();
+        const cb = this.inline.get("close");
+        if (typeof cb === "function") {
+            cb();
         }
     },
 
     confirm() {
-        const confirm = this.inline.get("confirm");
-        if ("function" === typeof (confirm)) {
-            confirm();
+        const cb = this.inline.get("confirm");
+        if (typeof cb === "function") {
+            cb();
         }
         this.getRef("dialog").close();
         this.inline.clear();

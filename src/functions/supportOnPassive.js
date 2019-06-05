@@ -19,19 +19,10 @@ const isPassiveEventListenerSupported = () => {
     return supportsPassive;
 };
 
-const captureOptions = isPassiveEventListenerSupported() ? {
-    passive: true
-} : false;
-
-const supportOnPassive = ($, name) => {
-    if (!captureOptions) {
-        // passive event listener is not supported
-        return emptyFn;
-    }
-
+const supportOnPassive = isPassiveEventListenerSupported() ? ($, name) => {
     if (/\s/.test(name)) {
         const names = name.split(/\s+/g);
-        let destroyers = [];
+        const destroyers = [];
         const len = names.length;
 
         for (let j = 0; j < len; j++) {
@@ -43,52 +34,44 @@ const supportOnPassive = ($, name) => {
             let i = destroyers.length - 1;
 
             while (i !== -1) {
-                destroyers[i]();
-                i--;
+                destroyers[i--]();
             }
 
-            destroyers = null;
+            destroyers.length = 0;
         };
     }
 
     let special = $.event.special;
     let hasSpecial = false;
-    let prevSetup, hasPrevSetup;
 
     if (hasProp.call(special, name)) {
         hasSpecial = true;
         if (hasProp.call(special[name], "setup")) {
-            prevSetup = special[name].setup;
-
-            if (prevSetup.passiveSupported) {
-                // passive event listener with $.fn.on is already enabled
-                return emptyFn;
-            }
-
-            hasPrevSetup = true;
+            // a previous setup exists and is most likely either a fix or an already passive support
+            return emptyFn;
         }
     } else {
         special[name] = {};
     }
 
-    const setup = function(data, namespaces, eventHandle) {
+    special[name].setup = function(data, namespaces, eventHandle) {
         // eslint-disable-next-line no-invalid-this
-        this.addEventListener(name, eventHandle, captureOptions);
+        this.addEventListener(name, eventHandle, {
+            passive: true
+        });
     };
 
-    setup.passiveSupported = true;
+    // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener#Matching_event_listeners_for_removal
+    // Only the capture flag is used when matching event listeners for removal
+    // Therefore, events registered with passive flag will still be removed when performing elem.removeEventListener( type, handle );
+    // Therefore, the default jQuery.removeEvent which performs elem.removeEventListener( type, handle ); doesn't need to be altered
+    // Therefore, a teardown is not needed
+    // Therefore there is no need to call supportOnPassive before removing event listeners
 
-    special[name].setup = setup;
-
-    // restore original $.fn.on behaviour
+    // restore the original $.fn.on behaviour
     return () => {
-        if (hasPrevSetup) {
-            special[name].setup = prevSetup;
-            prevSetup = null;
-        } else if (hasSpecial) {
-            delete special[name].setup;
-        } else {
-            delete special[name].setup;
+        delete special[name].setup;
+        if (!hasSpecial) {
             delete special[name];
         }
 
@@ -96,6 +79,8 @@ const supportOnPassive = ($, name) => {
         special = null;
         $ = null;
     };
+} : () => {
+    return emptyFn;
 };
 
 module.exports = supportOnPassive;
