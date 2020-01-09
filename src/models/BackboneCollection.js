@@ -619,8 +619,8 @@ Object.assign(BackboneCollection.prototype, {
             return -1;
         }
 
-        const {comparator} = this;
-        if (!comparator) {
+        const {comparator: compare} = this;
+        if (!compare) {
             return BackboneCollection.__super__.indexOf.apply(this, arguments);
         }
 
@@ -631,17 +631,37 @@ Object.assign(BackboneCollection.prototype, {
 
         const {models} = this;
 
-        let index = binarySearch(existing, models, comparator, options);
+        let index = binarySearch(existing, models, compare, options);
         if (index !== -1 && models[index] === existing) {
             return index;
         }
 
+        const {_previousAttributes: attributes} = model;
+
         const overrides = {};
-        overrides[model.cid] = model._previousAttributes;
-        index = binarySearch(model._previousAttributes, models, comparator, _.defaults({
+        overrides[model.cid] = attributes;
+        index = binarySearch(attributes, models, compare, _.defaults({
             overrides,
             model: existing
         }, options));
+
+        const {cid} = existing;
+
+        while (index > 0 && models[index].cid !== cid) {
+            if (models[index - 1].cid === cid) {
+                index--;
+                break;
+            }
+
+            if (compare(attributes, models[index - 1]) !== 0) {
+                // There is somthing wrong,
+                // because I haven't prove that this path will never be taken
+                // it is kept
+                break;
+            }
+
+            index--;
+        }
 
         return index;
     },

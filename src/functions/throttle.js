@@ -15,7 +15,7 @@ module.exports = function throttle(fn, delay, options) {
         if (wait <= 0) {
             waiting = false;
             lastExecution = leading ? now : 0;
-            fn(...arguments);
+            fn.apply(null, arguments);
             return;
         }
 

@@ -6,7 +6,7 @@ function onlyOnce(fn) {
 
         const callFn = fn;
         fn = null;
-        callFn(...arguments);
+        callFn.apply(null, arguments);
     };
 }
 

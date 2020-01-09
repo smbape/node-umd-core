@@ -11,6 +11,8 @@ makeError = (error, options = {}, config)->
                 return config.msg
             when 'function'
                 return config.msg error, options
+            else
+                `// Nothing to do`
 
         if _.isObject(config.translator) and 'function' is typeof config.translator.t
             return config.translator.t error, options
@@ -27,6 +29,8 @@ hasValue = (value) ->
         when 'object'
             return true if value is null
             return value.length is 0 if Array.isArray(value)
+        else
+            `// Nothing to do`
 
     return false
 
@@ -147,11 +151,12 @@ module.exports =
             ]
 
             re = /([\da-zA-Z]|[^\t\r\n\w])/g
+
             while (match = re.exec(value))
-                errorsArray.splice(errorsArray.indexOf('digit'), 1) if ~errorsArray.indexOf('digit') and /\d/.test match[0]
-                errorsArray.splice(errorsArray.indexOf('lowercase'), 1) if ~errorsArray.indexOf('lowercase') and /[a-z]/.test match[0]
-                errorsArray.splice(errorsArray.indexOf('uppercase'), 1) if ~errorsArray.indexOf('uppercase') and /[A-Z]/.test match[0]
-                errorsArray.splice(errorsArray.indexOf('special'), 1) if ~errorsArray.indexOf('special') and /[^\t\r\n\w]/.test match[0]
+                errorsArray.splice(errorsArray.indexOf('digit'), 1) if errorsArray.indexOf('digit') isnt -1 and /\d/.test match[0]
+                errorsArray.splice(errorsArray.indexOf('lowercase'), 1) if errorsArray.indexOf('lowercase') isnt -1 and /[a-z]/.test match[0]
+                errorsArray.splice(errorsArray.indexOf('uppercase'), 1) if errorsArray.indexOf('uppercase') isnt -1 and /[A-Z]/.test match[0]
+                errorsArray.splice(errorsArray.indexOf('special'), 1) if errorsArray.indexOf('special') isnt -1 and /[^\t\r\n\w]/.test match[0]
                 if errorsArray.length is 0
                     break
 

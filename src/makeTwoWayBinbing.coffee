@@ -10,7 +10,6 @@ import isEqual from "../lib/fast-deep-equal";
 `
 
 hasProp = Object::hasOwnProperty
-_expressionCache = {}
 uid = '_makeTwoWayBinbing_' + Math.random().toString(36).slice(2)
 HIDDEN_BINDING_KEY = uid + "_binding"
 
@@ -44,6 +43,7 @@ hasEditableValue = (type, props)->
 
 emptyObject = (binding)->
     for own prop of binding
+        # continue if prop is "id"
         binding[prop] = null
         delete binding[prop]
     return
@@ -85,14 +85,14 @@ _makeTwoWayBinbing = (type, config, element)->
     if Array.isArray(model)
         if model.length is 0
             return
-        if model.some((model)-> not _.isObject(model) or 'function' isnt typeof model.on or 'function' isnt typeof model.off)
+        if model.some((itModel)-> not _.isObject(itModel) or 'function' isnt typeof itModel.on or 'function' isnt typeof itModel.off)
             return
     else if not _.isObject(model) or 'function' isnt typeof model.on or 'function' isnt typeof model.off
         return
 
     if 'string' is typeof property
         if 'string' is typeof events and events.length > 0
-            events = events.map((type)-> "#{type}:#{property}").join(' ')
+            events = events.map((name)-> "#{name}:#{property}").join(' ')
         else
             events = "change:#{property}"
 
@@ -114,44 +114,44 @@ _makeTwoWayBinbing = (type, config, element)->
         model: model
         validate: validate
 
-        _attach: (binding)->
-            if Array.isArray binding.model
-                for i in [0...binding.model.length] by 1
-                    _model = binding.model[i]
-                    _events = binding.events[i]
-                    _model.on _events, binding._onModelChange, binding
+        _attach: (currentBinding)->
+            if Array.isArray currentBinding.model
+                for i in [0...currentBinding.model.length] by 1
+                    _model = currentBinding.model[i]
+                    _events = currentBinding.events[i]
+                    _model.on _events, currentBinding._onModelChange, currentBinding
             else
-                binding.model.on binding.events, binding._onModelChange, binding
+                currentBinding.model.on currentBinding.events, currentBinding._onModelChange, currentBinding
 
-            binding.owner._bindexists[binding.id] = binding
+            currentBinding.owner._bindexists[currentBinding.id] = currentBinding
             return
 
-        _detach: (binding)->
-            if Array.isArray binding.model
-                for i in [0...binding.model.length] by 1
-                    _model = binding.model[i]
-                    _events = binding.events[i]
-                _model.off _events, binding._onModelChange, binding
+        _detach: (currentBinding)->
+            if Array.isArray currentBinding.model
+                for i in [0...currentBinding.model.length] by 1
+                    _model = currentBinding.model[i]
+                    _events = currentBinding.events[i]
+                _model.off _events, currentBinding._onModelChange, currentBinding
             else
-                binding.model.off binding.events, binding._onModelChange, binding
+                currentBinding.model.off currentBinding.events, currentBinding._onModelChange, currentBinding
 
-            delete binding.owner._bindexists[binding.id]
-            emptyObject binding
-            if ReactDOM.vrdom is ReactDOM and binding._ref
-                delete binding._ref[HIDDEN_BINDING_KEY]
+            delete currentBinding.owner._bindexists[currentBinding.id]
+            emptyObject(currentBinding)
+            if ReactDOM.vrdom is ReactDOM and currentBinding._ref
+                delete currentBinding._ref[HIDDEN_BINDING_KEY]
             return
 
-        _onModelChange: (model, value, options)->
-            { owner, _ref } = @
+        _onModelChange: (currentModel, currentValue, currentOptions)->
+            { owner: currentOwner, _ref } = this
 
-            if owner
-                component = owner
+            if currentOwner
+                component = currentOwner
             else if _ref instanceof AbstractModelComponent
                 component = _ref
 
             if component
                 pure = component.isPureDataModel
-                state = if pure then {} else getChangedState(model.cid, model.changed, model.attributes)
+                state = if pure then {} else getChangedState(currentModel.cid, currentModel.changed, currentModel.attributes)
                 component.setState(state)
 
             return
@@ -159,20 +159,21 @@ _makeTwoWayBinbing = (type, config, element)->
         __ref: (ref, status)->
             return if not ref
 
-            binding = this
-            owner = binding.owner
+            currentBinding = this
+            currentOwner = currentBinding.owner
 
             if ReactDOM.vrdom is ReactDOM
                 if status isnt "mount"
-                    if existing = ref.binding
-                        prevBinding = owner._bindexists[existing]
-                        prevBinding.onChange = binding.onChange if prevBinding
+                    if ref.binding
+                        existing = ref.binding
+                        prevBinding = currentOwner._bindexists[existing]
+                        prevBinding.onChange = currentBinding.onChange if prevBinding
 
-                    index = binding.index
-                    owner._bindings.splice index, 1
-                    emptyObject(binding)
-                    for i in [index...owner._bindings.length] by 1
-                        owner._bindings[i].index--
+                    index = currentBinding.index
+                    currentOwner._bindings.splice index, 1
+                    emptyObject(currentBinding)
+                    for i in [index...currentOwner._bindings.length] by 1
+                        currentOwner._bindings[i].index--
                     binding = null
                     return
 
@@ -183,36 +184,44 @@ _makeTwoWayBinbing = (type, config, element)->
                     value: this
                 }
 
-            if not (existing = ref.binding)
-                existing = ref.binding = binding.id
+            if not ref.binding
+                ref.binding = binding.id
 
-            if (prevBinding = owner._bindexists[existing]) and prevBinding isnt binding
-                index = binding.index
+            existing = ref.binding
+            prevBinding = currentOwner._bindexists[existing]
 
-                if !isEqual(prevBinding.model, binding.model) or !isEqual(prevBinding.events, binding.events)
+            if prevBinding and prevBinding isnt currentBinding
+                if !isEqual(prevBinding.model, currentBinding.model) or !isEqual(prevBinding.events, currentBinding.events)
                     # use the new binding
                     hasChangedModel = true
                     index = prevBinding.index
-                    owner._bindings.splice index, 1
+                    currentOwner._bindings.splice index, 1
                     prevBinding._detach prevBinding
 
                 else
                     # re-use the previous binding
-                    owner._bindings.splice index, 1
-                    emptyObject binding
-
-                    # onChange is always a new function, make sure it uses the correct binding object
-                    prevBinding.onChange = binding.onChange
+                    hasChangedModel = false
+                    index = currentBinding.index
+                    currentOwner._bindings.splice index, 1
                     binding = prevBinding
 
-                for i in [index...owner._bindings.length] by 1
-                    owner._bindings[i].index--
+                    # but call the new onChange listener
+                    prevBinding.onChange = currentBinding.onChange
+
+                    # currentBinding is no more needed
+                    # garbage collect every referenced by it
+                    emptyObject(currentBinding)
+
+                # since an element has been remove
+                # elements after the removed index should match their new indexes
+                for i in [index...currentOwner._bindings.length] by 1
+                    currentOwner._bindings[i].index--
 
                 return if not hasChangedModel
 
-            binding._ref = ref
-            binding._node = ReactDOM.findDOMNode(ref)
-            binding._attach binding
+            currentBinding._ref = ref
+            currentBinding._node = ReactDOM.findDOMNode(ref)
+            currentBinding._attach currentBinding
             return
 
     if type is AbstractModelComponent.MdlComponent
@@ -235,20 +244,20 @@ _makeTwoWayBinbing = (type, config, element)->
             defaultValue = undefined
             valueProp = undefined
 
-            initTagBinding = (type)->
-                if type is "input" and props.type in ["checkbox", "radio"]
+            initTagBinding = (_tagName)->
+                if _tagName is "input" and props.type in ["checkbox", "radio"]
                     valueProp = 'checked'
                     defaultValue = false
-                    binding.get = (binding, evt)-> evt.target.checked
-                else if hasEditableValue(type, props)
+                    binding.get = (currentBinding, evt)-> evt.target.checked
+                else if hasEditableValue(_tagName, props)
                     valueProp = 'value'
-                    binding.get = (binding, evt)-> evt.target.value
-                else if type in ['option', 'button', 'datalist', 'output']
+                    binding.get = (currentBinding, evt)-> evt.target.value
+                else if _tagName in ['option', 'button', 'datalist', 'output']
                     valueProp = 'value'
-                    binding.get = (binding, evt)-> evt.target.value
+                    binding.get = (currentBinding, evt)-> evt.target.value
                 else if config.contentEditable in ["true", true]
                     valueProp = 'innerHTML'
-                    binding.get = (binding, evt)-> evt.target.innerHTML
+                    binding.get = (currentBinding, evt)-> evt.target.innerHTML
                 return
 
             switch typeof type
@@ -261,6 +270,8 @@ _makeTwoWayBinbing = (type, config, element)->
                         defaultValue = type.getDefaultValue(binding, config) if type.getDefaultValue
                 when 'string'
                     initTagBinding(type)
+                else
+                    `// Nothing to do`
 
     if valueProp
 
@@ -360,6 +371,8 @@ _makeTwoWayBinbing = (type, config, element)->
         when 'object'
             if element.ref is null
                 element.ref = binding.__ref
+        else
+            `// Nothing to do`
 
     return binding
 

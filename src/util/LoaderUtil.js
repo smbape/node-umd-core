@@ -157,7 +157,7 @@ function getContext(callback, errback, completeback) {
          */
         onScriptError(evt) {
             if (typeof errback === "function") {
-                errback();
+                errback(evt);
             }
             onScriptComplete(context, evt, completeback);
         }
@@ -189,7 +189,7 @@ function getScript(src, container) {
 
 function loadScript(src, attributes, container, callback, errback, completeback) {
     // eslint-disable-next-line no-magic-numbers
-    if (("function" === typeof container || !isValidContainer(container)) && arguments.length === 5) {
+    if (("function" === typeof container || !isValidContainer(container)) && arguments.length <= 5) {
         [, , callback, errback, completeback] = arguments;
         container = null;
     }

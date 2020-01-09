@@ -214,16 +214,16 @@ class RouterEngine
         variables = engine.variables
         pathParams = {}
         wildParams = {}
-        _length = variables.length
+        varsLen = variables.length
         noMatch = true
 
         replace = (match) ->
             noMatch = false
-            for i in [0...variables.length] by 1
+            for i in [0...varsLen] by 1
                 pathParams[variables[i]] = engine.decode arguments[i + 1]
 
             # wildcard
-            remaining = arguments[variables.length + 1]
+            remaining = arguments[varsLen + 1]
             if remaining and remaining.length isnt 0
                 parts = remaining.split('/')
                 for i in [0...parts.length] by 2

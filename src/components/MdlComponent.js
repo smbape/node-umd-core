@@ -82,7 +82,7 @@ MdlComponent.prototype.handleChange = function(evt) {
     evt.ref = this;
     const {onChange} = this.props;
     if (typeof onChange === "function") {
-        onChange(...arguments);
+        onChange.apply(null, arguments);
     }
 };
 

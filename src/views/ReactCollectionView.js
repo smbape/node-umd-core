@@ -14,11 +14,11 @@ class ReactCollectionView extends ReactModelView {
     }
 
     shouldComponentUpdateEvent(nextProps, nextState) {
-        const shouldComponentUpdateEvent = super.shouldComponentUpdateEvent(nextProps, nextState);
-        if (shouldComponentUpdateEvent) {
+        const res = super.shouldComponentUpdateEvent(nextProps, nextState);
+        if (res) {
             delete this._childNodeList;
         }
-        return shouldComponentUpdateEvent;
+        return res;
     }
 
     getModel(props, state = this.state) {

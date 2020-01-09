@@ -41,6 +41,8 @@ module.exports = (opts)->
                     return true
                 when true
                     attrs = Object.assign {}, @attributes, attrs
+                else
+                    `// Nothing to do`
 
             # Since we are automatically validating the model,
             # we must allow invalid values in the model
