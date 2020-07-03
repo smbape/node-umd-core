@@ -619,20 +619,23 @@ Object.assign(BackboneCollection.prototype, {
         return at === -1 ? size : at;
     },
 
-    indexOf(model, options) {
+    indexOf(...args) {
         const size = this.length;
         if (!size) {
             return -1;
         }
 
-        const {comparator: compare} = this;
-        if (!compare) {
-            return BackboneCollection.__super__.indexOf.apply(this, arguments);
-        }
+        const [model, options] = args;
 
         const existing = this.get(model);
         if (!existing) {
             return -1;
+        }
+
+        const {comparator: compare} = this;
+        if (!compare) {
+            args[0] = existing;
+            return BackboneCollection.__super__.indexOf.apply(this, args);
         }
 
         const {models} = this;
