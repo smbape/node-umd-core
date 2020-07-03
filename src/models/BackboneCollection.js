@@ -404,6 +404,9 @@ Object.assign(BackboneCollection.prototype, {
     },
 
     _addReference(model, options) {
+        if (hasProp.call(this._byId, model.cid)) {
+            return;
+        }
         BackboneCollection.__super__._addReference.apply(this, arguments);
         this._indexModel(model, null, options);
     },
@@ -458,6 +461,9 @@ Object.assign(BackboneCollection.prototype, {
     },
 
     _removeReference(model, options) {
+        if (!hasProp.call(this._byId, model.cid)) {
+            return;
+        }
         this._removeIndex(model);
         BackboneCollection.__super__._removeReference.apply(this, arguments);
     },

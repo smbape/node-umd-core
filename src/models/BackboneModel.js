@@ -2,10 +2,11 @@ import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone'
 import inherits from "../functions/inherits";
 import _isEqual from "../../lib/fast-deep-equal";
 
-const hasProp = Object.prototype.hasOwnProperty;
+const {hasOwnProperty: hasProp} = Object.prototype;
 
 function BackboneModel() {
-    return BackboneModel.__super__.constructor.apply(this, arguments);
+    BackboneModel.__super__.constructor.apply(this, arguments);
+    this._byId  = {};
 }
 
 inherits(BackboneModel, Backbone.Model);
@@ -152,14 +153,14 @@ Object.assign(BackboneModel.prototype, {
     _setAttribute(attr, val, isProperty, options) {
         const current = this.attributes;
         current[attr] = val;
-        if (isProperty && current[attr] != null) {
+        if (isProperty && current[attr] instanceof Backbone.Model) {
             this._addReference(current[attr], options);
         }
     },
 
     _removeAttribute(attr, isProperty, options) {
         const current = this.attributes;
-        if (isProperty && current[attr] != null) {
+        if (isProperty && current[attr] instanceof Backbone.Model) {
             this._removeReference(current[attr], options);
         }
         delete current[attr];
@@ -167,12 +168,20 @@ Object.assign(BackboneModel.prototype, {
 
     // Internal method to create a model's ties to a parent model.
     _addReference(model, options) {
+        if (hasProp.call(this._byId, model.cid)) {
+            return;
+        }
         model.on("all", this._onModelEvent, this);
+        this._byId[model.cid] = model;
     },
 
     // Internal method to sever a model's ties to a parent model.
     _removeReference(model, options) {
+        if (!hasProp.call(this._byId, model.cid)) {
+            return;
+        }
         model.off("all", this._onModelEvent, this);
+        delete this._byId[model.cid];
     },
 
     _onModelEvent(event, model, collection, options) {
