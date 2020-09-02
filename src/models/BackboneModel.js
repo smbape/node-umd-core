@@ -46,7 +46,7 @@ Object.assign(BackboneModel.prototype, {
         const changing = this._changing;
         this._changing = true;
 
-        if (!changing) {
+        if (!changing && !options.noprevious) {
             this._previousAttributes = Object.assign({}, this.attributes);
             this.changed = {};
         }
@@ -139,7 +139,7 @@ Object.assign(BackboneModel.prototype, {
 
     get(attr, defaultVal) {
         let val = this._getAttribute(attr);
-        if (val == null) {
+        if (!hasProp.call(this.attributes, attr) && arguments.length > 1) {
             val = defaultVal;
             this.set(attr, val);
         }

@@ -1,20 +1,36 @@
 const hasProp = Object.prototype.hasOwnProperty;
 
-module.exports = function inherits(child, parent) {
-    for (const key in parent) {
-        if (hasProp.call(parent, key)) {
-            child[key] = parent[key];
+const inherits = (Child, Parent) => {
+    Object.defineProperties(Child, {
+        super_: {
+            value: Parent,
+            writable: true,
+            configurable: true
+        },
+
+        __super__: {
+            value: Parent.prototype,
+            writable: true,
+            configurable: true
         }
-    }
+    });
 
-    /** @this Ctor */
-    function Ctor() {
-        this.constructor = child;
-    }
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/setPrototypeOf
+    // Until engine developers address this issue, if you are concerned about performance,
+    // you should avoid setting the [[Prototype]] of an object.
+    // Instead, create a new object with the desired [[Prototype]] using Object.create().
 
-    Ctor.prototype = parent.prototype;
-    child.prototype = new Ctor();
-    child.__super__ = parent.prototype;
+    Child.prototype = Object.create(Parent.prototype, {
+        constructor: {
+            value: Child,
+            writable: true,
+            configurable: true
+        }
+    });
 
-    return child;
+    Object.setPrototypeOf(Child.prototype, Parent.prototype);
+
+    return Child;
 };
+
+module.exports = inherits;
