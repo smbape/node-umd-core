@@ -1,4 +1,3 @@
-import inherits from "../functions/inherits";
 import React from "%{ amd: 'react', common: '!React' }";
 import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
 import AbstractModelComponent from "./AbstractModelComponent";
@@ -155,17 +154,19 @@ const createDialog = props => {
 
 const shouldPolyfill = !document.createElement("dialog").showModal;
 
-function Dialog() {
-    Dialog.__super__.constructor.apply(this, arguments);
-    this.hidden_prop = Math.random().toString(16).slice(2);
-}
+class Dialog extends AbstractModelComponent {
+    uid = `Dialog${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(Dialog, AbstractModelComponent);
+    static getBinding(binding) {
+        return binding;
+    }
 
-Object.assign(Dialog.prototype, {
+    preinit() {
+        this.hidden_prop = Math.random().toString(16).slice(2);
+    }
 
     componentDidMount() {
-        Dialog.__super__.componentDidMount.apply(this, arguments);
+        super.componentDidMount(...arguments);
 
         let el = this.el;
 
@@ -194,7 +195,7 @@ Object.assign(Dialog.prototype, {
         if (this.props.open) {
             el.showModal();
         }
-    },
+    }
 
     componentDidUpdate(prevProps, prevState) {
         if (shouldPolyfill) {
@@ -213,7 +214,7 @@ Object.assign(Dialog.prototype, {
                 this._removeEventListener(this.el, type, prevProps[prop]);
             }
         });
-    },
+    }
 
     componentWillUnmout() {
         EVENTS.forEach(type => {
@@ -235,8 +236,8 @@ Object.assign(Dialog.prototype, {
             delete this.container;
         }
 
-        Dialog.__super__.componentWillUnmout.apply(this, arguments);
-    },
+        super.componentWillUnmout(...arguments);
+    }
 
     _addEventListener(el, type, handler) {
         if (!shouldPolyfill || typeof handler !== "function") {
@@ -254,7 +255,7 @@ Object.assign(Dialog.prototype, {
         });
 
         el.addEventListener(type, handler[this.hidden_prop]);
-    },
+    }
 
     _removeEventListener(el, type, handler) {
         if (!shouldPolyfill || typeof handler !== "function" || !hasProp.call(handler, this.hidden_prop)) {
@@ -263,7 +264,7 @@ Object.assign(Dialog.prototype, {
 
         el.removeEventListener(type, handler[this.hidden_prop]);
         delete handler[this.hidden_prop];
-    },
+    }
 
     _dispatchEvent(currentTarget, evt) {
         const props = { ref: this, target: evt.target };
@@ -275,7 +276,7 @@ Object.assign(Dialog.prototype, {
         const Ctor = evt.constructor;
         const event = new Ctor(evt.type, props);
         currentTarget.dispatchEvent(event);
-    },
+    }
 
     _applyPolyfill(el) {
         const polyfill = dialogPolyfill.registerDialog(el);
@@ -402,7 +403,7 @@ Object.assign(Dialog.prototype, {
         //     el.style.top = `${ offsetTop + (windowHeight < dialogHeight ? 0 : windowHeight - dialogHeight) / 2 }px`;
         //     el.style.left = `${ offsetLeft }px`;
         // };
-    },
+    }
 
     showModal(options) {
         const el = this.el;
@@ -430,7 +431,7 @@ Object.assign(Dialog.prototype, {
         if (this.props.onOpen) {
             this.props.onOpen();
         }
-    },
+    }
 
     close(options) {
         const el = this.el;
@@ -445,13 +446,11 @@ Object.assign(Dialog.prototype, {
         } else {
             el.close();
         }
-    },
+    }
 
     render() {
         return shouldPolyfill ? <span /> : createDialog(this.props);
     }
-});
-
-Dialog.getBinding = binding => binding;
+}
 
 module.exports = Dialog;

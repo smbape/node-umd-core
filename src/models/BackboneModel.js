@@ -1,17 +1,14 @@
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
-import inherits from "../functions/inherits";
 import _isEqual from "../../lib/fast-deep-equal";
 
 const {hasOwnProperty: hasProp} = Object.prototype;
 
-function BackboneModel() {
-    BackboneModel.__super__.constructor.apply(this, arguments);
-    this._byId  = {};
-}
+class BackboneModel extends Backbone.Model {
+    constructor() {
+        super(...arguments);
+        this._byId  = {};
+    }
 
-inherits(BackboneModel, Backbone.Model);
-
-Object.assign(BackboneModel.prototype, {
     // Set a hash of model attributes on the object, firing `"change"`. This is
     // the core primitive operation of a model, updating the data and notifying
     // anyone who needs to know about the change in state. The heart of the beast.
@@ -135,7 +132,7 @@ Object.assign(BackboneModel.prototype, {
         this._pending = false;
         this._changing = false;
         return this;
-    },
+    }
 
     get(attr, defaultVal) {
         let val = this._getAttribute(attr);
@@ -144,11 +141,11 @@ Object.assign(BackboneModel.prototype, {
             this.set(attr, val);
         }
         return val;
-    },
+    }
 
     _getAttribute(attr) {
         return this.attributes[attr];
-    },
+    }
 
     _setAttribute(attr, val, isProperty, options) {
         const current = this.attributes;
@@ -156,7 +153,7 @@ Object.assign(BackboneModel.prototype, {
         if (isProperty && current[attr] instanceof Backbone.Model) {
             this._addReference(current[attr], options);
         }
-    },
+    }
 
     _removeAttribute(attr, isProperty, options) {
         const current = this.attributes;
@@ -164,7 +161,7 @@ Object.assign(BackboneModel.prototype, {
             this._removeReference(current[attr], options);
         }
         delete current[attr];
-    },
+    }
 
     // Internal method to create a model's ties to a parent model.
     _addReference(model, options) {
@@ -173,7 +170,7 @@ Object.assign(BackboneModel.prototype, {
         }
         model.on("all", this._onModelEvent, this);
         this._byId[model.cid] = model;
-    },
+    }
 
     // Internal method to sever a model's ties to a parent model.
     _removeReference(model, options) {
@@ -182,7 +179,7 @@ Object.assign(BackboneModel.prototype, {
         }
         model.off("all", this._onModelEvent, this);
         delete this._byId[model.cid];
-    },
+    }
 
     _onModelEvent(event, model, collection, options) {
         if (arguments.length === 3) {
@@ -203,6 +200,6 @@ Object.assign(BackboneModel.prototype, {
             this.trigger(event, model, this, options);
         }
     }
-});
+}
 
 module.exports = BackboneModel;

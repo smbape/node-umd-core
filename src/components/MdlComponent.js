@@ -1,7 +1,6 @@
 import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
 import componentHandler from "!componentHandler";
-import inherits from "../functions/inherits";
 import AbstractModelComponent from "./ModelComponent";
 
 const MDL_CLASSES = [
@@ -25,89 +24,90 @@ const MDL_CLASSES = [
 
 const MDL_CLASSES_REG = new RegExp(`(?:^|\\s)(?:${ MDL_CLASSES.join("|") })(?:\\s|$)`);
 
-function MdlComponent() {
-    this.handleChange = this.handleChange.bind(this);
-    return MdlComponent.__super__.constructor.apply(this, arguments);
+class MdlComponent extends AbstractModelComponent {
+    uid = `MdlComponent${ (String(Math.random())).replace(/\D/g, "") }`;
+
+    static MDL_CLASSES = MDL_CLASSES;
+    static MDL_CLASSES_REG = MDL_CLASSES_REG;
+
+    static getBinding(_binding, config) {
+        if (config.tagName === "input" && config.type === "checkbox") {
+            _binding.get = function(binding, evt) {
+                return $(evt.target).prop("checked");
+            };
+        } else {
+            _binding.get = function(binding, evt) {
+                return $(evt.target).val();
+            };
+        }
+        return _binding;
+    }
+
+    preinit() {
+        this.handleChange = this.handleChange.bind(this);
+    }
+
+    componentDidMount() {
+        super.componentDidMount(...arguments);
+        this.upgradeElements(this.el);
+    }
+
+    componentWillUnmount() {
+        this.downgradeElements(this.el);
+        super.componentWillUnmount(...arguments);
+    }
+
+    upgradeElements(el) {
+        if (el.hasAttribute("data-mdl-delegate-upgrade")) {
+            return;
+        }
+
+        if (el.getAttribute("data-upgraded") === null && MDL_CLASSES_REG.test(el.className)) {
+            componentHandler.upgradeElement(el);
+        }
+
+        const children = el.children;
+        const len = children ? children.length : 0;
+
+        for (let i = 0, child; i < len; i++) {
+            child = children[i];
+            this.upgradeElements(child);
+        }
+    }
+
+    downgradeElements(el) {
+        if (el.hasAttribute("data-mdl-delegate-upgrade")) {
+            return;
+        }
+
+        const children = el.children;
+        const len = children ? children.length : 0;
+
+        for (let i = 0, child; i < len; i++) {
+            child = children[i];
+            this.downgradeElements(child);
+        }
+
+        if (MDL_CLASSES_REG.test(el.className) && el.getAttribute("data-upgraded") !== null) {
+            componentHandler.downgradeElements([el]);
+        }
+    }
+
+    handleChange(evt) {
+        evt.ref = this;
+        const {onChange} = this.props;
+        if (typeof onChange === "function") {
+            onChange.apply(null, arguments);
+        }
+    }
+
+    render() {
+        const props = Object.assign({}, this.props);
+        props.onChange = this.handleChange;
+        const tagName = props.tagName || "span";
+        delete props.tagName;
+        return React.createElement(tagName, props);
+    }
 }
-
-inherits(MdlComponent, AbstractModelComponent);
-
-MdlComponent.prototype.componentDidMount = function() {
-    MdlComponent.__super__.componentDidMount.apply(this, arguments);
-    this.upgradeElements(this.el);
-};
-
-MdlComponent.prototype.componentWillUnmount = function() {
-    this.downgradeElements(this.el);
-    MdlComponent.__super__.componentWillUnmount.apply(this, arguments);
-};
-
-MdlComponent.prototype.upgradeElements = function(el) {
-    if (el.hasAttribute("data-mdl-delegate-upgrade")) {
-        return;
-    }
-
-    if (el.getAttribute("data-upgraded") === null && MDL_CLASSES_REG.test(el.className)) {
-        componentHandler.upgradeElement(el);
-    }
-
-    const children = el.children;
-    const len = children ? children.length : 0;
-
-    for (let i = 0, child; i < len; i++) {
-        child = children[i];
-        this.upgradeElements(child);
-    }
-};
-
-MdlComponent.prototype.downgradeElements = function(el) {
-    if (el.hasAttribute("data-mdl-delegate-upgrade")) {
-        return;
-    }
-
-    const children = el.children;
-    const len = children ? children.length : 0;
-
-    for (let i = 0, child; i < len; i++) {
-        child = children[i];
-        this.downgradeElements(child);
-    }
-
-    if (MDL_CLASSES_REG.test(el.className) && el.getAttribute("data-upgraded") !== null) {
-        componentHandler.downgradeElements([el]);
-    }
-};
-
-MdlComponent.prototype.handleChange = function(evt) {
-    evt.ref = this;
-    const {onChange} = this.props;
-    if (typeof onChange === "function") {
-        onChange.apply(null, arguments);
-    }
-};
-
-MdlComponent.prototype.render = function() {
-    const props = Object.assign({}, this.props);
-    props.onChange = this.handleChange;
-    const tagName = props.tagName || "span";
-    delete props.tagName;
-    return React.createElement(tagName, props);
-};
-
-MdlComponent.getBinding = function(_binding, config) {
-    if (config.tagName === "input" && config.type === "checkbox") {
-        _binding.get = function(binding, evt) {
-            return $(evt.target).prop("checked");
-        };
-    } else {
-        _binding.get = function(binding, evt) {
-            return $(evt.target).val();
-        };
-    }
-    return _binding;
-};
-
-MdlComponent.MDL_CLASSES = MDL_CLASSES;
-MdlComponent.MDL_CLASSES_REG = MDL_CLASSES_REG;
 
 module.exports = MdlComponent;

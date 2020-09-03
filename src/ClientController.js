@@ -1,4 +1,4 @@
-import inherits from "./functions/inherits";
+import alias from "./functions/alias";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 
 const hasProp = Object.prototype.hasOwnProperty;
@@ -9,13 +9,7 @@ const toCamelDash = str => {
     });
 };
 
-function ClientController() {
-    ClientController.__super__.constructor.apply(this, arguments);
-}
-
-inherits(ClientController, Backbone.Model);
-
-Object.assign(ClientController.prototype, {
+class ClientController extends Backbone.Model {
     getMethod(handlerOptions) {
         const {pathParams} = handlerOptions;
         const action = pathParams != null ? pathParams.action : null;
@@ -25,14 +19,14 @@ Object.assign(ClientController.prototype, {
         }
 
         return null;
-    },
+    }
 
     getUrl(params, options) {
         if (!(options != null ? options.reset : undefined)) {
             params = Object.assign({}, this.get("pathParams"), params);
         }
         return this.get("engine").getUrl(params, options);
-    },
+    }
 
     render(View, options, done) {
         switch (arguments.length) {
@@ -91,7 +85,7 @@ Object.assign(ClientController.prototype, {
 
             done(err, view);
         }
-    },
+    }
 
     navigate(url, options) {
         if (url != null && typeof url === "object") {
@@ -100,11 +94,11 @@ Object.assign(ClientController.prototype, {
         this.get("router").navigate(url, Object.assign({
             trigger: true
         }, options));
-    },
+    }
 
     clearContainer(container) {
         this.get("router").clearContainer(container);
-    },
+    }
 
     destroy() {
         if (this.view) {
@@ -117,9 +111,8 @@ Object.assign(ClientController.prototype, {
             }
         }
     }
+}
 
-});
-
-ClientController.prototype.emit = ClientController.prototype.trigger;
+ClientController.prototype.emit = alias("trigger");
 
 module.exports = ClientController;

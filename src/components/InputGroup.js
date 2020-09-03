@@ -1,4 +1,3 @@
-import inherits from "../functions/inherits";
 import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
 import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
 import React from "%{ amd: 'react', common: '!React' }";
@@ -125,24 +124,17 @@ const CHECKBOX_CONFIG = {
     }
 };
 
-function InputGroup() {
-    this.handleChange = this.handleChange.bind(this);
-    InputGroup.__super__.constructor.apply(this, arguments);
-}
+class InputGroup extends AbstractModelComponent {
+    uid = `InputGroup${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(InputGroup, AbstractModelComponent);
-
-Object.assign(InputGroup.prototype, {
-    uid: `InputGroup${ (String(Math.random())).replace(/\D/g, "") }`,
-    configs: {
+    static configs = {
         trisate: TRISTATE_CONFIG,
         radio: RADIO_CONFIG,
         checkbox: CHECKBOX_CONFIG
-    },
+    };
 
-    initialize() {
-        const props = this.props;
-        const name = props.name || uniqueId(`${ this.uid }_`);
+    static getDerivedStateFromProps(props, state) {
+        const name = props.name || uniqueId(`${ this.prototype.uid }_`);
 
         let type;
         if (props.type === "radio" || props.type === "tristate" || props.type === "checkbox") {
@@ -151,29 +143,32 @@ Object.assign(InputGroup.prototype, {
             type = "checkbox";
         }
 
-        this.setValue = this.configs[type].setValue(name);
-        this.state = {
+        return {
             name,
-            type
+            type,
+            setValue: this.configs[type].setValue(name)
         };
-    },
+    }
 
-    componentWillUpdate(nextProps, nextState) {
-        InputGroup.__super__.componentWillUpdate.apply(this, arguments);
-        if (this.props.name !== nextProps.name) {
-            nextState.name = nextProps.name || this.state.name;
-        }
-    },
+    static getBinding(binding, config) {
+        const bconf = this.configs[config.type];
+        binding.get = bconf.get;
+        return binding;
+    }
+
+    preinit(props) {
+        this.handleChange = this.handleChange.bind(this);
+    }
 
     componentDidMount() {
-        InputGroup.__super__.componentDidMount.apply(this, arguments);
-        this.setValue(this.props.value);
-    },
+        super.componentDidMount(...arguments);
+        this.state.setValue(this.props.value);
+    }
 
     componentDidUpdate(prevProps, prevState) {
-        InputGroup.__super__.componentDidUpdate.apply(this, arguments);
-        this.setValue(this.props.value);
-    },
+        super.componentDidUpdate(...arguments);
+        this.state.setValue(this.props.value);
+    }
 
     handleChange(evt) {
         evt.ref = this;
@@ -181,7 +176,7 @@ Object.assign(InputGroup.prototype, {
         if (typeof onChange === "function") {
             onChange.apply(null, arguments);
         }
-    },
+    }
 
     render() {
         const props = Object.assign({}, this.props);
@@ -193,13 +188,6 @@ Object.assign(InputGroup.prototype, {
 
         return React.createElement("div", props);
     }
-
-});
-
-InputGroup.getBinding = function(binding, config) {
-    const bconf = this.prototype.configs[config.type];
-    binding.get = bconf.get;
-    return binding;
-};
+}
 
 module.exports = InputGroup;

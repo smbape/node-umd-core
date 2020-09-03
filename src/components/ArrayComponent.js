@@ -1,4 +1,3 @@
-import inherits from "../functions/inherits";
 import React from "%{ amd: 'react', common: '!React' }";
 import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
 import AbstractModelComponent from "./AbstractModelComponent";
@@ -19,14 +18,20 @@ const byAttribute = function(attr, reverse) {
     return compareAttr.bind(null, attr, reverse ? -1 : 1);
 };
 
-function ArrayComponent() {
-    this.handleChange = this.handleChange.bind(this);
-    ArrayComponent.__super__.constructor.apply(this, arguments);
-}
+class ArrayComponent extends AbstractModelComponent {
+    uid = `ArrayComponent${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(ArrayComponent, AbstractModelComponent);
+    static getBinding(_binding) {
+        _binding.get = binding => {
+            return binding._ref instanceof ArrayComponent ? binding._ref.el : undefined;
+        };
+        return _binding;
+    }
 
-Object.assign(ArrayComponent.prototype, {
+    preinit() {
+        this.handleChange = this.handleChange.bind(this);
+    }
+
     getFilter(query) {
         const type = typeof query;
 
@@ -70,7 +75,7 @@ Object.assign(ArrayComponent.prototype, {
         }
 
         return null;
-    },
+    }
 
     getComparator(comparator, reverse) {
         switch (typeof comparator) {
@@ -81,18 +86,28 @@ Object.assign(ArrayComponent.prototype, {
             default:
                 return null;
         }
-    },
+    }
 
-    componentWillUpdate(nextProps, nextState) {
+    getSnapshotBeforeUpdate = null;
+
+    componentDidUpdate(prevProps, prevState) {
+        this.shouldUpdate = false;
+        this.shouldUpdateEvent = false;
+        this._updating = false;
+        this.prevProps = Object.assign({}, this.props);
+        this.prevState = Object.assign({}, this.state);
+    }
+
+    _updateNodeList(nextProps, nextState, prevProps, prevState) {
         const {
-            collection,
-            filter,
-            order,
-            reverse,
-            limit,
-            offset,
-            childNode
-        } = this._initState(this.props, this.state);
+            collection: prevCollection,
+            filter: prevFilter,
+            order: prevOrder,
+            reverse: prevReverse,
+            limit: prevLimit,
+            offset: prevOffset,
+            childNode: prevChildNode
+        } = this._getConfig(prevProps, prevState);
 
         const {
             collection: nextCollection,
@@ -102,28 +117,25 @@ Object.assign(ArrayComponent.prototype, {
             limit: nextLimit,
             offset: nextOffset,
             childNode: nextChildNode
-        } = this._initState(nextProps, nextState);
+        } = this._getConfig(nextProps, nextState);
 
-        if (collection !== nextCollection) {
+        if (prevCollection !== nextCollection) {
             delete this._childNodeList;
-        } else if (filter !== nextFilter && this.getFilter(filter) !== this.getFilter(nextFilter)) {
+        } else if (prevFilter !== nextFilter && this.getFilter(prevFilter) !== this.getFilter(nextFilter)) {
             delete this._childNodeList;
-        } else if (order !== nextOrder && this.getComparator(order, reverse) !== this.getComparator(nextOrder, nextReverse)) {
+        } else if (prevOrder !== nextOrder && this.getComparator(prevOrder, prevReverse) !== this.getComparator(nextOrder, nextReverse)) {
             const ordered = this._setOrderedArray(this._filtered, nextOrder, nextReverse);
             this._setNodeList(ordered, nextLimit, nextOffset, nextChildNode);
-        } else if (reverse !== nextReverse) {
+        } else if (prevReverse !== nextReverse) {
             const ordered = this._ordered.reverse();
             this._ordered = ordered;
             this._setNodeList(ordered, nextLimit, nextOffset, nextChildNode);
-        } else if (limit !== nextLimit || offset !== nextOffset || childNode !== nextChildNode) {
+        } else if (prevLimit !== nextLimit || prevOffset !== nextOffset || prevChildNode !== nextChildNode) {
             this._setNodeList(this._ordered, nextLimit, nextOffset, nextChildNode);
         }
+    }
 
-        this.shouldUpdate = false;
-        this.shouldUpdateEvent = false;
-    },
-
-    _initState(props, state) {
+    _getConfig(props, state) {
         const {
             collection,
             filter,
@@ -132,7 +144,7 @@ Object.assign(ArrayComponent.prototype, {
             limit,
             offset,
             childNode
-        } = props;
+        } = props || {};
 
         return {
             collection,
@@ -143,7 +155,7 @@ Object.assign(ArrayComponent.prototype, {
             offset,
             childNode
         };
-    },
+    }
 
     _setOrderedArray(filtered, order, reverse) {
         const comparator = this.getComparator(order, reverse);
@@ -154,7 +166,7 @@ Object.assign(ArrayComponent.prototype, {
         }
 
         return this._ordered;
-    },
+    }
 
     _setNodeList(ordered, limit, start, childNode) {
         const len = ordered.length;
@@ -182,16 +194,16 @@ Object.assign(ArrayComponent.prototype, {
         }
 
         return list;
-    },
+    }
 
-    childNodeList() {
+    _getChildNodeList() {
         if (this._childNodeList) {
             return this._childNodeList;
         }
 
         this._childNodeList = [];
 
-        const {collection, filter, order, reverse, limit, offset, childNode} = this._initState(this.props, this.state);
+        const {collection, filter, order, reverse, limit, offset, childNode} = this._getConfig(this.props, this.state);
 
         if (!collection) {
             return this._childNodeList;
@@ -200,7 +212,7 @@ Object.assign(ArrayComponent.prototype, {
         this._filtered = _filter(collection, this.getFilter(filter));
         const ordered = this._setOrderedArray(this._filtered, order, reverse);
         return this._setNodeList(ordered, limit, offset, childNode);
-    },
+    }
 
     _getProps() {
         const props = Object.assign({}, this.props);
@@ -210,7 +222,7 @@ Object.assign(ArrayComponent.prototype, {
         });
 
         return props;
-    },
+    }
 
     handleChange(evt) {
         evt.ref = this;
@@ -218,16 +230,18 @@ Object.assign(ArrayComponent.prototype, {
         if (typeof onChange === "function") {
             onChange.apply(null, arguments);
         }
-    },
+    }
 
     render() {
+        this._updateNodeList(this.props, this.state, this.prevProps, this.prevState);
+
         const props = this._getProps();
         props.onChange = this.handleChange;
         const children = props.children;
 
         delete props.children;
 
-        const childNodeList = this.childNodeList();
+        const childNodeList = this._getChildNodeList();
         const tagName = props.tagName || "div";
 
         delete props.tagName;
@@ -246,19 +260,6 @@ Object.assign(ArrayComponent.prototype, {
 
         return React.createElement(...args);
     }
-
-});
-
-ArrayComponent.getBinding = function(_binding) {
-    _binding.get = function(binding) {
-        if (binding._ref instanceof ArrayComponent) {
-            return binding._ref.el;
-        }
-
-        return undefined;
-    };
-
-    return _binding;
-};
+}
 
 module.exports = ArrayComponent;

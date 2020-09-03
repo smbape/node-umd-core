@@ -1,5 +1,3 @@
-const hasProp = Object.prototype.hasOwnProperty;
-
 const inherits = (Child, Parent) => {
     Object.defineProperties(Child, {
         super_: {

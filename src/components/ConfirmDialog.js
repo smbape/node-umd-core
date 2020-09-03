@@ -1,4 +1,3 @@
-import inherits from "../functions/inherits";
 import i18n from "%{amd: 'i18next', common: 'i18next', brunch: '!i18next'}";
 import React from "%{ amd: 'react', common: '!React' }";
 import AbstractModelComponent from "./AbstractModelComponent";
@@ -8,15 +7,13 @@ const btnRaisedRipple = "mdl-button mdl-js-button mdl-button--raised mdl-js-ripp
 const btnAccent = `${ btnRaisedRipple } mdl-button--accent`;
 const btnCancel = `${ btnRaisedRipple } mdl-button--colored`;
 
-function ConfirmDialog() {
-    this.confirm = this.confirm.bind(this);
-    this.close = this.close.bind(this);
-    ConfirmDialog.__super__.constructor.apply(this, arguments);
-}
+class ConfirmDialog extends AbstractModelComponent {
+    uid = `ConfirmDialog${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(ConfirmDialog, AbstractModelComponent);
-
-Object.assign(ConfirmDialog.prototype, {
+    preinit() {
+        this.confirm = this.confirm.bind(this);
+        this.close = this.close.bind(this);
+    }
 
     showModal(content, opts) {
         const {close, confirm, from: _from} = opts;
@@ -40,7 +37,7 @@ Object.assign(ConfirmDialog.prototype, {
         this.getRef("dialog").showModal({
             from: _from
         });
-    },
+    }
 
     close() {
         this.getRef("dialog").close();
@@ -50,7 +47,7 @@ Object.assign(ConfirmDialog.prototype, {
         if (typeof cb === "function") {
             cb();
         }
-    },
+    }
 
     confirm() {
         const cb = this.inline.get("confirm");
@@ -59,7 +56,7 @@ Object.assign(ConfirmDialog.prototype, {
         }
         this.getRef("dialog").close();
         this.inline.clear();
-    },
+    }
 
     render() {
         let {title, content} = this.inline.attributes;
@@ -89,7 +86,6 @@ Object.assign(ConfirmDialog.prototype, {
             </div>
         </Dialog>);
     }
-
-});
+}
 
 module.exports = ConfirmDialog;

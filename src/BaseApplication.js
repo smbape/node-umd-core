@@ -2,8 +2,8 @@
 
 import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
-import inherits from "./functions/inherits";
 import eachOfLimit from "./functions/eachOfLimit";
+import alias from "./functions/alias";
 import "./extensions";
 
 const PATH_SPLIT_REG = /^([^?#]*)(\?[^#]*)?(#.*)?$/;
@@ -11,26 +11,21 @@ const PATH_SPLIT_REG = /^([^?#]*)(\?[^#]*)?(#.*)?$/;
 // '#url?query!anchor'
 const HASH_SPLIT_REG = /^([^?!]*)(\?[^!]*)?(!.*)?$/;
 
-function BaseApplication() {
-    this.tasks = [];
-    BaseApplication.__super__.constructor.apply(this, arguments);
-}
-
-inherits(BaseApplication, Backbone.Model);
-
-Object.assign(BaseApplication.prototype, {
+class BaseApplication extends Backbone.Model {
     take() {
         if (this.$$busy) {
             throw new Error("application is busy");
         }
         this.$$busy = true;
-    },
+    }
 
     give() {
         this.$$busy = false;
-    },
+    }
 
     initialize() {
+        this.tasks = [];
+
         this.addInitializer(options => {
             if (options.baseUrl) {
                 this.set("baseUrl", options.baseUrl);
@@ -72,7 +67,59 @@ Object.assign(BaseApplication.prototype, {
         this.addInitializer(this.initRouter);
         this.once("start", this._initHistory, this);
         this.init();
-    },
+    }
+
+    // eslint-disable-next-line no-empty-function
+    init() {}
+
+    start(config, done) {
+        this.config = config;
+
+        eachOfLimit(this.tasks, 1, (task, i, next) => {
+            if (task.length < 2) {
+                task.call(this, config);
+                next();
+            } else {
+                task.call(this, config, next);
+            }
+        }, err => {
+            if (!this.router) {
+                throw new Error("a router must be defined");
+            }
+
+            this.emit("start", config);
+            if ("function" === typeof done) {
+                done();
+            }
+        });
+    }
+
+    addInitializer(fn) {
+        if ("function" === typeof fn) {
+            if (fn.length > 2) {
+                throw new Error("Initializer function must be a function waiting for 2 arguments a most");
+            }
+
+            this.tasks.push(fn);
+        }
+    }
+
+    initRouter(options) {
+        throw new Error("a router must be defined");
+    }
+
+    setLocationHash(hash) {
+        const type = typeof hash;
+
+        if ("undefined" === type) {
+            hash = this.getLocation().hash;
+        } else if ("string" !== type) {
+            return false;
+        }
+
+        this._setLocationHash(hash);
+        return true;
+    }
 
     _initHistory(options) {
         let location = this._getHashLocation();
@@ -133,59 +180,7 @@ Object.assign(BaseApplication.prototype, {
         }
 
         Backbone.history.loadUrl(location.pathname + location.search);
-    },
-
-    // eslint-disable-next-line no-empty-function
-    init() {},
-
-    start(config, done) {
-        this.config = config;
-
-        eachOfLimit(this.tasks, 1, (task, i, next) => {
-            if (task.length < 2) {
-                task.call(this, config);
-                next();
-            } else {
-                task.call(this, config, next);
-            }
-        }, err => {
-            if (!this.router) {
-                throw new Error("a router must be defined");
-            }
-
-            this.emit("start", config);
-            if ("function" === typeof done) {
-                done();
-            }
-        });
-    },
-
-    addInitializer(fn) {
-        if ("function" === typeof fn) {
-            if (fn.length > 2) {
-                throw new Error("Initializer function must be a function waiting for 2 arguments a most");
-            }
-
-            this.tasks.push(fn);
-        }
-    },
-
-    initRouter(options) {
-        throw new Error("a router must be defined");
-    },
-
-    setLocationHash(hash) {
-        const type = typeof hash;
-
-        if ("undefined" === type) {
-            hash = this.getLocation().hash;
-        } else if ("string" !== type) {
-            return false;
-        }
-
-        this._setLocationHash(hash);
-        return true;
-    },
+    }
 
     _getPathLocation(url) {
         if (!url) {
@@ -210,7 +205,7 @@ Object.assign(BaseApplication.prototype, {
             search: "",
             hash: ""
         };
-    },
+    }
 
     _getHashLocation(url) {
         if (!url) {
@@ -232,7 +227,7 @@ Object.assign(BaseApplication.prototype, {
             search: split[2] || "",
             hash: split[3] || ""
         };
-    },
+    }
 
     _setNativeLocationHash(hash) {
         const location = window.location;
@@ -259,11 +254,11 @@ Object.assign(BaseApplication.prototype, {
         } else {
             window.location.hash = windowHash;
         }
-    },
+    }
 
     _getWindowNativeHash(hash) {
         return hash ? `#${ hash.slice(1) }` : window.location.hash;
-    },
+    }
 
     _setBangLocationHash(hash) {
         const windowHash = this._getWindowBangHash(hash);
@@ -281,7 +276,7 @@ Object.assign(BaseApplication.prototype, {
                 element.scrollIntoView();
             }
         }
-    },
+    }
 
     _getWindowBangHash(hash) {
         const location = this._getHashLocation();
@@ -294,7 +289,7 @@ Object.assign(BaseApplication.prototype, {
         location.hash = `!${ hash }`;
 
         return `#${ location.pathname }${ location.search }${ location.hash }`;
-    },
+    }
 
     _listenHrefClick(options) {
         const app = this;
@@ -381,8 +376,8 @@ Object.assign(BaseApplication.prototype, {
             }, evt);
         });
     }
-});
+}
 
-BaseApplication.prototype.emit = BaseApplication.prototype.trigger;
+BaseApplication.prototype.emit = alias("trigger");
 
 module.exports = BaseApplication;

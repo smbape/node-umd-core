@@ -1,4 +1,3 @@
-import inherits from "../functions/inherits";
 import mergeFunctions from "../functions/mergeFunctions";
 import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
 import React from "%{ amd: 'react', common: '!React' }";
@@ -6,32 +5,30 @@ import AbstractModelComponent from "./AbstractModelComponent";
 
 const {escape: _escape} = _;
 
-function AutogrowTextarea() {
-    this._updateHeight = this._updateHeight.bind(this);
-    AutogrowTextarea.__super__.constructor.apply(this, arguments);
-}
+class AutogrowTextarea extends AbstractModelComponent {
+    uid = `AutogrowTextarea${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(AutogrowTextarea, AbstractModelComponent);
-
-Object.assign(AutogrowTextarea.prototype, {
+    preinit() {
+        this._updateHeight = this._updateHeight.bind(this);
+    }
 
     getInput() {
         return this.getRef("input");
-    },
+    }
 
     _updateHeight() {
         this.refs.textareaSize.innerHTML = `${ _escape(this.getRef("input").value) }\n`;
-    },
+    }
 
     componentDidMount() {
-        AutogrowTextarea.__super__.componentDidMount.apply(this, arguments);
+        super.componentDidMount(...arguments);
         this._updateHeight();
-    },
+    }
 
     componentDidUpdate(prevProps, prevState) {
-        AutogrowTextarea.__super__.componentDidUpdate.call(this, prevProps, prevState);
+        super.componentDidUpdate(prevProps, prevState);
         this._updateHeight();
-    },
+    }
 
     render() {
         let onInput;
@@ -51,7 +48,7 @@ Object.assign(AutogrowTextarea.prototype, {
               { React.createElement("textarea", props) }
               <div ref="textareaSize" className="textarea-size" />
           </div>);
-    },
-});
+    }
+}
 
 module.exports = AutogrowTextarea;

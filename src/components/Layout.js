@@ -2,7 +2,6 @@ import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import ReactDOM from "%{ amd: 'react-dom', brunch: '!ReactDOM', common: 'react-dom' }";
 import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
 import AbstractModelComponent from "./AbstractModelComponent";
-import inherits from "../functions/inherits";
 import throttle from "../functions/throttle";
 import supportOnPassive from "../functions/supportOnPassive";
 
@@ -230,18 +229,15 @@ const captureOptions = isPassiveEventListenerSupported() ? {
     passive: true,
 } : true;
 
-function Layout() {
-    this._updateWidth = this._updateWidth.bind(this);
-    this.onTouchEnd = this.onTouchEnd.bind(this);
-    this.onTouchMove = this.onTouchMove.bind(this);
-    this.onTouchStart = this.onTouchStart.bind(this);
-    Layout.__super__.constructor.apply(this, arguments);
-}
+class Layout extends AbstractModelComponent {
+    uid = `Layout${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(Layout, AbstractModelComponent);
-
-Object.assign(Layout.prototype, {
-    uid: `Layout${ (String(Math.random())).replace(/\D/g, "") }`,
+    preinit() {
+        this._updateWidth = this._updateWidth.bind(this);
+        this.onTouchEnd = this.onTouchEnd.bind(this);
+        this.onTouchMove = this.onTouchMove.bind(this);
+        this.onTouchStart = this.onTouchStart.bind(this);
+    }
 
     componentDidMount() {
         this._updateWidth();
@@ -249,8 +245,8 @@ Object.assign(Layout.prototype, {
         this._updateWidth = throttle(this._updateWidth, count * 4, {
             leading: false
         });
-        Layout.__super__.componentDidMount.apply(this, arguments);
-    },
+        super.componentDidMount(...arguments);
+    }
 
     attachEvents() {
         window.addEventListener("resize", this._updateWidth, captureOptions);
@@ -259,7 +255,7 @@ Object.assign(Layout.prototype, {
             this.$el.on(START_EV, "> .layout__left, > .layout__right", this.onTouchStart);
             restore();
         }
-    },
+    }
 
     detachEvents() {
         if (this.$el) {
@@ -275,7 +271,7 @@ Object.assign(Layout.prototype, {
         }
 
         window.removeEventListener("resize", this._updateWidth, captureOptions);
-    },
+    }
 
     _getCurrentTarget(evt) {
         const data = evt.originalEvent || evt;
@@ -286,7 +282,7 @@ Object.assign(Layout.prototype, {
 
         data.targetPanelHandled = true;
         return $(evt.currentTarget);
-    },
+    }
 
     getPosition(evt) {
         const touches = evt.touches;
@@ -302,7 +298,7 @@ Object.assign(Layout.prototype, {
             x: evt.clientX,
             y: evt.clientY
         };
-    },
+    }
 
     onTouchStart(evt) {
         if (this._moveState) {
@@ -357,7 +353,7 @@ Object.assign(Layout.prototype, {
             $target.off(END_EV, this.onTouchEnd);
             $target = null;
         };
-    },
+    }
 
     onTouchMove(evt) {
         if (!this._moveState || !this._moveState.regex.test(evt.type)) {
@@ -406,7 +402,7 @@ Object.assign(Layout.prototype, {
 
             target.style[transformJSPropertyName] = tx;
         }
-    },
+    }
 
     onTouchEnd(evt, fromMove) {
         if (!this._moveState || (!fromMove && !this._moveState.regex.test(evt.type))) {
@@ -442,7 +438,7 @@ Object.assign(Layout.prototype, {
         this._moveState.target = null;
         this._moveState.scrollContainer = null;
         this._moveState = null;
-    },
+    }
 
     _updateWidth() {
         let el, $el;
@@ -481,7 +477,7 @@ Object.assign(Layout.prototype, {
         } else {
             closeRightPanel($el);
         }
-    },
+    }
 
     getProps() {
         const props = Object.assign({}, this.props);
@@ -573,12 +569,12 @@ Object.assign(Layout.prototype, {
         _children.push(..._remaining);
         props.className = _className.join(" ");
         return props;
-    },
+    }
 
     render() {
         return React.createElement("div", this.getProps());
     }
-});
+}
 
 Object.assign(Layout, {
     openLeftPanel,

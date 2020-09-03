@@ -1,6 +1,5 @@
-import inherits from "../functions/inherits";
 import $ from "%{amd: 'jquery', common: 'jquery', brunch: '!jQuery'}";
-import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
+import {uniqueId} from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
 import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import React from "%{ amd: 'react', common: '!React' }";
 import ReactDOM from "%{ amd: 'react-dom', common: '!ReactDOM' }";
@@ -10,20 +9,19 @@ const randomString = () => Math.random().toString(36).slice(2);
 const hasProp = Object.prototype.hasOwnProperty;
 const expando = React.expando || (React.expando = randomString());
 
-function ModelComponent() {
-    this.destroy = this.destroy.bind(this);
-    ModelComponent.__super__.constructor.apply(this, arguments);
-    this.id = _.uniqueId(`${ this.constructor.name || "ModelComponent" }_`);
-    this.inline = new Backbone.Model();
-    this._refs = {};
-    this._reffn = {};
-    this.initialize();
-}
+class ModelComponent extends React.Component {
+    uid = `ModelComponent${ randomString() }`;
 
-inherits(ModelComponent, React.Component);
-
-Object.assign(ModelComponent.prototype, {
-    uid: `ModelComponent${ randomString() }`,
+    constructor(props) {
+        super(...arguments);
+        this.destroy = this.destroy.bind(this);
+        this.id = uniqueId(`${ this.constructor.name || "ModelComponent" }_`);
+        this.inline = new Backbone.Model();
+        this._refs = {};
+        this._reffn = {};
+        this.preinit(props);
+        this.initialize(props);
+    }
 
     setRef(name) {
         if ("string" !== typeof name || name.length === 0) {
@@ -41,60 +39,66 @@ Object.assign(ModelComponent.prototype, {
         };
 
         return this._reffn[name];
-    },
+    }
 
     getRef(name) {
         if (hasProp.call(this._refs, name)) {
             return this._refs[name];
         }
         return this.refs[name];
-    },
+    }
 
-    // eslint-disable-next-line no-empty-function
-    initialize() {},
+    preinit(props) {
+        // No default behaviour
+    }
 
-    // eslint-disable-next-line no-empty-function
-    componentWillMount() {},
+    initialize(props) {
+        // No default behaviour
+    }
 
     componentDidMount() {
         this.el = ReactDOM.findDOMNode(this);
         this.$el = $(this.el);
         this.attachEvents.apply(this, this.getEventArgs());
-    },
-
-    // eslint-disable-next-line no-empty-function
-    componentWillReceiveProps(nextProps) {},
+    }
 
     shouldComponentUpdate(nextProps, nextState) {
         this.shouldUpdate = this.shouldUpdate || !isEqual(this.state, nextState) || !isEqual(this.props, nextProps);
         this.shouldUpdateEvent = this.shouldUpdateEvent || this.shouldComponentUpdateEvent(nextProps, nextState);
         return this.shouldUpdate || this.shouldUpdateEvent;
-    },
+    }
 
     shouldComponentUpdateEvent(nextProps, nextState) {
-        const nextEventArgs = this[typeof this.getNewEventArgs === "function" ? "getNewEventArgs" : "getEventArgs"](nextProps, nextState);
-        const prevEventArgs = this.getEventArgs();
+        const method = typeof this.getNewEventArgs === "function" ? "getNewEventArgs" : "getEventArgs";
+        const nextEventArgs = this[method](nextProps, nextState);
+        const prevEventArgs = this.getEventArgs(this.props, this.state);
         return !isEqual(nextEventArgs, prevEventArgs);
-    },
+    }
 
-    componentWillUpdate(nextProps, nextState) {
+    getSnapshotBeforeUpdate(prevProps, prevState) {
         if (this.shouldUpdateEvent) {
-            const prevEventArgs = this.getEventArgs();
+            const {props: nextProps, state: nextState} = this;
+            const prevEventArgs = this.getEventArgs(prevProps, prevState);
             prevEventArgs.push(nextProps, nextState);
             this.detachEvents(...prevEventArgs);
+        }
 
-            const nextEventArgs = this[typeof this.getNewEventArgs === "function" ? "getNewEventArgs" : "getEventArgs"](nextProps, nextState);
+        return null;
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        if (this.shouldUpdateEvent) {
+            const {props: nextProps, state: nextState} = this;
+            const method = typeof this.getNewEventArgs === "function" ? "getNewEventArgs" : "getEventArgs";
+            const nextEventArgs = this[method](nextProps, nextState);
             nextEventArgs.push(nextProps, nextState);
             this.attachEvents(...nextEventArgs);
         }
 
         this.shouldUpdate = false;
         this.shouldUpdateEvent = false;
-    },
-
-    componentDidUpdate(prevProps, prevState) {
         this._updating = false;
-    },
+    }
 
     componentWillUnmount() {
         if (this._bindings) {
@@ -126,7 +130,7 @@ Object.assign(ModelComponent.prototype, {
         // destroy should occur at the end of render cycle
         // a method componentDidUnmount will be welcomed
         setTimeout(this.destroy, 0);
-    },
+    }
 
     destroy() {
         for (const prop in this) {
@@ -134,7 +138,7 @@ Object.assign(ModelComponent.prototype, {
                 continue;
             }
 
-            if (prop === expando || prop === "id" || prop === "props" || prop === "refs" || prop === "_reactInternalInstance") {
+            if (prop === expando || prop === "id" || prop === "props" || prop === "refs" || prop === "_reactInternalInstance" || prop === "_reactInternalFiber") {
                 continue;
             }
 
@@ -142,20 +146,23 @@ Object.assign(ModelComponent.prototype, {
         }
 
         this.destroyed = true;
-    },
+    }
 
     getDOMNode() {
         return this.el;
-    },
+    }
 
-    // eslint-disable-next-line no-empty-function
-    getEventArgs() {},
+    getEventArgs() {
+        // No default behaviour
+    }
 
-    // eslint-disable-next-line no-empty-function
-    attachEvents() {},
+    attachEvents() {
+        // No default behaviour
+    }
 
-    // eslint-disable-next-line no-empty-function
-    detachEvents() {},
+    detachEvents() {
+        // No default behaviour
+    }
 
     onModelChange() {
         const options = arguments[arguments.length - 1];
@@ -166,7 +173,7 @@ Object.assign(ModelComponent.prototype, {
         }
 
         this._updateOwner();
-    },
+    }
 
     _updateView() {
         if (this._updating) {
@@ -181,7 +188,7 @@ Object.assign(ModelComponent.prototype, {
             state[this.uid] = randomString();
             this.setState(state);
         }
-    },
+    }
 
     _updateOwner() {
         this.shouldUpdate = true;
@@ -189,14 +196,14 @@ Object.assign(ModelComponent.prototype, {
             const state = {};
             state[this.uid] = randomString();
 
-            const owner = this._reactInternalInstance._currentElement._owner;
-            if (owner && owner._instance) {
+            const owner = this._reactInternalInstance ? this._reactInternalInstance._currentElement._owner : {_instance: this._reactInternalFiber.nextEffect.stateNode};
+            if (owner && owner._instance instanceof React.Component) {
                 owner._instance.setState(state);
             } else {
                 this.setState(state);
             }
         }
-    },
+    }
 
     getFilter(query, isValue) {
         if (!isValue) {
@@ -238,7 +245,7 @@ Object.assign(ModelComponent.prototype, {
         }
 
         return null;
-    },
+    }
 
     addClass(props, toAdd) {
         const classList = props.className ? props.className.trim().split(/\s+/g) : [];
@@ -259,7 +266,7 @@ Object.assign(ModelComponent.prototype, {
         if (hasChanged) {
             props.className = classList.join(" ");
         }
-    },
+    }
 
     removeClass(props, toRemove) {
         const classList = props.className ? props.className.trim().split(/\s+/g) : [];
@@ -284,7 +291,6 @@ Object.assign(ModelComponent.prototype, {
             props.className = classList.join(" ");
         }
     }
-
-});
+}
 
 module.exports = ModelComponent;

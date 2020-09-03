@@ -1,5 +1,4 @@
 import $ from "%{amd: 'jquery', brunch: '!jQuery', common: 'jquery'}";
-import inherits from "./functions/inherits";
 import { discard } from "./util/DOMUtil";
 import supportOnPassive from "./functions/supportOnPassive";
 
@@ -205,18 +204,11 @@ if (!requestAnimationFrame) {
         return HANDLED_EVENT.test(type);
     };
 
-    function DelegatedMaterialRipple() {
-        DelegatedMaterialRipple.__super__.constructor.apply(this, arguments);
-    }
-
-    inherits(DelegatedMaterialRipple, MaterialRipple);
-
-    Object.assign(DelegatedMaterialRipple.prototype, {
-
+    class DelegatedMaterialRipple extends MaterialRipple {
         init() {
-            DelegatedMaterialRipple.__super__.init.apply(this, arguments);
+            super.init(...arguments);
             delete this.animFrameHandler;
-        },
+        }
 
         animFrameHandler() {
             if (this.destroyed) {
@@ -228,7 +220,7 @@ if (!requestAnimationFrame) {
             } else {
                 this.setRippleStyles(false);
             }
-        },
+        }
 
         upHandler_(evt) {
             if (!shouldHandleEvent(evt)) {
@@ -254,16 +246,15 @@ if (!requestAnimationFrame) {
                     this.destroyed = true;
                 }, 0);
             }
-        },
+        }
 
         downHandler_(evt) {
             if (!shouldHandleEvent(evt)) {
                 return;
             }
-            DelegatedMaterialRipple.__super__.downHandler_.apply(this, arguments);
+            super.downHandler_(...arguments);
         }
-
-    });
+    }
 
     const rippleEvents = "mousedown touchstart mouseup mouseleave touchend blur";
     const restore = supportOnPassive($, rippleEvents);

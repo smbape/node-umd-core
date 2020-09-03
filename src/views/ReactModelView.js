@@ -1,10 +1,7 @@
-/* eslint no-shadow: ["error", { "allow": ["Element"] }] */
-
 import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import ReactDOM from "%{ amd: 'react-dom', brunch: '!ReactDOM', common: 'react-dom' }";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
 import AbstractModelComponent from "../components/AbstractModelComponent";
-import inherits from "../functions/inherits";
 
 const {hasOwnProperty: hasProp} = Object.prototype;
 
@@ -16,18 +13,66 @@ const emptyObject = obj => {
     }
 };
 
-function ReactModelView(props) {
-    ReactModelView.__super__.constructor.apply(this, arguments);
-    this._options = Object.assign({}, props);
-    if (this.props.mediator) {
-        this.props.mediator.trigger("instance", this);
+class ReactElement {
+    constructor(Component, props) {
+        const mediator = Object.assign({}, Backbone.Events);
+        this.props = Object.assign({
+            mediator
+        }, props);
+
+        const {container} = this.props;
+        if (!container) {
+            throw new Error("container must be defined");
+        }
+
+        this._element = React.createElement(Component, this.props);
+    }
+
+    render(done) {
+        const rel = this;
+        const {container, mediator} = this.props;
+        if (typeof done === "function") {
+            mediator.once("mount", () => {
+                setTimeout(() => {
+                    done(null, rel);
+                }, 0);
+            });
+        }
+
+        mediator.once("instance", component => {
+            rel._component = component;
+        });
+
+        mediator.once("destroy", () => {
+            mediator.off("mount");
+            emptyObject(rel);
+            emptyObject(mediator);
+        });
+
+        ReactDOM.render(rel._element, container);
+    }
+
+    destroy() {
+        if (this._component) {
+            this._component.destroy();
+            this._component = null;
+        }
     }
 }
 
-inherits(ReactModelView, AbstractModelComponent);
+class ReactModelView extends AbstractModelComponent {
+    uid = `ReactModelView${ (`${ Math.random() }`).replace(/\D/g, "") }`;
 
-Object.assign(ReactModelView.prototype, {
-    uid: `ReactModelView${ (`${ Math.random() }`).replace(/\D/g, "") }`,
+    static createElement(props) {
+        return new ReactElement(this, props);
+    }
+
+    preinit(props) {
+        this._options = Object.assign({}, props);
+        if (props.mediator) {
+            props.mediator.trigger("instance", this);
+        }
+    }
 
     getModel(props, state) {
         if (typeof props === "undefined") {
@@ -37,14 +82,14 @@ Object.assign(ReactModelView.prototype, {
             state = this.state;
         }
         return props.model;
-    },
+    }
 
     componentDidMount() {
-        ReactModelView.__super__.componentDidMount.apply(this, arguments);
+        super.componentDidMount(...arguments);
         if (this.props.mediator) {
             this.props.mediator.trigger("mount", this);
         }
-    },
+    }
 
     getEventArgs(props, state) {
         if (typeof props === "undefined") {
@@ -54,19 +99,19 @@ Object.assign(ReactModelView.prototype, {
             state = this.state;
         }
         return [this.getModel(props, state)];
-    },
+    }
 
     attachEvents(model, attr) {
         if (model) {
             model.on("change", this.onModelChange, this);
         }
-    },
+    }
 
     detachEvents(model, attr) {
         if (model) {
             model.off("change", this.onModelChange, this);
         }
-    },
+    }
 
     onModelChange() {
         const options = arguments[arguments.length - 1];
@@ -75,7 +120,7 @@ Object.assign(ReactModelView.prototype, {
             return;
         }
         this._updateView();
-    },
+    }
 
     destroy() {
         if (this.destroyed) {
@@ -95,57 +140,6 @@ Object.assign(ReactModelView.prototype, {
         emptyObject(this);
         this.destroyed = true;
     }
-});
-
-class Element {
-    constructor(Component, props) {
-        const mediator = Object.assign({}, Backbone.Events);
-        this.props = Object.assign({
-            mediator
-        }, props);
-
-        const {container} = this.props;
-        if (!container) {
-            throw new Error("container must be defined");
-        }
-
-        this._internal = React.createElement(Component, this.props);
-    }
-
-    render(done) {
-        const element = this;
-        const {container, mediator} = this.props;
-        if (typeof done === "function") {
-            mediator.once("mount", () => {
-                setTimeout(() => {
-                    done(null, element);
-                }, 0);
-            });
-        }
-
-        mediator.once("instance", component => {
-            element._component = component;
-        });
-
-        mediator.once("destroy", () => {
-            mediator.off("mount");
-            emptyObject(element);
-            emptyObject(mediator);
-        });
-
-        ReactDOM.render(element._internal, container);
-    }
-
-    destroy() {
-        if (this._component) {
-            this._component.destroy();
-            this._component = null;
-        }
-    }
 }
-
-ReactModelView.createElement = function(props) {
-    return new Element(this, props);
-};
 
 module.exports = ReactModelView;

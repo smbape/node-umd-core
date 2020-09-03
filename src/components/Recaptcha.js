@@ -1,7 +1,6 @@
 import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import _ from "%{amd: 'lodash', brunch: '!_', common: 'lodash', node: 'lodash'}";
 import Backbone from "%{amd: 'backbone', brunch: '!Backbone', common: 'backbone', node: 'backbone'}";
-import inherits from "../functions/inherits";
 import * as DOMUtil from "../util/DOMUtil";
 import { loadScript } from "../util/LoaderUtil";
 import AbstractModelComponent from "./AbstractModelComponent";
@@ -71,82 +70,10 @@ function deepDelete(obj, stack, only) {
     return true;
 }
 
-function Recaptcha() {
-    Recaptcha.__super__.constructor.apply(this, arguments);
-}
+class Recaptcha extends AbstractModelComponent {
+    uid = `Recaptcha${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(Recaptcha, AbstractModelComponent);
-
-Object.assign(Recaptcha.prototype, {
-
-    componentDidMount() {
-        Recaptcha.__super__.componentDidMount.apply(this, arguments);
-        this.initWidget();
-    },
-
-    componentWillUnmount() {
-        emitter.off("ready", this._initWidget, this);
-
-        // avoid DOM Leak
-        // dirty function while waiting for a proper destroy method from google
-        const el = this.el;
-
-        const only = (value, key) => {
-            return DOMUtil.isNodeOrElement(value);
-        };
-
-        if (window.___grecaptcha_cfg) {
-            map(window.___grecaptcha_cfg.clients, (widget, index) => {
-                for (const key in widget) {
-                    if (!hasProp.call(widget, key)) {
-                        continue;
-                    }
-
-                    const value = widget[key];
-                    if (value === el) {
-                        deepDelete(widget, [], only);
-                    }
-                }
-            });
-        }
-
-        Recaptcha.__super__.componentWillUnmount.apply(this, arguments);
-    },
-
-    initWidget() {
-        if (loaded) {
-            this._initWidget();
-        } else {
-            emitter.once("ready", this._initWidget, this);
-            Recaptcha.init();
-        }
-    },
-
-    _initWidget() {
-        if (this.el) {
-            const options = _.pick(this.props, ["sitekey", "theme", "type", "size", "tabindex", "expired-callback"]);
-            const onChange = this.props.onChange;
-
-            if ("function" === typeof onChange) {
-                options.callback = response => {
-                    onChange({
-                        ref: this
-                    }, response);
-                };
-            }
-
-            this.widgetId = window.grecaptcha.render(this.el, options);
-        }
-    },
-
-    render() {
-        return <span className="clearfix" />;
-    }
-
-});
-
-Object.assign(Recaptcha, {
-    init() {
+    static init() {
         const app = require("application");
 
         if (!app) {
@@ -175,9 +102,9 @@ Object.assign(Recaptcha, {
             async: true,
             defer: true
         });
-    },
+    }
 
-    reset() {
+    static reset() {
         const app = require("application");
         if (!app) {
             return;
@@ -189,18 +116,79 @@ Object.assign(Recaptcha, {
         app.off("change:language", Recaptcha.reset, Recaptcha);
 
         Recaptcha.init();
-    },
+    }
 
-    getBinding(_binding) {
+    static getBinding(_binding) {
         _binding.get = function(binding) {
-            if (binding._ref instanceof Recaptcha) {
-                return window.grecaptcha.getResponse(binding._ref.widgetId);
-            }
-            return undefined;
+            return binding._ref instanceof Recaptcha ? window.grecaptcha.getResponse(binding._ref.widgetId) : undefined;
         };
 
         return _binding;
     }
-});
+
+    componentDidMount() {
+        super.componentDidMount(...arguments);
+        this.initWidget();
+    }
+
+    componentWillUnmount() {
+        emitter.off("ready", this._initWidget, this);
+
+        // avoid DOM Leak
+        // dirty function while waiting for a proper destroy method from google
+        const el = this.el;
+
+        const only = (value, key) => {
+            return DOMUtil.isNodeOrElement(value);
+        };
+
+        if (window.___grecaptcha_cfg) {
+            map(window.___grecaptcha_cfg.clients, (widget, index) => {
+                for (const key in widget) {
+                    if (!hasProp.call(widget, key)) {
+                        continue;
+                    }
+
+                    const value = widget[key];
+                    if (value === el) {
+                        deepDelete(widget, [], only);
+                    }
+                }
+            });
+        }
+
+        super.componentWillUnmount(...arguments);
+    }
+
+    initWidget() {
+        if (loaded) {
+            this._initWidget();
+        } else {
+            emitter.once("ready", this._initWidget, this);
+            Recaptcha.init();
+        }
+    }
+
+    _initWidget() {
+        if (this.el) {
+            const options = _.pick(this.props, ["sitekey", "theme", "type", "size", "tabindex", "expired-callback"]);
+            const onChange = this.props.onChange;
+
+            if ("function" === typeof onChange) {
+                options.callback = response => {
+                    onChange({
+                        ref: this
+                    }, response);
+                };
+            }
+
+            this.widgetId = window.grecaptcha.render(this.el, options);
+        }
+    }
+
+    render() {
+        return <span className="clearfix" />;
+    }
+}
 
 module.exports = Recaptcha;

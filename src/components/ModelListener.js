@@ -1,23 +1,15 @@
 import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
 import ReactModelView from "../views/ReactModelView";
-import inherits from "../functions/inherits";
 
-function ModelListener() {
-    ModelListener.__super__.constructor.apply(this, arguments);
-}
+class ModelListener extends ReactModelView {
+    uid = `ModelListener${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(ModelListener, ReactModelView);
-
-Object.assign(ModelListener.prototype, {
-
-    componentWillMount() {
-        if (this.props.init !== false) {
-            const callback = this.props.onEvent;
-            this._children = callback.call(this);
+    preinit(props) {
+        super.preinit(props);
+        if (props.init !== false) {
+            this._children = props.onEvent.call(this);
         }
-
-        ModelListener.__super__.componentWillMount.apply(this, arguments);
-    },
+    }
 
     getEventArgs(props, state) {
         if (props == null) {
@@ -29,33 +21,34 @@ Object.assign(ModelListener.prototype, {
         }
 
         return [this.getModel(props, state), props.events, props.onEvent];
-    },
+    }
 
     attachEvents(model, events, eventCallback) {
         if (model) {
             model.on(events, this._onModelEvent, this);
         }
-    },
+    }
 
     detachEvents(model, events, eventCallback) {
         if (model) {
             model.off(events, this._onModelEvent, this);
         }
-    },
+    }
 
     _onModelEvent() {
-        const callback = this.props.onEvent;
-        this._children = callback.apply(this, arguments);
+        this._children = this.props.onEvent.apply(this, arguments);
         this._updateView();
-    },
+    }
 
     render() {
         if (this.props.bare) {
             return this._children || null;
         }
-        return React.createElement(this.props.tagName || "span", this.props, this._children);
-    },
 
-});
+        const props = Object.assign({}, this.props);
+        delete props.onEvent;
+        return React.createElement(this.props.tagName || "span", props, this._children);
+    }
+}
 
 module.exports = ModelListener;

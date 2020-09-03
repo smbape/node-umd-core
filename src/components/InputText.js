@@ -1,4 +1,3 @@
-import inherits from "../functions/inherits";
 import deepCloneElement from "../functions/deepCloneElement";
 import mergeFunctions from "../functions/mergeFunctions";
 import _ from "%{amd: 'lodash', common: 'lodash', brunch: '!_', node: 'lodash'}";
@@ -14,37 +13,62 @@ const getLength = value => {
     return 0;
 };
 
-function InputText() {
-    this._updateClass = this._updateClass.bind(this);
-    this.onBlur = this.onBlur.bind(this);
-    this.onFocus = this.onFocus.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    InputText.__super__.constructor.apply(this, arguments);
-}
+class InputText extends AbstractModelComponent {
+    uid = `InputText${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(InputText, AbstractModelComponent);
-
-Object.assign(InputText.prototype, {
-    uid: `InputText${ (String(Math.random())).replace(/\D/g, "") }`,
-
-    componentWillMount() {
-        if (this.props.binding != null) {
-            this.props.binding.instance = this;
+    static getInputValue(input) {
+        switch (input.nodeName) {
+            case "INPUT":
+                if (input.type === "checkbox") {
+                    return input.checked;
+                }
+                return input.value;
+            case "TEXTAREA":
+            case "SELECT":
+            case "OPTION":
+            case "BUTTON":
+            case "DATALIST":
+            case "OUTPUT":
+                return input.value;
+            default:
+                return input.innerHTML;
         }
+    }
 
+    // 2 way binbing is done on input, not on this component
+    static getBinding(_binding, config) {
+        const Constructor = this;
+
+        _binding.get = binding => {
+            return binding._ref instanceof Constructor ? Constructor.getInputValue(binding._ref.getInput()) : undefined;
+        };
+
+        return _binding;
+    }
+
+    preinit(props) {
+        this._updateClass = this._updateClass.bind(this);
+        this.onBlur = this.onBlur.bind(this);
+        this.onFocus = this.onFocus.bind(this);
+        this.handleChange = this.handleChange.bind(this);
+    }
+
+    initialize(props) {
         this.classList = ["input"];
-        InputText.__super__.componentWillMount.apply(this, arguments);
-    },
+        if (props.binding != null) {
+            props.binding.instance = this;
+        }
+    }
 
     componentDidMount() {
-        InputText.__super__.componentDidMount.call(this);
+        super.componentDidMount();
         this._updateClass();
-    },
+    }
 
     componentDidUpdate(prevProps, prevState) {
-        InputText.__super__.componentDidUpdate.call(this, prevProps, prevState);
+        super.componentDidUpdate(prevProps, prevState);
         this._updateClass();
-    },
+    }
 
     handleChange(evt, ...args) {
         const {onChange} = this.props;
@@ -52,20 +76,20 @@ Object.assign(InputText.prototype, {
             evt.ref = this;
             onChange(evt, ...args);
         }
-    },
+    }
 
     onFocus(evt) {
         this._addClass("input--focused", this.$el, this.classList);
-    },
+    }
 
     onBlur(evt) {
         this._removeClass("input--focused", this.$el, this.classList);
-    },
+    }
 
     getInput() {
         const input = this.refs.input;
         return typeof input.getInput === "function" ? input.getInput() : input;
-    },
+    }
 
     _updateClass() {
         const el = this.getInput();
@@ -75,14 +99,14 @@ Object.assign(InputText.prototype, {
         } else {
             this._addClass("input--has-value", this.$el, this.classList);
         }
-    },
+    }
 
     _addClass(className, $el, classList) {
         if (classList.indexOf(className) === -1) {
             classList.push(className);
         }
         return $el.addClass(className);
-    },
+    }
 
     _removeClass(className, $el, classList) {
         const index = classList.indexOf(className);
@@ -90,7 +114,7 @@ Object.assign(InputText.prototype, {
             classList.splice(index, 1);
         }
         return $el.removeClass(className);
-    },
+    }
 
     render() {
         const props = Object.assign({}, this.props);
@@ -229,40 +253,6 @@ Object.assign(InputText.prototype, {
 
         return React.createElement(...args);
     }
-});
-
-InputText.getInputValue = input => {
-    switch (input.nodeName) {
-        case "INPUT":
-            if (input.type === "checkbox") {
-                return input.checked;
-            }
-            return input.value;
-        case "TEXTAREA":
-        case "SELECT":
-        case "OPTION":
-        case "BUTTON":
-        case "DATALIST":
-        case "OUTPUT":
-            return input.value;
-        default:
-            return input.innerHTML;
-    }
-};
-
-// 2 way binbing is done on input, not on this component
-InputText.getBinding = function(_binding, config) {
-    const Constructor = this;
-
-    _binding.get = binding => {
-        if (binding._ref instanceof Constructor) {
-            return Constructor.getInputValue(binding._ref.getInput());
-        }
-
-        return undefined;
-    };
-
-    return _binding;
-};
+}
 
 module.exports = InputText;

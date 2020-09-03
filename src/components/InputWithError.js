@@ -1,16 +1,11 @@
 import React from "%{ amd: 'react', brunch: '!React', common: 'react' }";
-import inherits from "../functions/inherits";
 import AbstractModelComponent from "./AbstractModelComponent";
 import InputText from "./InputText";
 
-function InputWithError() {
-    InputWithError.__super__.constructor.apply(this, arguments);
-}
+class InputWithError extends AbstractModelComponent {
+    uid = `InputWithError${ (String(Math.random())).replace(/\D/g, "") }`;
 
-inherits(InputWithError, AbstractModelComponent);
-
-Object.assign(InputWithError.prototype, {
-    uid: `InputWithError${ (String(Math.random())).replace(/\D/g, "") }`,
+    static getBinding = false;
 
     _onVStateChange() {
         const {spModel: [model, attr]} = this.props;
@@ -24,7 +19,7 @@ Object.assign(InputWithError.prototype, {
         }
 
         this._updateView();
-    },
+    }
 
     getEventArgs(props, state) {
         if (props == null) {
@@ -41,17 +36,17 @@ Object.assign(InputWithError.prototype, {
             return [model];
         }
         return [model, attr];
-    },
+    }
 
     attachEvents(model, attr) {
         const events = attr ? `vstate:${ attr }` : "vstate";
         model.on(events, this._onVStateChange, this);
-    },
+    }
 
     detachEvents(model, attr) {
         const events = attr ? `vstate:${ attr }` : "vstate";
         model.off(events, this._onVStateChange, this);
-    },
+    }
 
     render() {
         const props = Object.assign({}, this.props);
@@ -92,8 +87,6 @@ Object.assign(InputWithError.prototype, {
 
         return React.createElement(...args);
     }
-});
-
-InputWithError.getBinding = false;
+}
 
 module.exports = InputWithError;
