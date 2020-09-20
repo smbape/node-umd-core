@@ -28,7 +28,7 @@ const inherits = (Child, Parent) => {
         }
     });
 
-    Object.setPrototypeOf(Child.prototype, Parent.prototype);
+    Object.setPrototypeOf(Child, Parent);
 
     return Child;
 };
