@@ -371,6 +371,13 @@ _makeTwoWayBinbing = (type, config, element)->
         when 'object'
             if element.ref is null
                 element.ref = binding.__ref
+            else
+                ref = element.ref
+                __ref = binding.__ref
+                element.ref = (el)->
+                    ref.current = el
+                    __ref.apply @, arguments
+                    return
         else
             `// Nothing to do`
 
